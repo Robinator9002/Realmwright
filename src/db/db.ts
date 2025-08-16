@@ -25,8 +25,8 @@ export class RealmwrightDB extends Dexie {
             // Schema definition string: '++' for auto-incrementing primary key.
             // The following comma-separated values are indexes for fast lookups.
 
-            // The 'worlds' table has an auto-incrementing 'id' and is indexed by 'name'.
-            worlds: '++id, name',
+            // FIX: Added 'createdAt' to the index to allow sorting by this field.
+            worlds: '++id, name, createdAt',
 
             // The 'campaigns' table is indexed by 'worldId' to quickly find all
             // campaigns belonging to a specific world.
