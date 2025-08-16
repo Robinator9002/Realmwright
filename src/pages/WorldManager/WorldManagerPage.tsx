@@ -1,6 +1,7 @@
 // src/pages/WorldManager/WorldManagerPage.tsx
 import React, { useState, useEffect } from 'react';
 import { addWorld, getAllWorlds } from '../../db/queries';
+import { useWorld } from '../../context/WorldContext';
 import type { World } from '../../db/types';
 
 /**
@@ -8,16 +9,14 @@ import type { World } from '../../db/types';
  * This component handles user input for new worlds and displays the list of existing ones.
  */
 const WorldManagerPage: React.FC = () => {
-    // State for the list of worlds fetched from the database
+    const { selectWorld } = useWorld(); // Get the selectWorld function from our context
+
     const [worlds, setWorlds] = useState<World[]>([]);
-    // State for the input fields of the "Create New World" form
     const [newWorldName, setNewWorldName] = useState('');
     const [newWorldDescription, setNewWorldDescription] = useState('');
-    // State to manage loading and error messages
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Function to fetch all worlds from the database and update the state
     const fetchWorlds = async () => {
         try {
             setError(null);
@@ -32,25 +31,21 @@ const WorldManagerPage: React.FC = () => {
         }
     };
 
-    // useEffect hook to run the fetchWorlds function once when the component mounts
     useEffect(() => {
         fetchWorlds();
-    }, []); // The empty dependency array ensures this runs only once on mount
+    }, []);
 
-    // Handler for the form submission
     const handleSubmit = async (event: React.FormEvent) => {
-        event.preventDefault(); // Prevent the default browser form submission
+        event.preventDefault();
         if (!newWorldName.trim()) {
-            alert('World name cannot be empty.'); // Simple validation
+            alert('World name cannot be empty.');
             return;
         }
 
         try {
             await addWorld({ name: newWorldName, description: newWorldDescription });
-            // Reset form fields
             setNewWorldName('');
             setNewWorldDescription('');
-            // Refresh the list of worlds to show the new one
             await fetchWorlds();
         } catch (err) {
             setError('Failed to save the new world.');
@@ -62,7 +57,6 @@ const WorldManagerPage: React.FC = () => {
         <div className="p-8 max-w-4xl mx-auto">
             <h1 className="text-4xl font-bold mb-6">Realmwright</h1>
 
-            {/* Form for creating a new world */}
             <div className="bg-gray-800 p-6 rounded-lg mb-8">
                 <h2 className="text-2xl font-semibold mb-4">Create a New World</h2>
                 <form onSubmit={handleSubmit}>
@@ -107,7 +101,6 @@ const WorldManagerPage: React.FC = () => {
                 </form>
             </div>
 
-            {/* Section for displaying existing worlds */}
             <div>
                 <h2 className="text-2xl font-semibold mb-4">Your Worlds</h2>
                 {error && <p className="text-red-500">{error}</p>}
@@ -116,9 +109,20 @@ const WorldManagerPage: React.FC = () => {
                 ) : worlds.length > 0 ? (
                     <ul className="space-y-4">
                         {worlds.map((world) => (
-                            <li key={world.id} className="bg-gray-800 p-4 rounded-lg">
-                                <h3 className="text-xl font-bold">{world.name}</h3>
-                                <p className="text-gray-400">{world.description}</p>
+                            <li
+                                key={world.id}
+                                className="bg-gray-800 p-4 rounded-lg flex justify-between items-center"
+                            >
+                                <div>
+                                    <h3 className="text-xl font-bold">{world.name}</h3>
+                                    <p className="text-gray-400">{world.description}</p>
+                                </div>
+                                <button
+                                    onClick={() => selectWorld(world)}
+                                    className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md font-semibold"
+                                >
+                                    Enter World &rarr;
+                                </button>
                             </li>
                         ))}
                     </ul>
