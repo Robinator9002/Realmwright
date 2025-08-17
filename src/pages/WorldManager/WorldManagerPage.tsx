@@ -57,16 +57,12 @@ const WorldManagerPage = () => {
     };
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
-            {/* Form for creating a new world */}
-            <div className="bg-panel-bg border border-border p-6 rounded-lg mb-8">
-                <h2 className="text-2xl font-semibold mb-4 text-foreground">Create a New World</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label
-                            htmlFor="worldName"
-                            className="block text-sm font-medium text-foreground/80 mb-1"
-                        >
+        <div className="world-manager">
+            <div className="world-manager__form-container">
+                <h2 className="world-manager__form-title">Create a New World</h2>
+                <form onSubmit={handleSubmit} className="form">
+                    <div className="form__group">
+                        <label htmlFor="worldName" className="form__label">
                             World Name
                         </label>
                         <input
@@ -74,57 +70,47 @@ const WorldManagerPage = () => {
                             type="text"
                             value={newWorldName}
                             onChange={(e) => setNewWorldName(e.target.value)}
-                            className="w-full p-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-accent focus:outline-none"
+                            className="form__input"
                             placeholder="e.g., The Broken Lands of Eldoria"
                         />
                     </div>
-                    <div className="mb-4">
-                        <label
-                            htmlFor="worldDescription"
-                            className="block text-sm font-medium text-foreground/80 mb-1"
-                        >
+                    <div className="form__group">
+                        <label htmlFor="worldDescription" className="form__label">
                             Description
                         </label>
                         <textarea
                             id="worldDescription"
                             value={newWorldDescription}
                             onChange={(e) => setNewWorldDescription(e.target.value)}
-                            className="w-full p-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-accent focus:outline-none"
+                            className="form__textarea"
                             rows={3}
                             placeholder="A brief summary of your world's core concept..."
                         />
                     </div>
-                    <button
-                        type="submit"
-                        className="px-4 py-2 bg-accent hover:opacity-90 rounded-md font-semibold text-white"
-                    >
+                    <button type="submit" className="button button--primary">
                         Create World
                     </button>
                 </form>
             </div>
 
-            {/* List of existing worlds */}
-            <div>
-                <h2 className="text-2xl font-semibold mb-4 text-foreground">Your Worlds</h2>
-                {error && <p className="text-red-500">{error}</p>}
+            <div className="world-manager__list-container">
+                <h2 className="world-manager__list-title">Your Worlds</h2>
+                {error && <p className="error-message">{error}</p>}
                 {isLoading ? (
                     <p>Loading worlds...</p>
                 ) : worlds.length > 0 ? (
-                    <ul className="space-y-4">
+                    <ul className="world-manager__list">
                         {worlds.map((world) => (
-                            <li
-                                key={world.id}
-                                className="bg-panel-bg border border-border p-4 rounded-lg flex justify-between items-center"
-                            >
-                                <div>
-                                    <h3 className="text-xl font-bold text-foreground">
-                                        {world.name}
-                                    </h3>
-                                    <p className="text-foreground/70">{world.description}</p>
+                            <li key={world.id} className="world-manager__list-item">
+                                <div className="world-manager__item-details">
+                                    <h3 className="world-manager__item-title">{world.name}</h3>
+                                    <p className="world-manager__item-description">
+                                        {world.description}
+                                    </p>
                                 </div>
                                 <button
                                     onClick={() => handleEnterWorld(world)}
-                                    className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md font-semibold text-white"
+                                    className="button button--success"
                                 >
                                     Enter World &rarr;
                                 </button>
@@ -132,7 +118,7 @@ const WorldManagerPage = () => {
                         ))}
                     </ul>
                 ) : (
-                    <p className="text-foreground/70">
+                    <p className="world-manager__empty-message">
                         You haven't created any worlds yet. Start by creating one above!
                     </p>
                 )}
