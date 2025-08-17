@@ -68,7 +68,7 @@ export const SettingsPage: FC = () => {
         <div className="settings-page">
             <div className="settings-page__header">
                 <h1 className="settings-page__title">Settings</h1>
-                <button onClick={handleGoBack} className="button">
+                <button onClick={handleGoBack} className="button button--primary">
                     &larr; Back
                 </button>
             </div>
