@@ -8,9 +8,9 @@ import { CharacterManager } from '../../components/specific/CharacterManager/Cha
  * A simple placeholder for content that is not yet implemented.
  */
 const PlaceholderContent: FC<{ title: string }> = ({ title }) => (
-    <div className="bg-gray-800 p-6 rounded-lg">
-        <h2 className="text-2xl font-semibold mb-4 capitalize">{title}</h2>
-        <p className="text-gray-400">This section is under construction.</p>
+    <div className="panel">
+        <h2 className="panel__title capitalize">{title}</h2>
+        <p className="panel__empty-message">This section is under construction.</p>
     </div>
 );
 
@@ -30,11 +30,14 @@ export const WorldDashboardPage: FC = () => {
                 return <CharacterManager />;
             case 'rules':
                 return <PlaceholderContent title="Rules" />;
-            // Add cases for other tabs as they are developed
             default:
-                return <CampaignManager />; // Default to campaigns view
+                return <CampaignManager />;
         }
     };
 
-    return <div className="p-8 max-w-full mx-auto">{renderActiveTabContent()}</div>;
+    return (
+        <div className="world-dashboard">
+            <div className="world-dashboard__grid">{renderActiveTabContent()}</div>
+        </div>
+    );
 };
