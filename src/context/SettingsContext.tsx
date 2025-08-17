@@ -2,50 +2,36 @@
 import { createContext, useState, useContext, useMemo, useEffect } from 'react';
 import type { ReactNode, FC } from 'react';
 
-// Define the available themes
-type Theme = 'light' | 'dark';
+// Define our four specific themes
+export type Theme = 'modern-dark' | 'modern-light' | 'ancient-dark' | 'ancient-light';
 
 // Define the shape of our context
 interface SettingsContextType {
     theme: Theme;
-    toggleTheme: () => void;
+    setTheme: (theme: Theme) => void;
 }
 
-// Create the context
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-// Create the provider component
 export const SettingsProvider: FC<{ children: ReactNode }> = ({ children }) => {
-    // State to hold the current theme, defaulting to the user's system preference
-    const [theme, setTheme] = useState<Theme>(() => {
-        if (
-            typeof window !== 'undefined' &&
-            window.matchMedia('(prefers-color-scheme: dark)').matches
-        ) {
-            return 'dark';
-        }
-        return 'light';
-    });
+    // State to hold the current theme, defaulting to 'modern-dark'.
+    const [theme, setTheme] = useState<Theme>('modern-dark');
 
-    // Effect to apply the theme class to the root HTML element
+    // This effect is the core of our theme engine.
+    // Whenever the `theme` state changes, it updates the `data-theme`
+    // attribute on the root <html> element.
     useEffect(() => {
         const root = window.document.documentElement;
-        root.classList.remove('light', 'dark');
-        root.classList.add(theme);
+        root.setAttribute('data-theme', theme);
     }, [theme]);
 
-    // Function to toggle the theme
-    const toggleTheme = () => {
-        setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
-    };
-
-    // useMemo ensures the context value object is only recreated when theme changes
-    const value = useMemo(() => ({ theme, toggleTheme }), [theme]);
+    // The value object now provides the current theme and a function to set it.
+    const value = useMemo(() => ({ theme, setTheme }), [theme]);
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 };
 
-// Custom hook for easy consumption of the context
+// The custom hook remains the same.
 export const useSettings = (): SettingsContextType => {
     const context = useContext(SettingsContext);
     if (context === undefined) {
