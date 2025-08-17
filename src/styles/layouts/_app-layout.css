@@ -8,4 +8,10 @@
 
 .app-layout__content {
     flex-grow: 1; /* Ensures the main content area fills the available space */
+
+    /* FIX: Explicitly set a z-index to create a new stacking context
+     and ensure it sits above the base background, preventing potential
+     pointer event issues with sticky or fixed elements. */
+    position: relative;
+    z-index: 1;
 }
