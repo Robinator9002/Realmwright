@@ -1,13 +1,15 @@
 // src/pages/CampaignDashboard/CampaignDashboardPage.tsx
 import React from 'react';
+import type { FC } from 'react';
 import { useWorld } from '../../context/WorldContext';
+import { CampaignManager } from '../../components/specific/CampaignManager/CampaignManager';
 
 /**
  * The main dashboard for an active world.
  * This page serves as the central hub for managing campaigns, characters, lore, etc.,
  * for the currently selected world.
  */
-const CampaignDashboardPage: React.FC = () => {
+const CampaignDashboardPage: FC = () => {
     // Consume the WorldContext to get the currently selected world and the function to clear it.
     const { selectedWorld, clearWorld } = useWorld();
 
@@ -48,15 +50,17 @@ const CampaignDashboardPage: React.FC = () => {
                 </button>
             </div>
 
-            {/* Main Content Area - This is where we will add all the other managers */}
-            <div className="bg-gray-800 p-6 rounded-lg">
-                <h2 className="text-2xl font-semibold mb-4">World Dashboard</h2>
-                <p className="text-gray-300">
-                    This is the central dashboard for '{selectedWorld.name}'. From here, you will be
-                    able to manage your campaigns, characters, lore, maps, and rulesets.
-                </p>
-                {/* Future components will go here, e.g., <CampaignList />, <CharacterList />, etc. */}
-            </div>
+            {/* Main Content Area */}
+            {/*
+        Here we render the CampaignManager component.
+        This keeps our dashboard page clean and delegates all campaign-related
+        functionality to the dedicated component.
+      */}
+            <CampaignManager />
+
+            {/* In the future, other managers like CharacterManager, LoreManager, etc.,
+        will be added here as well.
+      */}
         </div>
     );
 };
