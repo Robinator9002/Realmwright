@@ -1,0 +1,23 @@
+/* src/styles/main.css */
+
+/* This is the main entry point for all of our application's styles.
+   It imports all other CSS files in a specific, cascading order. */
+
+/* 1. Foundational styles that everything else depends on. */
+@import url('./base/_variables.css');
+@import url('./base/_reset.css');
+@import url('./base/_base.css');
+
+/* 2. Layout styles for major application containers. */
+/* @import url('./layouts/_app-layout.css'); */
+/* @import url('./layouts/_topbar.css'); */
+
+/* 3. Reusable component styles. */
+/* @import url('./components/_button.css'); */
+/* @import url('./components/_form.css'); */
+
+/* 4. Page-specific styles that might override components. */
+/* @import url('./pages/_world-manager.css'); */
+
+/* NOTE: We have commented out the future files for now.
+   As we create them in the next phase, we will uncomment them here. */
