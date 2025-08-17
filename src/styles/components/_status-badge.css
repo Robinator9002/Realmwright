@@ -1,0 +1,30 @@
+/* src/styles/components/_status-badge.css */
+
+.status-badge {
+    display: inline-block;
+    padding: var(--spacing-1) var(--spacing-2);
+    font-size: 0.75rem; /* 12px */
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 9999px; /* pill shape */
+    line-height: 1;
+    background-color: var(--color-border);
+    color: var(--color-muted-foreground);
+}
+
+/* --- Modifier for Character Types --- */
+
+.status-badge--pc {
+    background-color: var(--color-success);
+    color: #ffffff;
+}
+
+.status-badge--npc {
+    background-color: #4b5563; /* gray-600 */
+    color: #ffffff;
+}
+
+.status-badge--enemy {
+    background-color: var(--color-danger);
+    color: #ffffff;
+}
