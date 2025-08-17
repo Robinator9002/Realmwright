@@ -21,11 +21,9 @@ export const Topbar: FC = () => {
         setActiveSettingsTab,
     } = useView();
 
-    // --- Navigation Handlers ---
-
     const handleExitWorld = () => {
-        clearWorld(); // Clear the selected world from the world context
-        setCurrentView('worlds'); // Switch the view back to the world manager
+        clearWorld();
+        setCurrentView('worlds');
     };
 
     const handleGoToSettings = () => {
@@ -33,20 +31,16 @@ export const Topbar: FC = () => {
     };
 
     const handleGoHome = () => {
-        // If inside a world, just exit to the world manager
         if (selectedWorld) {
             clearWorld();
         }
-        // Always go back to the main world selection screen
         setCurrentView('worlds');
     };
-
-    // --- Render Logic ---
 
     const renderTabs = () => {
         if (currentView === 'world_dashboard') {
             return (
-                <nav className="flex items-end space-x-1">
+                <nav className="topbar__tabs">
                     <TabButton
                         isActive={activeWorldTab === 'campaigns'}
                         onClick={() => setActiveWorldTab('campaigns')}
@@ -70,7 +64,7 @@ export const Topbar: FC = () => {
         }
         if (currentView === 'settings') {
             return (
-                <nav className="flex items-end space-x-1">
+                <nav className="topbar__tabs">
                     <TabButton
                         isActive={activeSettingsTab === 'appearance'}
                         onClick={() => setActiveSettingsTab('appearance')}
@@ -90,48 +84,36 @@ export const Topbar: FC = () => {
     };
 
     return (
-        <header className="bg-gray-900 text-white sticky top-0 z-10 border-b border-gray-700">
-            <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    {/* Left side: Title (now a button to go home) */}
-                    <div className="flex-shrink-0">
-                        <button
-                            onClick={handleGoHome}
-                            className="text-2xl font-bold hover:text-blue-400 transition-colors"
-                        >
-                            {selectedWorld ? selectedWorld.name : 'Realmwright'}
-                        </button>
-                    </div>
+        <header className="topbar">
+            <div className="topbar__main-content">
+                <div className="topbar__title-container">
+                    <button onClick={handleGoHome} className="topbar__title">
+                        {selectedWorld ? selectedWorld.name : 'Realmwright'}
+                    </button>
+                </div>
 
-                    {/* Right side: Actions */}
-                    <div className="flex items-center space-x-4">
-                        {/* Show Exit World button only when a world is selected */}
-                        {selectedWorld && (
-                            <button
-                                onClick={handleExitWorld}
-                                className="px-3 py-2 text-sm rounded-md hover:bg-gray-700"
-                            >
-                                &larr; Exit World
-                            </button>
-                        )}
-                        <button onClick={toggleTheme} className="p-2 rounded-md hover:bg-gray-700">
-                            {theme === 'light' ? '🌙' : '☀️'}
+                <div className="topbar__actions">
+                    {selectedWorld && (
+                        <button onClick={handleExitWorld} className="topbar__action-button">
+                            &larr; Exit World
                         </button>
-                        <button
-                            onClick={handleGoToSettings}
-                            className="p-2 rounded-md hover:bg-gray-700"
-                        >
-                            ⚙️ Settings
-                        </button>
-                    </div>
+                    )}
+                    <button
+                        onClick={toggleTheme}
+                        className="topbar__action-button topbar__action-button--icon"
+                    >
+                        {theme === 'light' ? '🌙' : '☀️'}
+                    </button>
+                    <button
+                        onClick={handleGoToSettings}
+                        className="topbar__action-button topbar__action-button--icon"
+                    >
+                        ⚙️
+                    </button>
                 </div>
             </div>
 
-            {renderTabs() && (
-                <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="border-t border-gray-700 pt-1">{renderTabs()}</div>
-                </div>
-            )}
+            {renderTabs()}
         </header>
     );
 };
