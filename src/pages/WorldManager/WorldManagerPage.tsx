@@ -1,15 +1,16 @@
 // src/pages/WorldManager/WorldManagerPage.tsx
-import React, { useState, useEffect } from 'react';
-import { addWorld, getAllWorlds } from '../../db/queries/world.queries'
+import { useState, useEffect } from 'react';
+import { addWorld, getAllWorlds } from '../../db/queries/world.queries';
 import { useWorld } from '../../context/WorldContext';
+import { useView } from '../../context/ViewContext';
 import type { World } from '../../db/types';
 
 /**
  * The main page for creating, viewing, and selecting Worlds.
- * This component handles user input for new worlds and displays the list of existing ones.
  */
-const WorldManagerPage: React.FC = () => {
-    const { selectWorld } = useWorld(); // Get the selectWorld function from our context
+const WorldManagerPage = () => {
+    const { selectWorld } = useWorld();
+    const { setCurrentView } = useView(); // Get the function to change the main view
 
     const [worlds, setWorlds] = useState<World[]>([]);
     const [newWorldName, setNewWorldName] = useState('');
@@ -53,10 +54,15 @@ const WorldManagerPage: React.FC = () => {
         }
     };
 
+    // This function now handles both state updates
+    const handleEnterWorld = (world: World) => {
+        selectWorld(world);
+        setCurrentView('world_dashboard');
+    };
+
     return (
         <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-4xl font-bold mb-6">Realmwright</h1>
-
+            {/* Form for creating a new world - Unchanged */}
             <div className="bg-gray-800 p-6 rounded-lg mb-8">
                 <h2 className="text-2xl font-semibold mb-4">Create a New World</h2>
                 <form onSubmit={handleSubmit}>
@@ -101,6 +107,7 @@ const WorldManagerPage: React.FC = () => {
                 </form>
             </div>
 
+            {/* List of existing worlds */}
             <div>
                 <h2 className="text-2xl font-semibold mb-4">Your Worlds</h2>
                 {error && <p className="text-red-500">{error}</p>}
@@ -118,7 +125,7 @@ const WorldManagerPage: React.FC = () => {
                                     <p className="text-gray-400">{world.description}</p>
                                 </div>
                                 <button
-                                    onClick={() => selectWorld(world)}
+                                    onClick={() => handleEnterWorld(world)} // Use the new handler
                                     className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md font-semibold"
                                 >
                                     Enter World &rarr;
