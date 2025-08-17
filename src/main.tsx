@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { WorldProvider } from './context/WorldContext.tsx';
+import { AppProviders } from './context/AppProviders.tsx';
 
 // Get the root element from the HTML
 const rootElement = document.getElementById('root')!;
@@ -14,11 +14,11 @@ const root = createRoot(rootElement);
 // Render the application
 root.render(
     <StrictMode>
-        {/* By wrapping the entire App in the WorldProvider, every component
-      inside App can now access the world context via the useWorld() hook.
+        {/* By using our composite AppProviders component, this file remains clean
+      and simple, regardless of how many global contexts we add in the future.
     */}
-        <WorldProvider>
+        <AppProviders>
             <App />
-        </WorldProvider>
+        </AppProviders>
     </StrictMode>,
 );
