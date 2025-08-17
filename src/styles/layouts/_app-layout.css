@@ -1,0 +1,11 @@
+/* src/styles/layouts/_app-layout.css */
+
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-layout__content {
+    flex-grow: 1; /* Ensures the main content area fills the available space */
+}

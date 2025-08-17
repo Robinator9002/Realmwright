@@ -13,13 +13,10 @@ interface AppLayoutProps {
  */
 export const AppLayout: FC<AppLayoutProps> = ({ children }) => {
     return (
-        <div className="min-h-screen flex flex-col bg-gray-900 text-white">
+        // We replace all Tailwind classes with a single, semantic class name.
+        <div className="app-layout">
             <Topbar />
-            <main className="flex-grow">
-                {/* The children prop will be the active page component,
-            which is determined by the logic in App.tsx */}
-                {children}
-            </main>
+            <main className="app-layout__content">{children}</main>
         </div>
     );
 };
