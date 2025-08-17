@@ -1,6 +1,6 @@
 // src/pages/WorldManager/WorldManagerPage.tsx
 import React, { useState, useEffect } from 'react';
-import { addWorld, getAllWorlds } from '../../db/queries';
+import { addWorld, getAllWorlds } from '../../db/queries/world.queries'
 import { useWorld } from '../../context/WorldContext';
 import type { World } from '../../db/types';
 

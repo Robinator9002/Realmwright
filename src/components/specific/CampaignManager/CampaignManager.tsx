@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
-import { addCampaign, getCampaignsForWorld } from '../../../db/queries';
+import { addCampaign, getCampaignsForWorld } from '../../../db/queries/campaign.queries';
 import type { Campaign } from '../../../db/types';
 
 /**
