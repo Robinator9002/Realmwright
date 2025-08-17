@@ -1,11 +1,17 @@
 /* src/styles/layouts/_topbar.css */
 
 .topbar {
-    background-color: var(--color-panel-bg);
+    background-color: var(--color-background);
     border-bottom: 1px solid var(--color-border);
     position: sticky;
     top: 0;
     z-index: 10;
+    /* Add a subtle shadow for depth */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Use a specific color for the dark theme shadow */
+    [data-theme*='dark'] & {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
 }
 
 .topbar__main-content {
@@ -24,6 +30,7 @@
     border: none;
     cursor: pointer;
     transition: color 0.2s ease;
+    padding: 0; /* Remove default button padding */
 }
 
 .topbar__title:hover {
@@ -37,10 +44,13 @@
 }
 
 .topbar__action-button {
+    display: flex; /* Helps center icons */
+    align-items: center;
+    gap: var(--spacing-1);
     background-color: transparent;
-    border: 1px solid var(--color-border);
+    border: 1px solid transparent; /* Start with a transparent border */
     color: var(--color-muted-foreground);
-    padding: var(--spacing-1) var(--spacing-2);
+    padding: var(--spacing-2);
     border-radius: var(--border-radius);
     font-size: 0.875rem; /* 14px */
     font-weight: 600;
@@ -50,21 +60,19 @@
 
 .topbar__action-button:hover {
     background-color: var(--color-panel-bg);
-    border-color: var(--color-accent);
     color: var(--color-accent);
 }
 
 .topbar__action-button--icon {
     padding: var(--spacing-2);
-    font-size: 1.25rem; /* 20px */
     line-height: 1;
 }
 
 .topbar__tabs {
     display: flex;
     gap: var(--spacing-1);
-    padding: 0 var(--spacing-6);
-    border-top: 1px solid var(--color-border);
+    padding: 0 var(--spacing-4);
+    /* Remove the top border, the main topbar border is enough */
 }
 
 /* --- TabButton Styles --- */
@@ -80,17 +88,15 @@
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--color-muted-foreground);
-    margin-bottom: -1px; /* Pulls the button down to overlap the bottom border */
-    border-bottom: 1px solid transparent;
+    margin-bottom: -1px; /* Overlaps the bottom border */
+    border-bottom: 2px solid transparent; /* Use a thicker, transparent border for the inactive state */
 }
 
 .tab-button:hover {
-    background-color: var(--color-panel-bg);
     color: var(--color-foreground);
 }
 
 .tab-button--active {
-    background-color: var(--color-background);
     color: var(--color-accent);
-    border-bottom: 1px solid var(--color-accent);
+    border-bottom-color: var(--color-accent);
 }
