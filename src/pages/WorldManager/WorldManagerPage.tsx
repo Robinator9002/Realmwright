@@ -5,12 +5,9 @@ import { useWorld } from '../../context/WorldContext';
 import { useView } from '../../context/ViewContext';
 import type { World } from '../../db/types';
 
-/**
- * The main page for creating, viewing, and selecting Worlds.
- */
 const WorldManagerPage = () => {
     const { selectWorld } = useWorld();
-    const { setCurrentView } = useView(); // Get the function to change the main view
+    const { setCurrentView } = useView();
 
     const [worlds, setWorlds] = useState<World[]>([]);
     const [newWorldName, setNewWorldName] = useState('');
@@ -54,7 +51,6 @@ const WorldManagerPage = () => {
         }
     };
 
-    // This function now handles both state updates
     const handleEnterWorld = (world: World) => {
         selectWorld(world);
         setCurrentView('world_dashboard');
@@ -62,14 +58,14 @@ const WorldManagerPage = () => {
 
     return (
         <div className="p-8 max-w-4xl mx-auto">
-            {/* Form for creating a new world - Unchanged */}
-            <div className="bg-gray-800 p-6 rounded-lg mb-8">
-                <h2 className="text-2xl font-semibold mb-4">Create a New World</h2>
+            {/* Form for creating a new world */}
+            <div className="bg-panel-bg border border-border p-6 rounded-lg mb-8">
+                <h2 className="text-2xl font-semibold mb-4 text-foreground">Create a New World</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-4">
                         <label
                             htmlFor="worldName"
-                            className="block text-sm font-medium text-gray-300 mb-1"
+                            className="block text-sm font-medium text-foreground/80 mb-1"
                         >
                             World Name
                         </label>
@@ -78,14 +74,14 @@ const WorldManagerPage = () => {
                             type="text"
                             value={newWorldName}
                             onChange={(e) => setNewWorldName(e.target.value)}
-                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            className="w-full p-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-accent focus:outline-none"
                             placeholder="e.g., The Broken Lands of Eldoria"
                         />
                     </div>
                     <div className="mb-4">
                         <label
                             htmlFor="worldDescription"
-                            className="block text-sm font-medium text-gray-300 mb-1"
+                            className="block text-sm font-medium text-foreground/80 mb-1"
                         >
                             Description
                         </label>
@@ -93,14 +89,14 @@ const WorldManagerPage = () => {
                             id="worldDescription"
                             value={newWorldDescription}
                             onChange={(e) => setNewWorldDescription(e.target.value)}
-                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            className="w-full p-2 bg-background border border-border rounded-md focus:ring-2 focus:ring-accent focus:outline-none"
                             rows={3}
                             placeholder="A brief summary of your world's core concept..."
                         />
                     </div>
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold"
+                        className="px-4 py-2 bg-accent hover:opacity-90 rounded-md font-semibold text-white"
                     >
                         Create World
                     </button>
@@ -109,7 +105,7 @@ const WorldManagerPage = () => {
 
             {/* List of existing worlds */}
             <div>
-                <h2 className="text-2xl font-semibold mb-4">Your Worlds</h2>
+                <h2 className="text-2xl font-semibold mb-4 text-foreground">Your Worlds</h2>
                 {error && <p className="text-red-500">{error}</p>}
                 {isLoading ? (
                     <p>Loading worlds...</p>
@@ -118,15 +114,17 @@ const WorldManagerPage = () => {
                         {worlds.map((world) => (
                             <li
                                 key={world.id}
-                                className="bg-gray-800 p-4 rounded-lg flex justify-between items-center"
+                                className="bg-panel-bg border border-border p-4 rounded-lg flex justify-between items-center"
                             >
                                 <div>
-                                    <h3 className="text-xl font-bold">{world.name}</h3>
-                                    <p className="text-gray-400">{world.description}</p>
+                                    <h3 className="text-xl font-bold text-foreground">
+                                        {world.name}
+                                    </h3>
+                                    <p className="text-foreground/70">{world.description}</p>
                                 </div>
                                 <button
-                                    onClick={() => handleEnterWorld(world)} // Use the new handler
-                                    className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md font-semibold"
+                                    onClick={() => handleEnterWorld(world)}
+                                    className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md font-semibold text-white"
                                 >
                                     Enter World &rarr;
                                 </button>
@@ -134,7 +132,7 @@ const WorldManagerPage = () => {
                         ))}
                     </ul>
                 ) : (
-                    <p className="text-gray-400">
+                    <p className="text-foreground/70">
                         You haven't created any worlds yet. Start by creating one above!
                     </p>
                 )}

@@ -2,7 +2,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
-import './index.css';
+import './styles/main.css';
 import { AppProviders } from './context/AppProviders.tsx';
 
 // Get the root element from the HTML
