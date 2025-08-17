@@ -2,24 +2,19 @@
 import type { FC } from 'react';
 import { useView } from '../../context/ViewContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useWorld } from '../../context/WorldContext';
 
-/**
- * A component to render the content for the 'Appearance' tab.
- */
 const AppearanceSettings: FC = () => {
     const { theme, toggleTheme } = useSettings();
 
     return (
-        <div>
-            <h3 className="text-xl font-semibold mb-4">Theme</h3>
-            <div className="flex items-center justify-between bg-gray-800 p-4 rounded-lg">
+        <div className="settings-panel">
+            <h3 className="settings-panel__title">Theme</h3>
+            <div className="settings-panel__row">
                 <p>
-                    Current Theme: <span className="font-semibold capitalize">{theme}</span>
+                    Current Theme: <span className="settings-panel__value">{theme}</span>
                 </p>
-                <button
-                    onClick={toggleTheme}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold"
-                >
+                <button onClick={toggleTheme} className="button button--primary">
                     Toggle Theme
                 </button>
             </div>
@@ -27,22 +22,31 @@ const AppearanceSettings: FC = () => {
     );
 };
 
-/**
- * The main container for all application settings.
- * It uses the ViewContext to determine which settings tab to display.
- */
 export const SettingsPage: FC = () => {
-    const { activeSettingsTab } = useView();
+    const { activeSettingsTab, setCurrentView } = useView();
+    const { selectedWorld } = useWorld();
+
+    const handleGoBack = () => {
+        // If a world is selected, go back to the world dashboard.
+        // Otherwise, go back to the main world manager.
+        if (selectedWorld) {
+            setCurrentView('world_dashboard');
+        } else {
+            setCurrentView('worlds');
+        }
+    };
 
     return (
-        <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-4xl font-bold mb-8">Settings</h1>
+        <div className="settings-page">
+            <div className="settings-page__header">
+                <h1 className="settings-page__title">Settings</h1>
+                <button onClick={handleGoBack} className="button">
+                    &larr; Back
+                </button>
+            </div>
 
-            {/* This is where we switch between different settings content panes */}
-            <div>
+            <div className="settings-page__content">
                 {activeSettingsTab === 'appearance' && <AppearanceSettings />}
-                {/* Add other settings tabs here later, e.g., */}
-                {/* {activeSettingsTab === 'data' && <DataSettings />} */}
             </div>
         </div>
     );
