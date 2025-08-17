@@ -13,8 +13,8 @@
 @import url('./layouts/_topbar.css');
 
 /* 3. Reusable component styles. */
-/* @import url('./components/_button.css'); */
-/* @import url('./components/_form.css'); */
+@import url('./components/_button.css');
+@import url('./components/_form.css');
 
 /* 4. Page-specific styles that might override components. */
-/* @import url('./pages/_world-manager.css'); */
+@import url('./pages/_world-manager.css');
