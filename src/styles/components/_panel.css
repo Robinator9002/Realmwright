@@ -1,0 +1,70 @@
+/* src/styles/components/_panel.css */
+
+/* A reusable panel component for our manager views */
+.panel {
+    background-color: var(--color-panel-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-8);
+}
+
+.panel__title {
+    margin-bottom: 0; /* Override base h2 margin */
+}
+
+.panel__form-section {
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+}
+
+.panel__form-title,
+.panel__list-title {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-4);
+}
+
+.panel__list {
+    list-style: none;
+}
+
+.panel__list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-4);
+    padding: var(--spacing-2) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.panel__list-item:first-child {
+    padding-top: 0;
+}
+
+.panel__list-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.panel__item-details {
+    flex-grow: 1;
+}
+
+.panel__item-title {
+    font-weight: 600;
+    color: var(--color-foreground);
+}
+
+.panel__item-description {
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
+}
+
+.panel__empty-message {
+    color: var(--color-muted-foreground);
+    font-style: italic;
+}
