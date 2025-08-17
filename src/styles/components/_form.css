@@ -9,7 +9,7 @@
 .form__group {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-1);
+    gap: var(--spacing-2); /* Increased gap for better spacing */
 }
 
 .form__label {
@@ -22,23 +22,33 @@
 .form__textarea,
 .form__select {
     width: 100%;
-    padding: var(--spacing-2);
+    padding: var(--spacing-2) var(--spacing-4);
     background-color: var(--color-background);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     color: var(--color-foreground);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    font-size: 1rem; /* Ensure form fields are readable */
 }
 
+/* Add a subtle inner shadow on focus for more depth */
 .form__input:focus,
 .form__textarea:focus,
 .form__select:focus {
     outline: none;
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 2px var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
 }
 
 .form__textarea {
     resize: vertical;
-    min-height: 80px;
+    min-height: 100px;
+    font-family: inherit; /* Ensure textarea inherits the theme font */
+}
+
+/* Style placeholder text */
+.form__input::placeholder,
+.form__textarea::placeholder {
+    color: var(--color-muted-foreground);
+    opacity: 0.7;
 }
