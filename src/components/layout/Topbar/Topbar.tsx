@@ -1,19 +1,14 @@
 // src/components/layout/Topbar/Topbar.tsx
 import type { FC } from 'react';
-// Import the necessary icons from lucide-react
 import { Sun, Moon, Settings } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useView } from '../../../context/ViewContext';
 import { useSettings } from '../../../context/SettingsContext';
 import { TabButton } from './TabButton';
 
-/**
- * The main application Topbar. It is context-aware and displays
- * navigation and actions relevant to the current view.
- */
 export const Topbar: FC = () => {
     const { selectedWorld, clearWorld } = useWorld();
-    const { theme, toggleTheme } = useSettings();
+    const { theme, setTheme } = useSettings(); // Use the new setTheme function
     const {
         currentView,
         setCurrentView,
@@ -39,7 +34,19 @@ export const Topbar: FC = () => {
         setCurrentView('worlds');
     };
 
+    // New, intelligent theme toggling logic
+    const handleThemeToggle = () => {
+        if (theme.includes('modern')) {
+            setTheme(theme === 'modern-light' ? 'modern-dark' : 'modern-light');
+        } else if (theme.includes('ancient')) {
+            setTheme(theme === 'ancient-light' ? 'ancient-dark' : 'ancient-light');
+        }
+    };
+
+    const isLightMode = theme.includes('light');
+
     const renderTabs = () => {
+        // ... (rest of the renderTabs function is unchanged)
         if (currentView === 'world_dashboard') {
             return (
                 <nav className="topbar__tabs">
@@ -101,11 +108,10 @@ export const Topbar: FC = () => {
                         </button>
                     )}
                     <button
-                        onClick={toggleTheme}
+                        onClick={handleThemeToggle}
                         className="topbar__action-button topbar__action-button--icon"
                     >
-                        {/* FIX: Replaced emojis with robust Lucide icons */}
-                        {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
+                        {isLightMode ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
                     <button
                         onClick={handleGoToSettings}
