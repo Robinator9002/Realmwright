@@ -20,3 +20,4 @@
 
 /* 4. Page-specific styles that might override components. */
 @import url('./pages/_world-manager.css');
+@import url('./pages/_world-dashboard.css');

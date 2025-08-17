@@ -1,0 +1,17 @@
+/* src/styles/pages/_world-dashboard.css */
+
+.world-dashboard {
+    width: 100%;
+    padding: var(--spacing-8);
+}
+
+/* This is a placeholder for now. We'll uncomment and expand this
+  once we have more than one panel to display at a time.
+  For now, the single panel will just sit inside the dashboard padding.
+*/
+/* .world-dashboard__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-8);
+}
+*/
