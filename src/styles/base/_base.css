@@ -1,0 +1,50 @@
+/* src/styles/base/_base.css */
+
+/* This file sets the foundational styles for the entire application,
+   applying the design tokens from _variables.css. */
+
+body {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+
+    /* Apply our theme colors */
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+
+    /* Improve font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+h1 {
+    font-size: var(--font-size-4xl);
+}
+h2 {
+    font-size: var(--font-size-2xl);
+}
+h3 {
+    font-size: var(--font-size-xl);
+}
+h4 {
+    font-size: var(--font-size-lg);
+}
+
+a {
+    color: var(--color-accent);
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+}
+
+a:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+}
