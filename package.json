@@ -13,7 +13,6 @@
         "app:dev": "concurrently \"npm run dev\" \"wait-on http-get://localhost:5173 && npm run electron:start\""
     },
     "dependencies": {
-        "@tailwindcss/postcss": "^4.1.12",
         "dexie": "^4.0.11",
         "electron": "^37.3.0",
         "electron-is-dev": "^3.0.1",
@@ -23,7 +22,6 @@
     },
     "devDependencies": {
         "@eslint/js": "^9.33.0",
-        "@tailwindcss/cli": "^4.1.12",
         "@types/react": "^19.1.10",
         "@types/react-dom": "^19.1.7",
         "@vitejs/plugin-react": "^5.0.0",
