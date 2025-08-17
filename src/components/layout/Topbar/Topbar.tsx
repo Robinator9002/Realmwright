@@ -1,5 +1,7 @@
 // src/components/layout/Topbar/Topbar.tsx
 import type { FC } from 'react';
+// Import the necessary icons from lucide-react
+import { Sun, Moon, Settings } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useView } from '../../../context/ViewContext';
 import { useSettings } from '../../../context/SettingsContext';
@@ -102,14 +104,14 @@ export const Topbar: FC = () => {
                         onClick={toggleTheme}
                         className="topbar__action-button topbar__action-button--icon"
                     >
-                        {/* FIX: Swapped icons to show the icon of the CURRENT theme */}
-                        {theme === 'light' ? '☀️' : '🌙'}
+                        {/* FIX: Replaced emojis with robust Lucide icons */}
+                        {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
                     <button
                         onClick={handleGoToSettings}
                         className="topbar__action-button topbar__action-button--icon"
                     >
-                        ⚙️
+                        <Settings size={20} />
                     </button>
                 </div>
             </div>

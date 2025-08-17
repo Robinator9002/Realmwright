@@ -16,6 +16,7 @@
         "dexie": "^4.0.11",
         "electron": "^37.3.0",
         "electron-is-dev": "^3.0.1",
+        "lucide-react": "^0.539.0",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
         "wait-on": "^8.0.4"
