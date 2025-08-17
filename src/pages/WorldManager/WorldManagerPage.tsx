@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react';
 import { addWorld, getAllWorlds } from '../../db/queries/world.queries';
 import { useWorld } from '../../context/WorldContext';
 import { useView } from '../../context/ViewContext';
+import { useModal } from '../../context/ModalContext'; // Import the useModal hook
 import type { World } from '../../db/types';
 
 const WorldManagerPage = () => {
     const { selectWorld } = useWorld();
     const { setCurrentView } = useView();
+    const { showModal } = useModal(); // Get the showModal function
 
     const [worlds, setWorlds] = useState<World[]>([]);
     const [newWorldName, setNewWorldName] = useState('');
@@ -36,7 +38,11 @@ const WorldManagerPage = () => {
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!newWorldName.trim()) {
-            alert('World name cannot be empty.');
+            // Replace the alert() with our new modal system
+            showModal('alert', {
+                title: 'Invalid Input',
+                message: 'World name cannot be empty. Please provide a name for your world.',
+            });
             return;
         }
 
