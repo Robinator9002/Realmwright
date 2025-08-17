@@ -1,5 +1,4 @@
 // src/pages/CampaignDashboard/CampaignDashboardPage.tsx
-import React from 'react';
 import type { FC } from 'react';
 import { useWorld } from '../../context/WorldContext';
 import { CampaignManager } from '../../components/specific/CampaignManager/CampaignManager';
