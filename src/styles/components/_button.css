@@ -2,34 +2,52 @@
 
 .button {
     /* Base styles for all buttons */
-    display: inline-block;
+    display: inline-flex; /* Use flex to easily center content */
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
     padding: var(--spacing-2) var(--spacing-4);
     font-size: 0.875rem; /* 14px */
     font-weight: 600;
     text-align: center;
     text-decoration: none;
-    border: 1px solid transparent;
+    border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-    user-select: none; /* Prevents text selection on click */
+    transition: all 0.2s ease-in-out;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+    /* Default button colors */
+    background-color: var(--color-panel-bg);
+    color: var(--color-foreground);
+}
+
+.button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-muted-foreground);
+}
+
+.button:active {
+    transform: translateY(0px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* --- Button Variants --- */
 
-/* Primary Button (e.g., "Create") */
 .button--primary {
     background-color: var(--color-accent);
-    color: #ffffff; /* Always white text on accent color */
+    color: #ffffff;
     border-color: var(--color-accent);
 }
 
 .button--primary:hover {
     background-color: var(--color-accent-hover);
     border-color: var(--color-accent-hover);
+    color: #ffffff;
 }
 
-/* Success Button (e.g., "Enter") */
 .button--success {
     background-color: var(--color-success);
     color: #ffffff;
@@ -39,6 +57,5 @@
 .button--success:hover {
     background-color: var(--color-success-hover);
     border-color: var(--color-success-hover);
+    color: #ffffff;
 }
-
-/* Add other variants here later, e.g., .button--danger, .button--secondary */
