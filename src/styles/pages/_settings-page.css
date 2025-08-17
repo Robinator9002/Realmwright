@@ -31,13 +31,44 @@
     font-size: var(--font-size-xl);
 }
 
-.settings-panel__row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* --- New Theme Selector Styles --- */
+
+.theme-selector {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-4);
 }
 
-.settings-panel__value {
-    font-weight: 600;
-    text-transform: capitalize;
+.theme-option {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+    padding: var(--spacing-4);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--color-border);
+    background-color: var(--color-background);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.theme-option:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+}
+
+.theme-option--active {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent);
+    background-color: var(--color-panel-bg);
+}
+
+.theme-option__name {
+    font-weight: 700;
+    color: var(--color-foreground);
+}
+
+.theme-option__description {
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
 }
