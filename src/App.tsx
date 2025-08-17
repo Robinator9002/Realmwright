@@ -1,29 +1,37 @@
 // src/App.tsx
-import { useWorld } from './context/WorldContext';
+import { AppLayout } from './components/layout/AppLayout/AppLayout';
+import { useView } from './context/ViewContext';
 import WorldManagerPage from './pages/WorldManager/WorldManagerPage';
-import CampaignDashboardPage from './pages/CampaignDashboard/CampaignDashboardPage';
+import { WorldDashboardPage } from './pages/WorldDashboard/WorldDashboardPage';
+import { SettingsPage } from './pages/SettingsPage/SettingsPage';
+
+/**
+ * A helper component to select which main page to render
+ * based on the current view state.
+ */
+const CurrentView = () => {
+    const { currentView } = useView();
+
+    switch (currentView) {
+        case 'world_dashboard':
+            return <WorldDashboardPage />;
+        case 'settings':
+            return <SettingsPage />;
+        case 'worlds':
+        default:
+            return <WorldManagerPage />;
+    }
+};
 
 /**
  * The root component of the Realmwright application.
- * It acts as a simple conditional router based on the global state.
- * It checks if a world has been selected in the WorldContext and renders
- * the appropriate page.
+ * It sets up the main layout and renders the current view inside it.
  */
 function App() {
-    // Consume the WorldContext to get the currently selected world.
-    const { selectedWorld } = useWorld();
-
     return (
-        <main className="min-h-screen">
-            {/*
-        This is our basic routing logic.
-        - If `selectedWorld` is null, the user is at the top level, so we show
-          the page for managing and selecting worlds.
-        - If `selectedWorld` has a value, the user has entered a world, so we
-          show the main dashboard for that world.
-      */}
-            {selectedWorld ? <CampaignDashboardPage /> : <WorldManagerPage />}
-        </main>
+        <AppLayout>
+            <CurrentView />
+        </AppLayout>
     );
 }
 
