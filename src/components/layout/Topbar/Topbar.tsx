@@ -102,7 +102,8 @@ export const Topbar: FC = () => {
                         onClick={toggleTheme}
                         className="topbar__action-button topbar__action-button--icon"
                     >
-                        {theme === 'light' ? '🌙' : '☀️'}
+                        {/* FIX: Swapped icons to show the icon of the CURRENT theme */}
+                        {theme === 'light' ? '☀️' : '🌙'}
                     </button>
                     <button
                         onClick={handleGoToSettings}
