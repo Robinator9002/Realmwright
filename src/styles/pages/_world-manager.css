@@ -1,0 +1,62 @@
+/* src/styles/pages/_world-manager.css */
+
+.world-manager {
+    max-width: 56rem; /* 896px */
+    margin-left: auto;
+    margin-right: auto;
+    padding: var(--spacing-8);
+}
+
+.world-manager__form-container {
+    background-color: var(--color-panel-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-6);
+    margin-bottom: var(--spacing-8);
+}
+
+.world-manager__form-title,
+.world-manager__list-title {
+    margin-bottom: var(--spacing-6);
+}
+
+.world-manager__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+}
+
+.world-manager__list-item {
+    background-color: var(--color-panel-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-4);
+}
+
+.world-manager__item-details {
+    flex-grow: 1;
+}
+
+.world-manager__item-title {
+    font-size: var(--font-size-xl);
+    color: var(--color-foreground);
+    margin-bottom: var(--spacing-1);
+}
+
+.world-manager__item-description {
+    color: var(--color-muted-foreground);
+}
+
+.world-manager__empty-message {
+    color: var(--color-muted-foreground);
+}
+
+.error-message {
+    color: var(--color-danger);
+    margin-bottom: var(--spacing-4);
+}
