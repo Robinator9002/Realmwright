@@ -1,5 +1,5 @@
 // src/components/specific/CampaignManager/CampaignManager.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
 import { addCampaign, getCampaignsForWorld } from '../../../db/queries/campaign.queries';
@@ -16,7 +16,6 @@ export const CampaignManager: FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // We use useCallback to memoize this function, preventing unnecessary re-renders.
     const fetchCampaigns = useCallback(async () => {
         if (!selectedWorld) return;
 
@@ -33,7 +32,6 @@ export const CampaignManager: FC = () => {
         }
     }, [selectedWorld]);
 
-    // Fetch campaigns when the component mounts or when the selected world changes.
     useEffect(() => {
         fetchCampaigns();
     }, [fetchCampaigns]);
@@ -53,7 +51,7 @@ export const CampaignManager: FC = () => {
             });
             setNewCampaignName('');
             setNewCampaignDescription('');
-            await fetchCampaigns(); // Refresh the list
+            await fetchCampaigns();
         } catch (err) {
             setError('Failed to save the new campaign.');
             console.error(err);
@@ -61,81 +59,65 @@ export const CampaignManager: FC = () => {
     };
 
     return (
-        <div className="bg-gray-800 p-6 rounded-lg mt-8">
-            <h2 className="text-2xl font-semibold mb-4">Campaigns</h2>
+        <div className="panel">
+            <h2 className="panel__title">Campaigns</h2>
 
-            {/* Form for creating a new campaign */}
-            <div className="bg-gray-900 p-4 rounded-md mb-6">
-                <h3 className="text-xl font-semibold mb-3">Create New Campaign</h3>
-                <form onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label
-                                htmlFor="campaignName"
-                                className="block text-sm font-medium text-gray-300 mb-1"
-                            >
-                                Campaign Name
-                            </label>
-                            <input
-                                id="campaignName"
-                                type="text"
-                                value={newCampaignName}
-                                onChange={(e) => setNewCampaignName(e.target.value)}
-                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md"
-                                placeholder="e.g., The Crimson Throne"
-                            />
-                        </div>
-                        <div>
-                            <label
-                                htmlFor="campaignDescription"
-                                className="block text-sm font-medium text-gray-300 mb-1"
-                            >
-                                Description
-                            </label>
-                            <input
-                                id="campaignDescription"
-                                type="text"
-                                value={newCampaignDescription}
-                                onChange={(e) => setNewCampaignDescription(e.target.value)}
-                                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md"
-                                placeholder="A short pitch for the campaign."
-                            />
-                        </div>
+            <div className="panel__form-section">
+                <h3 className="panel__form-title">Create New Campaign</h3>
+                <form onSubmit={handleSubmit} className="form">
+                    <div className="form__group">
+                        <label htmlFor="campaignName" className="form__label">
+                            Campaign Name
+                        </label>
+                        <input
+                            id="campaignName"
+                            type="text"
+                            value={newCampaignName}
+                            onChange={(e) => setNewCampaignName(e.target.value)}
+                            className="form__input"
+                            placeholder="e.g., The Crimson Throne"
+                        />
                     </div>
-                    <button
-                        type="submit"
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md font-semibold"
-                    >
+                    <div className="form__group">
+                        <label htmlFor="campaignDescription" className="form__label">
+                            Description
+                        </label>
+                        <input
+                            id="campaignDescription"
+                            type="text"
+                            value={newCampaignDescription}
+                            onChange={(e) => setNewCampaignDescription(e.target.value)}
+                            className="form__input"
+                            placeholder="A short pitch for the campaign."
+                        />
+                    </div>
+                    <button type="submit" className="button button--primary">
                         Create Campaign
                     </button>
                 </form>
             </div>
 
-            {/* List of existing campaigns */}
-            <div>
-                <h3 className="text-xl font-semibold mb-3">Existing Campaigns</h3>
-                {error && <p className="text-red-500">{error}</p>}
+            <div className="panel__list-section">
+                <h3 className="panel__list-title">Existing Campaigns</h3>
+                {error && <p className="error-message">{error}</p>}
                 {isLoading ? (
                     <p>Loading campaigns...</p>
                 ) : campaigns.length > 0 ? (
-                    <ul className="space-y-3">
+                    <ul className="panel__list">
                         {campaigns.map((campaign) => (
-                            <li
-                                key={campaign.id}
-                                className="bg-gray-700 p-3 rounded-md flex justify-between items-center"
-                            >
-                                <div>
-                                    <h4 className="font-bold">{campaign.name}</h4>
-                                    <p className="text-sm text-gray-400">{campaign.description}</p>
+                            <li key={campaign.id} className="panel__list-item">
+                                <div className="panel__item-details">
+                                    <h4 className="panel__item-title">{campaign.name}</h4>
+                                    <p className="panel__item-description">
+                                        {campaign.description}
+                                    </p>
                                 </div>
-                                <span className="text-xs uppercase font-semibold bg-gray-600 px-2 py-1 rounded-full">
-                                    {campaign.status}
-                                </span>
+                                <span className="status-badge">{campaign.status}</span>
                             </li>
                         ))}
                     </ul>
                 ) : (
-                    <p className="text-gray-400">No campaigns created for this world yet.</p>
+                    <p className="panel__empty-message">No campaigns created for this world yet.</p>
                 )}
             </div>
         </div>
