@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
+import { useModal } from '../../../context/ModalContext'; // 1. Import the hook
 import { addCharacter, getCharactersForWorld } from '../../../db/queries/character.queries';
 import type { Character } from '../../../db/types';
 
@@ -10,6 +11,7 @@ import type { Character } from '../../../db/types';
  */
 export const CharacterManager: FC = () => {
     const { selectedWorld } = useWorld();
+    const { showModal } = useModal(); // 2. Get the showModal function
     const [characters, setCharacters] = useState<Character[]>([]);
 
     const [newCharName, setNewCharName] = useState('');
@@ -41,7 +43,12 @@ export const CharacterManager: FC = () => {
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!newCharName.trim() || !selectedWorld?.id) {
-            alert('Character name cannot be empty.');
+            // 3. Replace the alert with our new modal system
+            showModal('alert', {
+                title: 'Invalid Input',
+                message:
+                    'Character name cannot be empty. Please provide a name for your character.',
+            });
             return;
         }
 

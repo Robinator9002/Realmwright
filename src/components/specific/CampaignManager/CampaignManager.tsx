@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
+import { useModal } from '../../../context/ModalContext'; // 1. Import the hook
 import { addCampaign, getCampaignsForWorld } from '../../../db/queries/campaign.queries';
 import type { Campaign } from '../../../db/types';
 
@@ -10,6 +11,7 @@ import type { Campaign } from '../../../db/types';
  */
 export const CampaignManager: FC = () => {
     const { selectedWorld } = useWorld();
+    const { showModal } = useModal(); // 2. Get the showModal function
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [newCampaignName, setNewCampaignName] = useState('');
     const [newCampaignDescription, setNewCampaignDescription] = useState('');
@@ -39,7 +41,11 @@ export const CampaignManager: FC = () => {
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!newCampaignName.trim() || !selectedWorld) {
-            alert('Campaign name cannot be empty.');
+            // 3. Replace the alert with our new modal system
+            showModal('alert', {
+                title: 'Invalid Input',
+                message: 'Campaign name cannot be empty. Please provide a name for your campaign.',
+            });
             return;
         }
 
