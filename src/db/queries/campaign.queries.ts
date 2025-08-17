@@ -15,7 +15,7 @@ export async function addCampaign(campaign: {
     try {
         const newCampaign: Campaign = {
             ...campaign,
-            status: 'planned', // Default status for new campaigns
+            status: 'planned',
             createdAt: new Date(),
         };
         const id = await db.campaigns.add(newCampaign);
@@ -33,11 +33,23 @@ export async function addCampaign(campaign: {
  */
 export async function getCampaignsForWorld(worldId: number): Promise<Campaign[]> {
     try {
-        // Use the 'where' clause on the 'worldId' index for an efficient query.
         const campaigns = await db.campaigns.where('worldId').equals(worldId).sortBy('name');
         return campaigns;
     } catch (error) {
         console.error(`Failed to get campaigns for world ${worldId}:`, error);
         throw new Error('Could not retrieve campaigns from the database.');
+    }
+}
+
+/**
+ * Deletes a specific Campaign from the database.
+ * @param campaignId - The ID of the campaign to delete.
+ */
+export async function deleteCampaign(campaignId: number): Promise<void> {
+    try {
+        await db.campaigns.delete(campaignId);
+    } catch (error) {
+        console.error(`Failed to delete campaign ${campaignId}:`, error);
+        throw new Error('Could not delete the campaign from the database.');
     }
 }
