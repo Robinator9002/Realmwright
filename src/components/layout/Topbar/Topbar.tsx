@@ -10,7 +10,7 @@ import { TabButton } from './TabButton';
  * navigation and actions relevant to the current view.
  */
 export const Topbar: FC = () => {
-    const { selectedWorld } = useWorld();
+    const { selectedWorld, clearWorld } = useWorld();
     const { theme, toggleTheme } = useSettings();
     const {
         currentView,
@@ -21,9 +21,27 @@ export const Topbar: FC = () => {
         setActiveSettingsTab,
     } = useView();
 
+    // --- Navigation Handlers ---
+
+    const handleExitWorld = () => {
+        clearWorld(); // Clear the selected world from the world context
+        setCurrentView('worlds'); // Switch the view back to the world manager
+    };
+
     const handleGoToSettings = () => {
         setCurrentView('settings');
     };
+
+    const handleGoHome = () => {
+        // If inside a world, just exit to the world manager
+        if (selectedWorld) {
+            clearWorld();
+        }
+        // Always go back to the main world selection screen
+        setCurrentView('worlds');
+    };
+
+    // --- Render Logic ---
 
     const renderTabs = () => {
         if (currentView === 'world_dashboard') {
@@ -47,7 +65,6 @@ export const Topbar: FC = () => {
                     >
                         Rules
                     </TabButton>
-                    {/* Add more world tabs here as we create them */}
                 </nav>
             );
         }
@@ -69,7 +86,6 @@ export const Topbar: FC = () => {
                 </nav>
             );
         }
-        // No tabs for the main 'worlds' view
         return null;
     };
 
@@ -77,15 +93,27 @@ export const Topbar: FC = () => {
         <header className="bg-gray-900 text-white sticky top-0 z-10 border-b border-gray-700">
             <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
-                    {/* Left side: Title */}
+                    {/* Left side: Title (now a button to go home) */}
                     <div className="flex-shrink-0">
-                        <h1 className="text-2xl font-bold">
+                        <button
+                            onClick={handleGoHome}
+                            className="text-2xl font-bold hover:text-blue-400 transition-colors"
+                        >
                             {selectedWorld ? selectedWorld.name : 'Realmwright'}
-                        </h1>
+                        </button>
                     </div>
 
                     {/* Right side: Actions */}
                     <div className="flex items-center space-x-4">
+                        {/* Show Exit World button only when a world is selected */}
+                        {selectedWorld && (
+                            <button
+                                onClick={handleExitWorld}
+                                className="px-3 py-2 text-sm rounded-md hover:bg-gray-700"
+                            >
+                                &larr; Exit World
+                            </button>
+                        )}
                         <button onClick={toggleTheme} className="p-2 rounded-md hover:bg-gray-700">
                             {theme === 'light' ? '🌙' : '☀️'}
                         </button>
@@ -99,7 +127,6 @@ export const Topbar: FC = () => {
                 </div>
             </div>
 
-            {/* Bottom section for tabs, only shown if there are tabs to render */}
             {renderTabs() && (
                 <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="border-t border-gray-700 pt-1">{renderTabs()}</div>
