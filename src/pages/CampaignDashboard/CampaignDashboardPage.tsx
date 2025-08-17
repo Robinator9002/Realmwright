@@ -2,6 +2,7 @@
 import type { FC } from 'react';
 import { useWorld } from '../../context/WorldContext';
 import { CampaignManager } from '../../components/specific/CampaignManager/CampaignManager';
+import { CharacterManager } from '../../components/specific/CharacterManager/CharacterManager';
 
 /**
  * The main dashboard for an active world.
@@ -9,11 +10,8 @@ import { CampaignManager } from '../../components/specific/CampaignManager/Campa
  * for the currently selected world.
  */
 const CampaignDashboardPage: FC = () => {
-    // Consume the WorldContext to get the currently selected world and the function to clear it.
     const { selectedWorld, clearWorld } = useWorld();
 
-    // A safeguard in case this page is rendered without a selected world.
-    // Our routing in App.tsx should prevent this, but it's good practice.
     if (!selectedWorld) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -49,17 +47,13 @@ const CampaignDashboardPage: FC = () => {
                 </button>
             </div>
 
-            {/* Main Content Area */}
-            {/*
-        Here we render the CampaignManager component.
-        This keeps our dashboard page clean and delegates all campaign-related
-        functionality to the dedicated component.
-      */}
-            <CampaignManager />
+            {/* Main Content Area - A grid layout for our manager components */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <CampaignManager />
+                <CharacterManager />
+            </div>
 
-            {/* In the future, other managers like CharacterManager, LoreManager, etc.,
-        will be added here as well.
-      */}
+            {/* In the future, other managers like LoreManager, etc., will be added here. */}
         </div>
     );
 };
