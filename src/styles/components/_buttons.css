@@ -1,0 +1,44 @@
+/* src/styles/components/_button.css */
+
+.button {
+    /* Base styles for all buttons */
+    display: inline-block;
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    border: 1px solid transparent;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    user-select: none; /* Prevents text selection on click */
+}
+
+/* --- Button Variants --- */
+
+/* Primary Button (e.g., "Create") */
+.button--primary {
+    background-color: var(--color-accent);
+    color: #ffffff; /* Always white text on accent color */
+    border-color: var(--color-accent);
+}
+
+.button--primary:hover {
+    background-color: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+}
+
+/* Success Button (e.g., "Enter") */
+.button--success {
+    background-color: var(--color-success);
+    color: #ffffff;
+    border-color: var(--color-success);
+}
+
+.button--success:hover {
+    background-color: var(--color-success-hover);
+    border-color: var(--color-success-hover);
+}
+
+/* Add other variants here later, e.g., .button--danger, .button--secondary */
