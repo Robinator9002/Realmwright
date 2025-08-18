@@ -1,6 +1,5 @@
 // src/db/db.ts
 import Dexie, { type Table } from 'dexie';
-// NEW: Import the StatDefinition type.
 import type { World, Campaign, Character, LoreEntry, StatDefinition } from './types';
 
 /**
@@ -13,7 +12,6 @@ export class RealmwrightDB extends Dexie {
     public campaigns!: Table<Campaign, number>;
     public characters!: Table<Character, number>;
     public lore!: Table<LoreEntry, number>;
-    // NEW: Add the table property for our new stat definitions.
     public statDefinitions!: Table<StatDefinition, number>;
 
     public constructor() {
@@ -34,12 +32,17 @@ export class RealmwrightDB extends Dexie {
             lore: '++id, worldId, category, name',
         });
 
-        // NEW: Version 3 Upgrade
-        // This block adds the new 'statDefinitions' table.
+        // Version 3: Added the 'statDefinitions' table
         this.version(3).stores({
-            // Schema for the new table.
-            // We index 'worldId' for fast lookups and 'name' for sorting.
             statDefinitions: '++id, worldId, name',
+        });
+
+        // NEW: Version 4 Upgrade
+        // This upgrade adds the `stats` property to the characters table.
+        // Dexie will automatically handle adding this property to existing character records
+        // when they are next updated, so we don't need a manual upgrade function.
+        this.version(4).stores({
+            characters: '++id, worldId, *campaignIds, name, stats',
         });
     }
 }

@@ -34,10 +34,13 @@ export interface Character extends BaseManageable {
     type: 'PC' | 'NPC' | 'Enemy';
     campaignIds: number[];
     createdAt: Date;
+    // NEW: A map to store the character's value for each stat.
+    // The key is the `id` of the StatDefinition, and the value is the character's score.
+    // Example: { 1: 18, 2: 14, 3: 50 } for STR, DEX, HP.
+    stats: { [statId: number]: number };
 }
 
 /**
-
  * Represents a single entry in the world's chronicle.
  */
 export interface LoreEntry extends BaseManageable {
@@ -48,11 +51,10 @@ export interface LoreEntry extends BaseManageable {
 }
 
 /**
- * NEW: Represents a definition for a game statistic.
- * This defines the template for a stat, like "Strength" or "Hit Points".
+ * Represents a definition for a game statistic.
  */
 export interface StatDefinition extends BaseManageable {
-    worldId: number; // Foreign key to the World table.
+    worldId: number;
     abbreviation: string; // e.g., "STR", "HP"
     defaultValue: number; // The default value for this stat.
     createdAt: Date;
