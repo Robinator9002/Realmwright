@@ -52,6 +52,13 @@
     color: var(--color-muted-foreground);
 }
 
+/* --- New Styles for Action Buttons --- */
+.world-manager__item-actions {
+    display: flex;
+    gap: var(--spacing-2);
+    flex-shrink: 0; /* Prevents buttons from shrinking */
+}
+
 .world-manager__empty-message {
     color: var(--color-muted-foreground);
 }
