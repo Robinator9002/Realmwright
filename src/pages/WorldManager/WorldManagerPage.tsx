@@ -1,6 +1,6 @@
 // src/pages/WorldManager/WorldManagerPage.tsx
 import { useState, useEffect } from 'react';
-import { addWorld, getAllWorlds, updateWorld } from '../../db/queries/world.queries';
+import { addWorld, getAllWorlds, updateWorld, deleteWorld } from '../../db/queries/world.queries';
 import { useWorld } from '../../context/WorldContext';
 import { useView } from '../../context/ViewContext';
 import { useModal } from '../../context/ModalContext';
@@ -19,7 +19,6 @@ const WorldManagerPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // State for the manage modal
     const [managingWorld, setManagingWorld] = useState<World | null>(null);
     const isManageModalOpen = !!managingWorld;
 
@@ -62,37 +61,31 @@ const WorldManagerPage = () => {
         setCurrentView('world_dashboard');
     };
 
-    // --- Handlers for the ManageModal ---
-
     const handleSaveWorld = async (updatedItem: World) => {
         try {
             await updateWorld(updatedItem.id!, {
                 name: updatedItem.name,
                 description: updatedItem.description,
             });
-            await fetchWorlds(); // Refresh the list
+            await fetchWorlds();
         } catch (err) {
             setError('Failed to update the world.');
         }
     };
 
     const handleDeleteWorld = (worldId: number) => {
-        // First, close the ManageModal
         setManagingWorld(null);
-        // Then, open the confirmation modal
         showModal('confirmation', {
             title: 'Delete World?',
             message: `Are you sure you want to delete this world? This action is permanent and will also delete all associated campaigns and characters.`,
             onConfirm: async () => {
-                // NOTE: The actual deleteWorld function is not yet implemented in queries.
-                // This is a placeholder for the UI flow.
-                console.log(`TODO: Implement deleteWorld(${worldId})`);
-                // try {
-                //   await deleteWorld(worldId);
-                //   await fetchWorlds(); // Refresh the list
-                // } catch (err) {
-                //   setError('Failed to delete the world.');
-                // }
+                // FIX: Replaced the placeholder console.log with the actual delete function call.
+                try {
+                    await deleteWorld(worldId);
+                    await fetchWorlds(); // Refresh the list
+                } catch (err) {
+                    setError('Failed to delete the world.');
+                }
             },
         });
     };
