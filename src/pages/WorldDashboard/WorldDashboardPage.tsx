@@ -5,16 +5,8 @@ import { CampaignManager } from '../../components/specific/CampaignManager/Campa
 import { CharacterManager } from '../../components/specific/CharacterManager/CharacterManager';
 import { LoreManager } from '../../components/specific/LoreManager/LoreManager';
 import { RuleManager } from '../../components/specific/RuleManager/RuleManager';
-
-/**
- * A simple placeholder for content that is not yet implemented.
- */
-const PlaceholderContent: FC<{ title: string }> = ({ title }) => (
-    <div className="panel">
-        <h2 className="panel__title capitalize">{title}</h2>
-        <p className="panel__empty-message">This section is under construction.</p>
-    </div>
-);
+// NEW: Import the real AbilityManager component.
+import { AbilityManager } from '../../components/specific/AbilityManager/AbilityManager';
 
 /**
  * Acts as a content switcher for the main world dashboard area.
@@ -34,9 +26,9 @@ export const WorldDashboardPage: FC = () => {
                 return <LoreManager />;
             case 'rules':
                 return <RuleManager />;
-            // NEW: Add a case to render a placeholder for our new Abilities section.
+            // NEW: Replace the placeholder with the actual AbilityManager component.
             case 'abilities':
-                return <PlaceholderContent title="Abilities" />;
+                return <AbilityManager />;
             default:
                 return <CampaignManager />;
         }
