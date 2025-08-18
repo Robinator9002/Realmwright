@@ -8,8 +8,7 @@
     padding: var(--spacing-6);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-6); /* Reduced gap for a tighter feel */
-    /* Add a subtle transition for theme changes */
+    gap: var(--spacing-6);
     transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -30,7 +29,7 @@
 .panel__form-title,
 .panel__list-title {
     font-size: var(--font-size-lg);
-    font-weight: 700; /* Make subtitles bolder */
+    font-weight: 700;
     margin-bottom: var(--spacing-4);
     color: var(--color-muted-foreground);
     text-transform: uppercase;
@@ -51,7 +50,6 @@
     transition: background-color 0.2s ease;
 }
 
-/* Add a hover effect for list items */
 .panel__list-item:hover {
     background-color: var(--color-background);
 }
@@ -61,7 +59,7 @@
 }
 
 .panel__item-title {
-    font-weight: 700; /* Bolder item titles */
+    font-weight: 700;
     color: var(--color-foreground);
     font-size: var(--font-size-lg);
 }
@@ -70,6 +68,14 @@
     font-size: 0.875rem;
     color: var(--color-muted-foreground);
     font-style: italic;
+}
+
+/* --- New Styles for Action Buttons --- */
+.panel__item-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
+    flex-shrink: 0; /* Prevents buttons from shrinking */
 }
 
 .panel__empty-message {
