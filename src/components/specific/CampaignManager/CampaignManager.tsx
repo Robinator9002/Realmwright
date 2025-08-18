@@ -10,11 +10,12 @@ import {
     updateCampaign,
     deleteCampaign,
 } from '../../../db/queries/campaign.queries';
-import type { Campaign, World } from '../../../db/types';
+// REFACTOR: We no longer need to import World here.
+import type { Campaign } from '../../../db/types';
 import { ManageModal } from '../../common/Modal/ManageModal';
 
-// This is the type our ManageModal expects
-type ManageableItem = World | Campaign;
+// REFACTOR: This local type alias is no longer necessary.
+// type ManageableItem = World | Campaign;
 
 export const CampaignManager: FC = () => {
     const { selectedWorld } = useWorld();
@@ -72,10 +73,9 @@ export const CampaignManager: FC = () => {
 
     // --- Handlers for the ManageModal ---
 
-    const handleSaveCampaign = async (updatedItem: ManageableItem) => {
-        // FIX: We assert that the updatedItem is a Campaign.
-        // This satisfies TypeScript because we know it can only be a Campaign here.
-        const updatedCampaign = updatedItem as Campaign;
+    // REFACTOR: The `updatedItem` is now correctly typed as `Campaign` thanks to the generic modal.
+    // We can safely remove the type assertion `as Campaign`.
+    const handleSaveCampaign = async (updatedCampaign: Campaign) => {
         try {
             await updateCampaign(updatedCampaign.id!, {
                 name: updatedCampaign.name,
@@ -109,6 +109,7 @@ export const CampaignManager: FC = () => {
                 <h2 className="panel__title">Campaigns</h2>
 
                 <div className="panel__form-section">
+                    {/* Form content remains unchanged */}
                     <h3 className="panel__form-title">Create New Campaign</h3>
                     <form onSubmit={handleSubmit} className="form">
                         <div className="form__group">
@@ -178,12 +179,14 @@ export const CampaignManager: FC = () => {
                 </div>
             </div>
 
-            <ManageModal
+            {/* REFACTOR: We now explicitly pass the generic type and the new itemType prop. */}
+            <ManageModal<Campaign>
                 isOpen={isManageModalOpen}
                 onClose={() => setManagingCampaign(null)}
                 item={managingCampaign}
                 onSave={handleSaveCampaign}
                 onDelete={handleDeleteCampaign}
+                itemType="Campaign"
             />
         </>
     );
