@@ -58,26 +58,27 @@ export interface StatDefinition extends BaseManageable {
 }
 
 /**
- * NEW: Defines the structure for ability prerequisites.
- * For the MVP, we'll support a simple list of required ability IDs.
- * This can be expanded later to support logical operators (AND, OR).
+ * Defines the structure for ability prerequisites.
  */
 export interface Prerequisite {
     abilityIds: number[];
 }
 
 /**
- * NEW: Represents a single ability or skill (a "node" in a tree).
+ * Represents a single ability or skill (a "node" in a tree).
  */
 export interface Ability extends BaseManageable {
     worldId: number;
     abilityTreeId: number; // Foreign key to the AbilityTree table.
     prerequisites: Prerequisite; // Structured object for requirements.
     createdAt: Date;
+    // NEW: Optional x and y coordinates for positioning in the visual editor.
+    x?: number;
+    y?: number;
 }
 
 /**
- * NEW: Represents a container for a set of related abilities (a "tree").
+ * Represents a container for a set of related abilities (a "tree").
  */
 export interface AbilityTree extends BaseManageable {
     worldId: number; // Foreign key to the World table.

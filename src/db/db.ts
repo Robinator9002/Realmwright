@@ -1,6 +1,5 @@
 // src/db/db.ts
 import Dexie, { type Table } from 'dexie';
-// NEW: Import the new Ability and AbilityTree types.
 import type {
     World,
     Campaign,
@@ -22,7 +21,6 @@ export class RealmwrightDB extends Dexie {
     public characters!: Table<Character, number>;
     public lore!: Table<LoreEntry, number>;
     public statDefinitions!: Table<StatDefinition, number>;
-    // NEW: Add table properties for our new ability-related tables.
     public abilityTrees!: Table<AbilityTree, number>;
     public abilities!: Table<Ability, number>;
 
@@ -50,12 +48,16 @@ export class RealmwrightDB extends Dexie {
             characters: '++id, worldId, *campaignIds, name, stats',
         });
 
-        // NEW: Version 5 Upgrade
-        // This block adds the two new tables for the ability system.
         this.version(5).stores({
             abilityTrees: '++id, worldId, name',
-            // Index `abilityTreeId` to quickly fetch all abilities for a given tree.
             abilities: '++id, worldId, abilityTreeId, name',
+        });
+
+        // NEW: Version 6 Upgrade
+        // This block adds the optional x and y properties to the abilities table
+        // for storing node positions in the visual editor.
+        this.version(6).stores({
+            abilities: '++id, worldId, abilityTreeId, name, x, y',
         });
     }
 }
