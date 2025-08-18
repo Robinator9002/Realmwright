@@ -45,3 +45,33 @@ export async function getCharactersForWorld(worldId: number): Promise<Character[
         throw new Error('Could not retrieve characters from the database.');
     }
 }
+
+/**
+ * NEW: Updates an existing Character in the database.
+ * @param characterId - The ID of the character to update.
+ * @param updates - An object containing the fields to update. Currently supports name and description.
+ */
+export async function updateCharacter(
+    characterId: number,
+    updates: { name: string; description: string },
+): Promise<void> {
+    try {
+        await db.characters.update(characterId, updates);
+    } catch (error) {
+        console.error(`Failed to update character ${characterId}:`, error);
+        throw new Error('Could not update the character in the database.');
+    }
+}
+
+/**
+ * NEW: Deletes a specific Character from the database.
+ * @param characterId - The ID of the character to delete.
+ */
+export async function deleteCharacter(characterId: number): Promise<void> {
+    try {
+        await db.characters.delete(characterId);
+    } catch (error) {
+        console.error(`Failed to delete character ${characterId}:`, error);
+        throw new Error('Could not delete the character from the database.');
+    }
+}
