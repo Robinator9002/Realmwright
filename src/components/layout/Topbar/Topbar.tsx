@@ -34,7 +34,6 @@ export const Topbar: FC = () => {
         setCurrentView('worlds');
     };
 
-    // This can be simplified, but we'll leave it for a future refactor.
     const handleThemeToggle = () => {
         if (theme.includes('modern')) {
             setTheme(theme === 'modern-light' ? 'modern-dark' : 'modern-light');
@@ -61,7 +60,6 @@ export const Topbar: FC = () => {
                     >
                         Characters
                     </TabButton>
-                    {/* NEW: Add the TabButton for the Lore section. */}
                     <TabButton
                         isActive={activeWorldTab === 'lore'}
                         onClick={() => setActiveWorldTab('lore')}
@@ -73,6 +71,13 @@ export const Topbar: FC = () => {
                         onClick={() => setActiveWorldTab('rules')}
                     >
                         Rules
+                    </TabButton>
+                    {/* NEW: Add the TabButton for the Abilities section. */}
+                    <TabButton
+                        isActive={activeWorldTab === 'abilities'}
+                        onClick={() => setActiveWorldTab('abilities')}
+                    >
+                        Abilities
                     </TabButton>
                 </nav>
             );
