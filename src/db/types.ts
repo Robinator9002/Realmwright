@@ -34,9 +34,6 @@ export interface Character extends BaseManageable {
     type: 'PC' | 'NPC' | 'Enemy';
     campaignIds: number[];
     createdAt: Date;
-    // NEW: A map to store the character's value for each stat.
-    // The key is the `id` of the StatDefinition, and the value is the character's score.
-    // Example: { 1: 18, 2: 14, 3: 50 } for STR, DEX, HP.
     stats: { [statId: number]: number };
 }
 
@@ -55,7 +52,34 @@ export interface LoreEntry extends BaseManageable {
  */
 export interface StatDefinition extends BaseManageable {
     worldId: number;
-    abbreviation: string; // e.g., "STR", "HP"
-    defaultValue: number; // The default value for this stat.
+    abbreviation: string;
+    defaultValue: number;
+    createdAt: Date;
+}
+
+/**
+ * NEW: Defines the structure for ability prerequisites.
+ * For the MVP, we'll support a simple list of required ability IDs.
+ * This can be expanded later to support logical operators (AND, OR).
+ */
+export interface Prerequisite {
+    abilityIds: number[];
+}
+
+/**
+ * NEW: Represents a single ability or skill (a "node" in a tree).
+ */
+export interface Ability extends BaseManageable {
+    worldId: number;
+    abilityTreeId: number; // Foreign key to the AbilityTree table.
+    prerequisites: Prerequisite; // Structured object for requirements.
+    createdAt: Date;
+}
+
+/**
+ * NEW: Represents a container for a set of related abilities (a "tree").
+ */
+export interface AbilityTree extends BaseManageable {
+    worldId: number; // Foreign key to the World table.
     createdAt: Date;
 }

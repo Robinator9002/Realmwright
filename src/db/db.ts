@@ -1,6 +1,15 @@
 // src/db/db.ts
 import Dexie, { type Table } from 'dexie';
-import type { World, Campaign, Character, LoreEntry, StatDefinition } from './types';
+// NEW: Import the new Ability and AbilityTree types.
+import type {
+    World,
+    Campaign,
+    Character,
+    LoreEntry,
+    StatDefinition,
+    Ability,
+    AbilityTree,
+} from './types';
 
 /**
  * The main database class for Realmwright.
@@ -13,6 +22,9 @@ export class RealmwrightDB extends Dexie {
     public characters!: Table<Character, number>;
     public lore!: Table<LoreEntry, number>;
     public statDefinitions!: Table<StatDefinition, number>;
+    // NEW: Add table properties for our new ability-related tables.
+    public abilityTrees!: Table<AbilityTree, number>;
+    public abilities!: Table<Ability, number>;
 
     public constructor() {
         super('RealmwrightDB');
@@ -20,29 +32,30 @@ export class RealmwrightDB extends Dexie {
         // --- Schema Definition ---
         // This is a versioned schema. Dexie handles migrations automatically.
 
-        // Version 1: Initial schema
         this.version(1).stores({
             worlds: '++id, name, createdAt',
             campaigns: '++id, worldId, name',
             characters: '++id, worldId, *campaignIds, name',
         });
 
-        // Version 2: Added the 'lore' table
         this.version(2).stores({
             lore: '++id, worldId, category, name',
         });
 
-        // Version 3: Added the 'statDefinitions' table
         this.version(3).stores({
             statDefinitions: '++id, worldId, name',
         });
 
-        // NEW: Version 4 Upgrade
-        // This upgrade adds the `stats` property to the characters table.
-        // Dexie will automatically handle adding this property to existing character records
-        // when they are next updated, so we don't need a manual upgrade function.
         this.version(4).stores({
             characters: '++id, worldId, *campaignIds, name, stats',
+        });
+
+        // NEW: Version 5 Upgrade
+        // This block adds the two new tables for the ability system.
+        this.version(5).stores({
+            abilityTrees: '++id, worldId, name',
+            // Index `abilityTreeId` to quickly fetch all abilities for a given tree.
+            abilities: '++id, worldId, abilityTreeId, name',
         });
     }
 }
