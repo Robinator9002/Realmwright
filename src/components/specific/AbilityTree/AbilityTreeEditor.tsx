@@ -1,32 +1,48 @@
 // src/components/specific/AbilityTreeEditor/AbilityTreeEditor.tsx
-import { useMemo } from 'react';
+import { useEffect, useCallback } from 'react';
 import type { FC } from 'react';
-import ReactFlow, { Background, Controls, MiniMap } from 'reactflow';
-import 'reactflow/dist/style.css'; // Required styles for React Flow
+import ReactFlow, {
+    Background,
+    Controls,
+    MiniMap,
+    useNodesState,
+    useEdgesState,
+    addEdge,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 
 import type { Ability } from '../../../db/types';
-import type { Node, Edge } from 'reactflow';
-// NEW: Import our custom node component.
+import type { Node, Edge, OnConnect, NodeDragHandler, Connection } from 'reactflow';
 import { AbilityNode } from './AbilityNode';
 
-// Define the props for our new editor component.
+// Define the props for our editor component, now including event handlers.
 interface AbilityTreeEditorProps {
     abilities: Ability[];
+    onNodeDragStop: (node: Node) => void;
+    onConnect: (connection: Connection) => void;
 }
 
-// NEW: Create a nodeTypes object to tell React Flow about our custom node.
-// The key 'abilityNode' must match the `type` we assigned to our nodes.
 const nodeTypes = {
     abilityNode: AbilityNode,
 };
 
 /**
- * A visual, node-based editor for displaying an Ability Tree.
- * This component wraps the React Flow library and transforms our
- * application's Ability data into a format it can render.
+ * A visual, node-based editor for displaying and modifying an Ability Tree.
+ * It now handles user interactions and reports changes back to its parent component.
  */
-export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({ abilities }) => {
-    const { nodes, edges } = useMemo(() => {
+export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
+    abilities,
+    onNodeDragStop,
+    onConnect,
+}) => {
+    // React Flow's built-in hooks for managing state. This is more efficient
+    // than recalculating on every render with useMemo.
+    const [nodes, setNodes, onNodesChange] = useNodesState([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+    // This effect synchronizes the internal state of the editor with the
+    // `abilities` data passed down from the parent.
+    useEffect(() => {
         const initialNodes: Node[] = [];
         const initialEdges: Edge[] = [];
 
@@ -35,7 +51,7 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({ abilities }) => 
                 id: String(ability.id!),
                 position: { x: ability.x || 0, y: ability.y || 0 },
                 data: { label: ability.name, description: ability.description },
-                type: 'abilityNode', // This string tells React Flow to use our custom component
+                type: 'abilityNode',
             });
 
             if (ability.prerequisites?.abilityIds) {
@@ -49,20 +65,44 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({ abilities }) => 
                 }
             }
         }
+        setNodes(initialNodes);
+        setEdges(initialEdges);
+    }, [abilities, setNodes, setEdges]);
 
-        return { nodes: initialNodes, edges: initialEdges };
-    }, [abilities]);
+    // This handler is called when a user finishes dragging a node.
+    // We pass the event up to the parent component to handle the database update.
+    const handleNodeDragStop: NodeDragHandler = useCallback(
+        (_, node) => {
+            onNodeDragStop(node);
+        },
+        [onNodeDragStop],
+    );
+
+    // This handler is called when a user successfully connects two nodes.
+    // We optimistically update the UI by adding the edge, then pass the
+    // connection details up to the parent to update the database.
+    const handleConnect: OnConnect = useCallback(
+        (connection) => {
+            setEdges((eds) => addEdge(connection, eds));
+            onConnect(connection);
+        },
+        [setEdges, onConnect],
+    );
 
     return (
         <div style={{ height: '100%', width: '100%', minHeight: '500px' }}>
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
-                // NEW: Pass the custom nodeTypes to React Flow.
                 nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onNodeDragStop={handleNodeDragStop}
+                onConnect={handleConnect}
                 fitView
-                nodesDraggable={false}
-                nodesConnectable={false}
+                // REFACTOR: The editor is now fully interactive.
+                nodesDraggable={true}
+                nodesConnectable={true}
             >
                 <Background />
                 <Controls />

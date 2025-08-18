@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { Settings } from 'lucide-react';
+import type { Node, Connection } from 'reactflow';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
 import {
@@ -16,7 +17,6 @@ import {
 } from '../../../db/queries/ability.queries';
 import type { Ability, AbilityTree, Prerequisite } from '../../../db/types';
 import { ManageModal } from '../../common/Modal/ManageModal';
-// NEW: Import the visual editor component.
 import { AbilityTreeEditor } from '../AbilityTree/AbilityTreeEditor';
 
 /**
@@ -26,28 +26,23 @@ export const AbilityManager: FC = () => {
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
 
-    // --- State Management ---
     const [abilityTrees, setAbilityTrees] = useState<AbilityTree[]>([]);
     const [selectedTree, setSelectedTree] = useState<AbilityTree | null>(null);
     const [abilities, setAbilities] = useState<Ability[]>([]);
 
-    // Forms State
     const [newTreeName, setNewTreeName] = useState('');
     const [newTreeDesc, setNewTreeDesc] = useState('');
     const [newAbilityName, setNewAbilityName] = useState('');
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityPrereqs, setNewAbilityPrereqs] = useState('');
 
-    // Modals State
     const [managingTree, setManagingTree] = useState<AbilityTree | null>(null);
     const [managingAbility, setManagingAbility] = useState<Ability | null>(null);
 
-    // Loading/Error State
     const [isLoadingTrees, setIsLoadingTrees] = useState(true);
     const [isLoadingAbilities, setIsLoadingAbilities] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // --- Data Fetching ---
     const fetchTrees = useCallback(async () => {
         if (!selectedWorld?.id) return;
         try {
@@ -66,27 +61,24 @@ export const AbilityManager: FC = () => {
         fetchTrees();
     }, [fetchTrees]);
 
-    useEffect(() => {
-        if (!selectedTree?.id) {
-            setAbilities([]);
-            return;
+    // REFACTOR: This function is now a standalone callback for refreshing the ability list.
+    const refreshAbilities = useCallback(async () => {
+        if (!selectedTree?.id) return;
+        try {
+            setError(null);
+            setIsLoadingAbilities(true);
+            const treeAbilities = await getAbilitiesForTree(selectedTree.id);
+            setAbilities(treeAbilities);
+        } catch (err) {
+            setError('Failed to load abilities for the selected tree.');
+        } finally {
+            setIsLoadingAbilities(false);
         }
-        const fetchAbilities = async () => {
-            try {
-                setError(null);
-                setIsLoadingAbilities(true);
-                const treeAbilities = await getAbilitiesForTree(selectedTree.id!);
-                setAbilities(treeAbilities);
-            } catch (err) {
-                setError('Failed to load abilities for the selected tree.');
-            } finally {
-                setIsLoadingAbilities(false);
-            }
-        };
-        fetchAbilities();
     }, [selectedTree]);
 
-    // --- Event Handlers (logic remains the same) ---
+    useEffect(() => {
+        refreshAbilities();
+    }, [refreshAbilities]);
 
     const handleSelectTree = (tree: AbilityTree) => {
         setSelectedTree(tree);
@@ -151,8 +143,7 @@ export const AbilityManager: FC = () => {
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityPrereqs('');
-        const treeAbilities = await getAbilitiesForTree(selectedTree.id!);
-        setAbilities(treeAbilities);
+        await refreshAbilities();
     };
 
     const handleSaveAbility = async (updatedAbility: Ability) => {
@@ -161,8 +152,7 @@ export const AbilityManager: FC = () => {
             description: updatedAbility.description,
             prerequisites: updatedAbility.prerequisites,
         });
-        const treeAbilities = await getAbilitiesForTree(selectedTree!.id!);
-        setAbilities(treeAbilities);
+        await refreshAbilities();
     };
 
     const handleDeleteAbility = (abilityId: number) => {
@@ -172,17 +162,55 @@ export const AbilityManager: FC = () => {
             message: 'Are you sure you want to delete this ability?',
             onConfirm: async () => {
                 await deleteAbility(abilityId);
-                const treeAbilities = await getAbilitiesForTree(selectedTree!.id!);
-                setAbilities(treeAbilities);
+                await refreshAbilities();
             },
         });
+    };
+
+    // --- NEW: Handlers for the Visual Editor ---
+
+    const handleNodeDragStop = async (node: Node) => {
+        const abilityId = parseInt(node.id, 10);
+        const ability = abilities.find((a) => a.id === abilityId);
+        if (ability) {
+            // Update the ability with its new x/y position.
+            await updateAbility(abilityId, {
+                ...ability, // Pass existing data
+                x: node.position.x,
+                y: node.position.y,
+            });
+            // No need to full refresh, just update local state for snappiness
+            setAbilities((prev) =>
+                prev.map((a) =>
+                    a.id === abilityId ? { ...a, x: node.position.x, y: node.position.y } : a,
+                ),
+            );
+        }
+    };
+
+    const handleConnect = async (connection: Connection) => {
+        const sourceId = parseInt(connection.source!, 10);
+        const targetId = parseInt(connection.target!, 10);
+        const targetAbility = abilities.find((a) => a.id === targetId);
+
+        if (targetAbility) {
+            // Add the new source ID to the target's prerequisites, avoiding duplicates.
+            const newPrereqIds = new Set([...targetAbility.prerequisites.abilityIds, sourceId]);
+            const updatedPrerequisites: Prerequisite = { abilityIds: Array.from(newPrereqIds) };
+
+            await updateAbility(targetId, {
+                ...targetAbility,
+                prerequisites: updatedPrerequisites,
+            });
+            await refreshAbilities(); // Refresh to show the new connection data
+        }
     };
 
     return (
         <>
             {error && <p className="error-message mb-4">{error}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* --- Left Panel: Ability Trees (remains the same) --- */}
+                {/* --- Left Panel: Ability Trees --- */}
                 <div className="panel">
                     <h2 className="panel__title">Ability Trees</h2>
                     <div className="panel__form-section">
@@ -275,13 +303,16 @@ export const AbilityManager: FC = () => {
                                     </button>
                                 </form>
                             </div>
-                            {/* REFACTOR: The old list is replaced with our new visual editor. */}
                             <div className="panel__list-section">
                                 <h3 className="panel__list-title">Ability Tree Editor</h3>
                                 {isLoadingAbilities ? (
                                     <p>Loading...</p>
                                 ) : (
-                                    <AbilityTreeEditor abilities={abilities} />
+                                    <AbilityTreeEditor
+                                        abilities={abilities}
+                                        onNodeDragStop={handleNodeDragStop}
+                                        onConnect={handleConnect}
+                                    />
                                 )}
                             </div>
                         </>
@@ -293,7 +324,7 @@ export const AbilityManager: FC = () => {
                 </div>
             </div>
 
-            {/* Modals (remain the same) */}
+            {/* Modals */}
             <ManageModal<AbilityTree>
                 isOpen={!!managingTree}
                 onClose={() => setManagingTree(null)}
