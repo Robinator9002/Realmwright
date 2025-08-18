@@ -42,6 +42,8 @@
     width: 100%;
     max-width: 500px;
     animation: slideIn 0.2s ease-out;
+    display: flex;
+    flex-direction: column;
 }
 
 .modal__header {
@@ -50,6 +52,7 @@
     align-items: center;
     padding: var(--spacing-4);
     border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
 }
 
 .modal__title {
@@ -76,6 +79,7 @@
 .modal__content {
     padding: var(--spacing-6);
     color: var(--color-muted-foreground);
+    flex-grow: 1;
 }
 
 .modal__footer {
@@ -87,4 +91,54 @@
     border-top: 1px solid var(--color-border);
     border-bottom-left-radius: var(--border-radius);
     border-bottom-right-radius: var(--border-radius);
+    flex-shrink: 0;
+}
+
+/* --- ManageModal Specific Styles --- */
+
+.manage-modal__tabs {
+    display: flex;
+    border-bottom: 1px solid var(--color-border);
+    padding: 0 var(--spacing-4);
+    background-color: var(--color-background);
+}
+
+.manage-modal__tab-button {
+    padding: var(--spacing-2) var(--spacing-4);
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--color-muted-foreground);
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.manage-modal__tab-button:hover {
+    color: var(--color-foreground);
+}
+
+.manage-modal__tab-button--active {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+}
+
+.danger-zone {
+    border: 2px solid var(--color-danger);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+    background-color: color-mix(in srgb, var(--color-danger) 10%, transparent);
+}
+
+.danger-zone__title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-danger);
+    margin-bottom: var(--spacing-2);
+}
+
+.danger-zone__text {
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
+    margin-bottom: var(--spacing-4);
 }
