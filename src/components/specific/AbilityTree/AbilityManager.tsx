@@ -1,7 +1,6 @@
 // src/components/specific/AbilityManager/AbilityManager.tsx
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
-// FIX: Removed unused 'PlusCircle' import.
 import { Settings } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
@@ -17,10 +16,11 @@ import {
 } from '../../../db/queries/ability.queries';
 import type { Ability, AbilityTree, Prerequisite } from '../../../db/types';
 import { ManageModal } from '../../common/Modal/ManageModal';
+// NEW: Import the visual editor component.
+import { AbilityTreeEditor } from '../AbilityTree/AbilityTreeEditor';
 
 /**
  * A component for managing Ability Trees and the Abilities within them.
- * This is the non-visual MVP for the Skill Web Weaver.
  */
 export const AbilityManager: FC = () => {
     const { selectedWorld } = useWorld();
@@ -86,13 +86,12 @@ export const AbilityManager: FC = () => {
         fetchAbilities();
     }, [selectedTree]);
 
-    // --- Event Handlers ---
+    // --- Event Handlers (logic remains the same) ---
 
     const handleSelectTree = (tree: AbilityTree) => {
         setSelectedTree(tree);
     };
 
-    // Tree CRUD
     const handleAddTree = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTreeName.trim() || !selectedWorld?.id) return;
@@ -132,7 +131,6 @@ export const AbilityManager: FC = () => {
         });
     };
 
-    // Ability CRUD
     const handleAddAbility = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newAbilityName.trim() || !selectedWorld?.id || !selectedTree?.id) return;
@@ -182,10 +180,9 @@ export const AbilityManager: FC = () => {
 
     return (
         <>
-            {/* FIX: Add a top-level error display for the whole component */}
             {error && <p className="error-message mb-4">{error}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* --- Left Panel: Ability Trees --- */}
+                {/* --- Left Panel: Ability Trees (remains the same) --- */}
                 <div className="panel">
                     <h2 className="panel__title">Ability Trees</h2>
                     <div className="panel__form-section">
@@ -278,33 +275,13 @@ export const AbilityManager: FC = () => {
                                     </button>
                                 </form>
                             </div>
+                            {/* REFACTOR: The old list is replaced with our new visual editor. */}
                             <div className="panel__list-section">
-                                <h3 className="panel__list-title">Tree Abilities</h3>
+                                <h3 className="panel__list-title">Ability Tree Editor</h3>
                                 {isLoadingAbilities ? (
                                     <p>Loading...</p>
                                 ) : (
-                                    <ul className="panel__list">
-                                        {abilities.map((ability) => (
-                                            <li key={ability.id} className="panel__list-item">
-                                                <div className="panel__item-details">
-                                                    <h4 className="panel__item-title">
-                                                        {ability.name}
-                                                    </h4>
-                                                    <p className="panel__item-description">
-                                                        {ability.description}
-                                                    </p>
-                                                </div>
-                                                <div className="panel__item-actions">
-                                                    <button
-                                                        onClick={() => setManagingAbility(ability)}
-                                                        className="button"
-                                                    >
-                                                        <Settings size={16} />
-                                                    </button>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <AbilityTreeEditor abilities={abilities} />
                                 )}
                             </div>
                         </>
@@ -316,7 +293,7 @@ export const AbilityManager: FC = () => {
                 </div>
             </div>
 
-            {/* Modals */}
+            {/* Modals (remain the same) */}
             <ManageModal<AbilityTree>
                 isOpen={!!managingTree}
                 onClose={() => setManagingTree(null)}
