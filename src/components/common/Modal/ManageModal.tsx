@@ -1,23 +1,31 @@
 // src/components/common/Modal/ManageModal.tsx
 import { useState, useEffect } from 'react';
-import type { FC } from 'react';
-import type { World, Campaign } from '../../../db/types';
+// REFACTOR: Import our new base interface. We no longer need to import specific types like World or Campaign.
+import type { BaseManageable } from '../../../db/types';
 
-// The item being managed can be a World or a Campaign.
-// We'll expand this union type as we add more manageable items.
-type ManageableItem = World | Campaign;
-
-export interface ManageModalProps {
+// REFACTOR: The props interface is now generic.
+// It accepts a type `T` that MUST extend our BaseManageable interface.
+// This is the core of our type-safe refactor.
+export interface ManageModalProps<T extends BaseManageable> {
     isOpen: boolean;
     onClose: () => void;
-    item: ManageableItem | null;
-    onSave: (updatedItem: ManageableItem) => Promise<void>;
+    item: T | null;
+    onSave: (updatedItem: T) => Promise<void>; // onSave now expects the specific type T.
     onDelete: (itemId: number) => void;
+    itemType: string; // We now require an explicit `itemType` string for display purposes.
 }
 
 type ModalTab = 'general' | 'danger';
 
-export const ManageModal: FC<ManageModalProps> = ({ isOpen, onClose, item, onSave, onDelete }) => {
+// REFACTOR: The component function is now also generic.
+export const ManageModal = <T extends BaseManageable>({
+    isOpen,
+    onClose,
+    item,
+    onSave,
+    onDelete,
+    itemType, // Use the new, explicit prop.
+}: ManageModalProps<T>) => {
     const [activeTab, setActiveTab] = useState<ModalTab>('general');
 
     // Internal state for the form fields
@@ -38,23 +46,27 @@ export const ManageModal: FC<ManageModalProps> = ({ isOpen, onClose, item, onSav
     }
 
     const handleSave = async () => {
+        // The `updatedItem` is now correctly and safely typed as T.
         const updatedItem = { ...item, name, description };
         await onSave(updatedItem);
         onClose(); // Close the modal after saving
     };
 
     const handleDelete = () => {
+        // item.id is guaranteed to exist if the item is not null.
         onDelete(item.id!);
         // The parent component will handle closing this modal
         // after the confirmation modal is resolved.
     };
 
-    const itemType = 'worldId' in item ? 'Campaign' : 'World';
+    // REFACTOR: The old, brittle type check has been removed. We now rely on the `itemType` prop.
+    // const itemType = 'worldId' in item ? 'Campaign' : 'World'; // DELETED!
 
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal manage-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal__header">
+                    {/* Use the itemType prop for the title */}
                     <h2 className="modal__title">Manage {itemType}</h2>
                     <button onClick={onClose} className="modal__close-button">
                         &times;
@@ -85,6 +97,7 @@ export const ManageModal: FC<ManageModalProps> = ({ isOpen, onClose, item, onSav
                         <form className="form">
                             <div className="form__group">
                                 <label htmlFor="itemName" className="form__label">
+                                    {/* Use the itemType prop for the label */}
                                     {itemType} Name
                                 </label>
                                 <input
@@ -112,6 +125,7 @@ export const ManageModal: FC<ManageModalProps> = ({ isOpen, onClose, item, onSav
 
                     {activeTab === 'danger' && (
                         <div className="danger-zone">
+                            {/* Use the itemType prop for the danger zone text */}
                             <h3 className="danger-zone__title">Delete this {itemType}</h3>
                             <p className="danger-zone__text">
                                 Once you delete this {itemType}, there is no going back. Please be
