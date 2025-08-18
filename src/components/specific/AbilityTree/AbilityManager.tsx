@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { Settings } from 'lucide-react';
-import type { Node, Connection } from 'reactflow';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
 import {
@@ -17,33 +16,37 @@ import {
 } from '../../../db/queries/ability.queries';
 import type { Ability, AbilityTree, Prerequisite } from '../../../db/types';
 import { ManageModal } from '../../common/Modal/ManageModal';
-// FIX: Corrected the import path based on the new file structure.
-import { AbilityTreeEditor } from '../AbilityTree/AbilityTreeEditor';
 
 /**
  * A component for managing Ability Trees and the Abilities within them.
+ * This is the non-visual MVP for the Skill Web Weaver.
  */
 export const AbilityManager: FC = () => {
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
 
+    // --- State Management ---
     const [abilityTrees, setAbilityTrees] = useState<AbilityTree[]>([]);
     const [selectedTree, setSelectedTree] = useState<AbilityTree | null>(null);
     const [abilities, setAbilities] = useState<Ability[]>([]);
 
+    // Forms State
     const [newTreeName, setNewTreeName] = useState('');
     const [newTreeDesc, setNewTreeDesc] = useState('');
     const [newAbilityName, setNewAbilityName] = useState('');
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityPrereqs, setNewAbilityPrereqs] = useState('');
 
+    // Modals State
     const [managingTree, setManagingTree] = useState<AbilityTree | null>(null);
     const [managingAbility, setManagingAbility] = useState<Ability | null>(null);
 
+    // Loading/Error State
     const [isLoadingTrees, setIsLoadingTrees] = useState(true);
     const [isLoadingAbilities, setIsLoadingAbilities] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // --- Data Fetching ---
     const fetchTrees = useCallback(async () => {
         if (!selectedWorld?.id) return;
         try {
@@ -62,8 +65,12 @@ export const AbilityManager: FC = () => {
         fetchTrees();
     }, [fetchTrees]);
 
+    // REFACTOR: This is now a standalone refresh function.
     const refreshAbilities = useCallback(async () => {
-        if (!selectedTree?.id) return;
+        if (!selectedTree?.id) {
+            setAbilities([]);
+            return;
+        }
         try {
             setError(null);
             setIsLoadingAbilities(true);
@@ -78,12 +85,15 @@ export const AbilityManager: FC = () => {
 
     useEffect(() => {
         refreshAbilities();
-    }, [refreshAbilities]);
+    }, [selectedTree]); // Depends only on selectedTree now
+
+    // --- Event Handlers ---
 
     const handleSelectTree = (tree: AbilityTree) => {
         setSelectedTree(tree);
     };
 
+    // Tree CRUD
     const handleAddTree = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTreeName.trim() || !selectedWorld?.id) return;
@@ -123,6 +133,7 @@ export const AbilityManager: FC = () => {
         });
     };
 
+    // Ability CRUD
     const handleAddAbility = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newAbilityName.trim() || !selectedWorld?.id || !selectedTree?.id) return;
@@ -133,6 +144,7 @@ export const AbilityManager: FC = () => {
             .filter((id) => !isNaN(id));
         const prerequisites: Prerequisite = { abilityIds: prereqIds };
 
+        // FIX: We must `await` the database operation before refreshing.
         await addAbility({
             name: newAbilityName,
             description: newAbilityDesc,
@@ -143,14 +155,16 @@ export const AbilityManager: FC = () => {
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityPrereqs('');
+        // Now that we've waited, this will fetch the CORRECT, updated list.
         await refreshAbilities();
     };
 
     const handleSaveAbility = async (updatedAbility: Ability) => {
-        // FIX: Only send the properties that the simple ManageModal can change.
+        // FIX: We must `await` the database operation before refreshing.
         await updateAbility(updatedAbility.id!, {
             name: updatedAbility.name,
             description: updatedAbility.description,
+            prerequisites: updatedAbility.prerequisites,
         });
         await refreshAbilities();
     };
@@ -161,44 +175,11 @@ export const AbilityManager: FC = () => {
             title: 'Delete Ability?',
             message: 'Are you sure you want to delete this ability?',
             onConfirm: async () => {
+                // FIX: We must `await` the database operation before refreshing.
                 await deleteAbility(abilityId);
                 await refreshAbilities();
             },
         });
-    };
-
-    // --- Handlers for the Visual Editor ---
-
-    const handleNodeDragStop = async (node: Node) => {
-        const abilityId = parseInt(node.id, 10);
-        // FIX: Send only the updated position data, not the whole ability object.
-        await updateAbility(abilityId, {
-            x: node.position.x,
-            y: node.position.y,
-        });
-        // Optimistically update local state for a snappy UI response.
-        setAbilities((prev) =>
-            prev.map((a) =>
-                a.id === abilityId ? { ...a, x: node.position.x, y: node.position.y } : a,
-            ),
-        );
-    };
-
-    const handleConnect = async (connection: Connection) => {
-        const sourceId = parseInt(connection.source!, 10);
-        const targetId = parseInt(connection.target!, 10);
-        const targetAbility = abilities.find((a) => a.id === targetId);
-
-        if (targetAbility) {
-            const newPrereqIds = new Set([...targetAbility.prerequisites.abilityIds, sourceId]);
-            const updatedPrerequisites: Prerequisite = { abilityIds: Array.from(newPrereqIds) };
-
-            // FIX: Send only the updated prerequisites data.
-            await updateAbility(targetId, {
-                prerequisites: updatedPrerequisites,
-            });
-            await refreshAbilities(); // Full refresh to ensure data consistency.
-        }
     };
 
     return (
@@ -299,15 +280,32 @@ export const AbilityManager: FC = () => {
                                 </form>
                             </div>
                             <div className="panel__list-section">
-                                <h3 className="panel__list-title">Ability Tree Editor</h3>
+                                <h3 className="panel__list-title">Tree Abilities</h3>
                                 {isLoadingAbilities ? (
                                     <p>Loading...</p>
                                 ) : (
-                                    <AbilityTreeEditor
-                                        abilities={abilities}
-                                        onNodeDragStop={handleNodeDragStop}
-                                        onConnect={handleConnect}
-                                    />
+                                    <ul className="panel__list">
+                                        {abilities.map((ability) => (
+                                            <li key={ability.id} className="panel__list-item">
+                                                <div className="panel__item-details">
+                                                    <h4 className="panel__item-title">
+                                                        {ability.name}
+                                                    </h4>
+                                                    <p className="panel__item-description">
+                                                        {ability.description}
+                                                    </p>
+                                                </div>
+                                                <div className="panel__item-actions">
+                                                    <button
+                                                        onClick={() => setManagingAbility(ability)}
+                                                        className="button"
+                                                    >
+                                                        <Settings size={16} />
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 )}
                             </div>
                         </>
