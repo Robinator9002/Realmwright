@@ -34,3 +34,20 @@ export async function getAllWorlds(): Promise<World[]> {
         throw new Error('Could not retrieve worlds from the database.');
     }
 }
+
+/**
+ * Updates an existing World in the database.
+ * @param worldId - The ID of the world to update.
+ * @param updates - An object containing the fields to update (e.g., name, description).
+ */
+export async function updateWorld(
+    worldId: number,
+    updates: { name: string; description: string },
+): Promise<void> {
+    try {
+        await db.worlds.update(worldId, updates);
+    } catch (error) {
+        console.error(`Failed to update world ${worldId}:`, error);
+        throw new Error('Could not update the world in the database.');
+    }
+}
