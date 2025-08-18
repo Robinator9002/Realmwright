@@ -61,6 +61,8 @@ const WorldManagerPage = () => {
         setCurrentView('world_dashboard');
     };
 
+    // This function's signature `(updatedItem: World)` now perfectly matches
+    // the generic `onSave` prop from our updated ManageModal. No changes needed.
     const handleSaveWorld = async (updatedItem: World) => {
         try {
             await updateWorld(updatedItem.id!, {
@@ -79,7 +81,6 @@ const WorldManagerPage = () => {
             title: 'Delete World?',
             message: `Are you sure you want to delete this world? This action is permanent and will also delete all associated campaigns and characters.`,
             onConfirm: async () => {
-                // FIX: Replaced the placeholder console.log with the actual delete function call.
                 try {
                     await deleteWorld(worldId);
                     await fetchWorlds(); // Refresh the list
@@ -96,6 +97,7 @@ const WorldManagerPage = () => {
                 <div className="world-manager__form-container">
                     <h2 className="world-manager__form-title">Create a New World</h2>
                     <form onSubmit={handleSubmit} className="form">
+                        {/* Form content remains unchanged */}
                         <div className="form__group">
                             <label htmlFor="worldName" className="form__label">
                                 World Name
@@ -168,12 +170,14 @@ const WorldManagerPage = () => {
                 </div>
             </div>
 
-            <ManageModal
+            {/* REFACTOR: We now explicitly pass the generic type and the new itemType prop. */}
+            <ManageModal<World>
                 isOpen={isManageModalOpen}
                 onClose={() => setManagingWorld(null)}
                 item={managingWorld}
                 onSave={handleSaveWorld}
                 onDelete={handleDeleteWorld}
+                itemType="World"
             />
         </>
     );
