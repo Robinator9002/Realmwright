@@ -51,3 +51,27 @@ export async function updateWorld(
         throw new Error('Could not update the world in the database.');
     }
 }
+
+/**
+ * Deletes a World and all its associated data (Campaigns, Characters) from the database.
+ * This is a transactional operation to ensure data integrity.
+ * @param worldId - The ID of the world to delete.
+ */
+export async function deleteWorld(worldId: number): Promise<void> {
+    try {
+        // Dexie's transaction block. If any operation inside fails, all are rolled back.
+        await db.transaction('rw', db.worlds, db.campaigns, db.characters, async () => {
+            // 1. Delete all campaigns belonging to this world.
+            await db.campaigns.where('worldId').equals(worldId).delete();
+
+            // 2. Delete all characters belonging to this world.
+            await db.characters.where('worldId').equals(worldId).delete();
+
+            // 3. Finally, delete the world itself.
+            await db.worlds.delete(worldId);
+        });
+    } catch (error) {
+        console.error(`Failed to delete world ${worldId} and its data:`, error);
+        throw new Error('Could not delete the world from the database.');
+    }
+}
