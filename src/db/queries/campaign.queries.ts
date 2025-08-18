@@ -42,6 +42,23 @@ export async function getCampaignsForWorld(worldId: number): Promise<Campaign[]>
 }
 
 /**
+ * Updates an existing Campaign in the database.
+ * @param campaignId - The ID of the campaign to update.
+ * @param updates - An object containing the fields to update (e.g., name, description).
+ */
+export async function updateCampaign(
+    campaignId: number,
+    updates: { name: string; description: string },
+): Promise<void> {
+    try {
+        await db.campaigns.update(campaignId, updates);
+    } catch (error) {
+        console.error(`Failed to update campaign ${campaignId}:`, error);
+        throw new Error('Could not update the campaign in the database.');
+    }
+}
+
+/**
  * Deletes a specific Campaign from the database.
  * @param campaignId - The ID of the campaign to delete.
  */
