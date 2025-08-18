@@ -5,7 +5,7 @@
  * a consistent core structure.
  */
 export interface BaseManageable {
-    id?: number; // Optional: The auto-incrementing primary key from Dexie.
+    id?: number;
     name: string; // The title or name of the entity.
     description: string; // A short summary or description.
 }
@@ -37,14 +37,23 @@ export interface Character extends BaseManageable {
 }
 
 /**
- * NEW: Represents a single entry in the world's chronicle.
- * This can be an article about a faction, a location, a historical event, etc.
+
+ * Represents a single entry in the world's chronicle.
  */
 export interface LoreEntry extends BaseManageable {
-    worldId: number; // Foreign key to the World table.
-    // A user-defined category for organization (e.g., 'Faction', 'Location', 'Deity').
+    worldId: number;
     category: string;
-    // The main content of the lore entry. Will support rich text in the future.
     content: string;
+    createdAt: Date;
+}
+
+/**
+ * NEW: Represents a definition for a game statistic.
+ * This defines the template for a stat, like "Strength" or "Hit Points".
+ */
+export interface StatDefinition extends BaseManageable {
+    worldId: number; // Foreign key to the World table.
+    abbreviation: string; // e.g., "STR", "HP"
+    defaultValue: number; // The default value for this stat.
     createdAt: Date;
 }
