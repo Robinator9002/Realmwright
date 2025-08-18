@@ -193,7 +193,7 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
                         Cancel
                     </button>
                     <button onClick={handleSave} className="button button--primary">
-                        Save Changes
+                        {isEditMode ? "Save Changes" : "Create Character"}
                     </button>
                 </div>
             </div>
