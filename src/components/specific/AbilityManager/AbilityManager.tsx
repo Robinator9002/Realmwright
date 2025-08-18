@@ -1,7 +1,8 @@
 // src/components/specific/AbilityManager/AbilityManager.tsx
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
-import { Settings, PlusCircle } from 'lucide-react';
+// FIX: Removed unused 'PlusCircle' import.
+import { Settings } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
 import {
@@ -111,7 +112,6 @@ export const AbilityManager: FC = () => {
             description: updatedTree.description,
         });
         await fetchTrees();
-        // If the updated tree is the selected one, update the state
         if (selectedTree?.id === updatedTree.id) {
             setSelectedTree(updatedTree);
         }
@@ -137,7 +137,6 @@ export const AbilityManager: FC = () => {
         e.preventDefault();
         if (!newAbilityName.trim() || !selectedWorld?.id || !selectedTree?.id) return;
 
-        // Simple parsing for MVP: comma-separated numbers
         const prereqIds = newAbilityPrereqs
             .split(',')
             .map((id) => parseInt(id.trim(), 10))
@@ -154,13 +153,11 @@ export const AbilityManager: FC = () => {
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityPrereqs('');
-        // Manually trigger ability refetch for the selected tree
         const treeAbilities = await getAbilitiesForTree(selectedTree.id!);
         setAbilities(treeAbilities);
     };
 
     const handleSaveAbility = async (updatedAbility: Ability) => {
-        // For MVP, manage modal only edits name/desc. Prereqs are preserved.
         await updateAbility(updatedAbility.id!, {
             name: updatedAbility.name,
             description: updatedAbility.description,
@@ -185,6 +182,8 @@ export const AbilityManager: FC = () => {
 
     return (
         <>
+            {/* FIX: Add a top-level error display for the whole component */}
+            {error && <p className="error-message mb-4">{error}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* --- Left Panel: Ability Trees --- */}
                 <div className="panel">
