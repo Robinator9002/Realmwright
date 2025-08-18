@@ -3,6 +3,8 @@ import type { FC } from 'react';
 import { useView } from '../../context/ViewContext';
 import { CampaignManager } from '../../components/specific/CampaignManager/CampaignManager';
 import { CharacterManager } from '../../components/specific/CharacterManager/CharacterManager';
+// NEW: Import the real LoreManager component.
+import { LoreManager } from '../../components/specific/LoreManager/LoreManager';
 
 /**
  * A simple placeholder for content that is not yet implemented.
@@ -28,10 +30,9 @@ export const WorldDashboardPage: FC = () => {
                 return <CampaignManager />;
             case 'characters':
                 return <CharacterManager />;
-            // NEW: Add a case to render a placeholder for our new Lore section.
-            // This will be replaced with the actual LoreManager component once it's built.
+            // NEW: Replace the placeholder with the actual LoreManager component.
             case 'lore':
-                return <PlaceholderContent title="Lore" />;
+                return <LoreManager />;
             case 'rules':
                 return <PlaceholderContent title="Rules" />;
             default:
