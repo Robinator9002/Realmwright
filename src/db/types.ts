@@ -1,21 +1,17 @@
 // src/db/types.ts
 
 /**
- * REFACTOR: A new base interface for all manageable entities.
- * This establishes a contract that any item we want to manage via our
- * generic modal must have these core properties. This is the foundation
- * for our type-safe generic component.
+ * A base interface for all manageable entities, ensuring they have
+ * a consistent core structure.
  */
 export interface BaseManageable {
     id?: number; // Optional: The auto-incrementing primary key from Dexie.
-    name: string;
-    description: string;
+    name: string; // The title or name of the entity.
+    description: string; // A short summary or description.
 }
 
 /**
  * Represents a single World, the top-level container for all content.
- * Each world is a self-contained universe.
- * REFACTOR: Now extends BaseManageable to inherit id, name, and description.
  */
 export interface World extends BaseManageable {
     createdAt: Date;
@@ -23,27 +19,32 @@ export interface World extends BaseManageable {
 
 /**
  * Represents a Campaign within a specific World.
- * This is a single story arc or adventure.
- * REFACTOR: Now extends BaseManageable.
  */
 export interface Campaign extends BaseManageable {
-    worldId: number; // Foreign key to the World table.
+    worldId: number;
     status: 'active' | 'archived' | 'planned';
     createdAt: Date;
 }
 
 /**
- * Represents a Character.
- * Characters belong to a World and can be associated with multiple Campaigns.
- * REFACTOR: Now extends BaseManageable.
+ * Represents a Character within a specific World.
  */
 export interface Character extends BaseManageable {
-    worldId: number; // Foreign key to the World table.
+    worldId: number;
     type: 'PC' | 'NPC' | 'Enemy';
-    // An array of campaign IDs this character is involved in.
     campaignIds: number[];
     createdAt: Date;
 }
 
-// We will add more interfaces here as we build out other features
-// like Lore, Abilities, Rules, etc.
+/**
+ * NEW: Represents a single entry in the world's chronicle.
+ * This can be an article about a faction, a location, a historical event, etc.
+ */
+export interface LoreEntry extends BaseManageable {
+    worldId: number; // Foreign key to the World table.
+    // A user-defined category for organization (e.g., 'Faction', 'Location', 'Deity').
+    category: string;
+    // The main content of the lore entry. Will support rich text in the future.
+    content: string;
+    createdAt: Date;
+}
