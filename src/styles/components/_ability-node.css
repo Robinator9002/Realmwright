@@ -1,0 +1,48 @@
+/* src/styles/components/_ability-node.css */
+
+.ability-node {
+    background-color: var(--color-background);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius);
+    width: 200px; /* A fixed width for consistency */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease-in-out;
+}
+
+/* The selected state is automatically applied by React Flow */
+.react-flow__node.selected .ability-node {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
+.ability-node__header {
+    background-color: var(--color-panel-bg);
+    padding: var(--spacing-2) var(--spacing-4);
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.ability-node__title {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--color-foreground);
+    margin: 0;
+}
+
+.ability-node__content {
+    padding: var(--spacing-4);
+}
+
+.ability-node__description {
+    font-size: 0.875rem;
+    color: var(--color-muted-foreground);
+    margin: 0;
+}
+
+.ability-node__handle {
+    width: 8px !important;
+    height: 8px !important;
+    background-color: var(--color-accent) !important;
+    border: 2px solid var(--color-background) !important;
+}
