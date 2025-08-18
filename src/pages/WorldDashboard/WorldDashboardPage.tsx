@@ -28,6 +28,10 @@ export const WorldDashboardPage: FC = () => {
                 return <CampaignManager />;
             case 'characters':
                 return <CharacterManager />;
+            // NEW: Add a case to render a placeholder for our new Lore section.
+            // This will be replaced with the actual LoreManager component once it's built.
+            case 'lore':
+                return <PlaceholderContent title="Lore" />;
             case 'rules':
                 return <PlaceholderContent title="Rules" />;
             default:

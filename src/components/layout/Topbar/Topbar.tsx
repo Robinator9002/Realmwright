@@ -8,7 +8,7 @@ import { TabButton } from './TabButton';
 
 export const Topbar: FC = () => {
     const { selectedWorld, clearWorld } = useWorld();
-    const { theme, setTheme } = useSettings(); // Use the new setTheme function
+    const { theme, setTheme } = useSettings();
     const {
         currentView,
         setCurrentView,
@@ -34,7 +34,7 @@ export const Topbar: FC = () => {
         setCurrentView('worlds');
     };
 
-    // New, intelligent theme toggling logic
+    // This can be simplified, but we'll leave it for a future refactor.
     const handleThemeToggle = () => {
         if (theme.includes('modern')) {
             setTheme(theme === 'modern-light' ? 'modern-dark' : 'modern-light');
@@ -46,7 +46,6 @@ export const Topbar: FC = () => {
     const isLightMode = theme.includes('light');
 
     const renderTabs = () => {
-        // ... (rest of the renderTabs function is unchanged)
         if (currentView === 'world_dashboard') {
             return (
                 <nav className="topbar__tabs">
@@ -61,6 +60,13 @@ export const Topbar: FC = () => {
                         onClick={() => setActiveWorldTab('characters')}
                     >
                         Characters
+                    </TabButton>
+                    {/* NEW: Add the TabButton for the Lore section. */}
+                    <TabButton
+                        isActive={activeWorldTab === 'lore'}
+                        onClick={() => setActiveWorldTab('lore')}
+                    >
+                        Lore
                     </TabButton>
                     <TabButton
                         isActive={activeWorldTab === 'rules'}
