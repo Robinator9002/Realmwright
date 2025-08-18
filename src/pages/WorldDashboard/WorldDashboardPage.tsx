@@ -1,12 +1,12 @@
 // src/pages/WorldDashboard/WorldDashboardPage.tsx
 import type { FC } from 'react';
 import { useView } from '../../context/ViewContext';
-import { CampaignManager } from '../../components/specific/CampaignManager/CampaignManager';
-import { CharacterManager } from '../../components/specific/CharacterManager/CharacterManager';
-import { LoreManager } from '../../components/specific/LoreManager/LoreManager';
-import { RuleManager } from '../../components/specific/RuleManager/RuleManager';
+import { CampaignManager } from '../../components/specific/Campaign/CampaignManager';
+import { CharacterManager } from '../../components/specific/Character/CharacterManager';
+import { LoreManager } from '../../components/specific/Lore/LoreManager';
+import { RuleManager } from '../../components/specific/Rules/RuleManager';
 // NEW: Import the real AbilityManager component.
-import { AbilityManager } from '../../components/specific/AbilityManager/AbilityManager';
+import { AbilityManager } from '../../components/specific/AbilityTree/AbilityManager';
 
 /**
  * Acts as a content switcher for the main world dashboard area.
