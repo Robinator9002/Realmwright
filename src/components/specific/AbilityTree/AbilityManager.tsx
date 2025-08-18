@@ -17,6 +17,7 @@ import {
 } from '../../../db/queries/ability.queries';
 import type { Ability, AbilityTree, Prerequisite } from '../../../db/types';
 import { ManageModal } from '../../common/Modal/ManageModal';
+// FIX: Corrected the import path based on the new file structure.
 import { AbilityTreeEditor } from '../AbilityTree/AbilityTreeEditor';
 
 /**
@@ -61,7 +62,6 @@ export const AbilityManager: FC = () => {
         fetchTrees();
     }, [fetchTrees]);
 
-    // REFACTOR: This function is now a standalone callback for refreshing the ability list.
     const refreshAbilities = useCallback(async () => {
         if (!selectedTree?.id) return;
         try {
@@ -147,10 +147,10 @@ export const AbilityManager: FC = () => {
     };
 
     const handleSaveAbility = async (updatedAbility: Ability) => {
+        // FIX: Only send the properties that the simple ManageModal can change.
         await updateAbility(updatedAbility.id!, {
             name: updatedAbility.name,
             description: updatedAbility.description,
-            prerequisites: updatedAbility.prerequisites,
         });
         await refreshAbilities();
     };
@@ -167,25 +167,21 @@ export const AbilityManager: FC = () => {
         });
     };
 
-    // --- NEW: Handlers for the Visual Editor ---
+    // --- Handlers for the Visual Editor ---
 
     const handleNodeDragStop = async (node: Node) => {
         const abilityId = parseInt(node.id, 10);
-        const ability = abilities.find((a) => a.id === abilityId);
-        if (ability) {
-            // Update the ability with its new x/y position.
-            await updateAbility(abilityId, {
-                ...ability, // Pass existing data
-                x: node.position.x,
-                y: node.position.y,
-            });
-            // No need to full refresh, just update local state for snappiness
-            setAbilities((prev) =>
-                prev.map((a) =>
-                    a.id === abilityId ? { ...a, x: node.position.x, y: node.position.y } : a,
-                ),
-            );
-        }
+        // FIX: Send only the updated position data, not the whole ability object.
+        await updateAbility(abilityId, {
+            x: node.position.x,
+            y: node.position.y,
+        });
+        // Optimistically update local state for a snappy UI response.
+        setAbilities((prev) =>
+            prev.map((a) =>
+                a.id === abilityId ? { ...a, x: node.position.x, y: node.position.y } : a,
+            ),
+        );
     };
 
     const handleConnect = async (connection: Connection) => {
@@ -194,15 +190,14 @@ export const AbilityManager: FC = () => {
         const targetAbility = abilities.find((a) => a.id === targetId);
 
         if (targetAbility) {
-            // Add the new source ID to the target's prerequisites, avoiding duplicates.
             const newPrereqIds = new Set([...targetAbility.prerequisites.abilityIds, sourceId]);
             const updatedPrerequisites: Prerequisite = { abilityIds: Array.from(newPrereqIds) };
 
+            // FIX: Send only the updated prerequisites data.
             await updateAbility(targetId, {
-                ...targetAbility,
                 prerequisites: updatedPrerequisites,
             });
-            await refreshAbilities(); // Refresh to show the new connection data
+            await refreshAbilities(); // Full refresh to ensure data consistency.
         }
     };
 

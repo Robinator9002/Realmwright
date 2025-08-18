@@ -2,13 +2,8 @@
 import { db } from '../db';
 import type { Ability, AbilityTree, Prerequisite } from '../types';
 
-// --- AbilityTree Queries ---
+// --- AbilityTree Queries (unchanged) ---
 
-/**
- * Adds a new Ability Tree to the database, linked to a specific World.
- * @param treeData - An object containing the new tree's details.
- * @returns The ID of the newly created ability tree.
- */
 export async function addAbilityTree(treeData: {
     name: string;
     description: string;
@@ -27,11 +22,6 @@ export async function addAbilityTree(treeData: {
     }
 }
 
-/**
- * Retrieves all Ability Trees for a specific World, sorted by name.
- * @param worldId - The ID of the world whose trees are to be fetched.
- * @returns A promise that resolves to an array of AbilityTree objects.
- */
 export async function getAbilityTreesForWorld(worldId: number): Promise<AbilityTree[]> {
     try {
         const trees = await db.abilityTrees.where('worldId').equals(worldId).sortBy('name');
@@ -42,11 +32,6 @@ export async function getAbilityTreesForWorld(worldId: number): Promise<AbilityT
     }
 }
 
-/**
- * Updates an existing Ability Tree in the database.
- * @param treeId - The ID of the ability tree to update.
- * @param updates - An object containing the fields to update.
- */
 export async function updateAbilityTree(
     treeId: number,
     updates: { name: string; description: string },
@@ -59,17 +44,10 @@ export async function updateAbilityTree(
     }
 }
 
-/**
- * Deletes an Ability Tree and all Abilities within it.
- * This is a transactional operation to ensure data integrity.
- * @param treeId - The ID of the ability tree to delete.
- */
 export async function deleteAbilityTree(treeId: number): Promise<void> {
     try {
         await db.transaction('rw', db.abilityTrees, db.abilities, async () => {
-            // 1. Delete all abilities belonging to this tree.
             await db.abilities.where('abilityTreeId').equals(treeId).delete();
-            // 2. Delete the tree itself.
             await db.abilityTrees.delete(treeId);
         });
     } catch (error) {
@@ -80,11 +58,6 @@ export async function deleteAbilityTree(treeId: number): Promise<void> {
 
 // --- Ability Queries ---
 
-/**
- * Adds a new Ability to a specific Ability Tree.
- * @param abilityData - An object containing the new ability's details.
- * @returns The ID of the newly created ability.
- */
 export async function addAbility(abilityData: {
     name: string;
     description: string;
@@ -105,11 +78,6 @@ export async function addAbility(abilityData: {
     }
 }
 
-/**
- * Retrieves all Abilities for a specific Ability Tree, sorted by name.
- * @param abilityTreeId - The ID of the tree whose abilities are to be fetched.
- * @returns A promise that resolves to an array of Ability objects.
- */
 export async function getAbilitiesForTree(abilityTreeId: number): Promise<Ability[]> {
     try {
         const abilities = await db.abilities
@@ -123,14 +91,26 @@ export async function getAbilitiesForTree(abilityTreeId: number): Promise<Abilit
     }
 }
 
+// FIX: A dedicated type for the updatable fields of an Ability.
+// This makes our function signatures explicit and type-safe.
+export type UpdateAbilityPayload = {
+    name: string;
+    description: string;
+    prerequisites: Prerequisite;
+    x: number;
+    y: number;
+};
+
 /**
- * Updates an existing Ability in the database.
+ * FIX: Updates an existing Ability in the database.
+ * The `updates` parameter is now a Partial of the payload, meaning you can
+ * provide only the properties you want to change (e.g., just position, or just prerequisites).
  * @param abilityId - The ID of the ability to update.
  * @param updates - An object containing the fields to update.
  */
 export async function updateAbility(
     abilityId: number,
-    updates: { name: string; description: string; prerequisites: Prerequisite },
+    updates: Partial<UpdateAbilityPayload>,
 ): Promise<void> {
     try {
         await db.abilities.update(abilityId, updates);
@@ -140,10 +120,6 @@ export async function updateAbility(
     }
 }
 
-/**
- * Deletes a specific Ability from the database.
- * @param abilityId - The ID of the ability to delete.
- */
 export async function deleteAbility(abilityId: number): Promise<void> {
     try {
         await db.abilities.delete(abilityId);
