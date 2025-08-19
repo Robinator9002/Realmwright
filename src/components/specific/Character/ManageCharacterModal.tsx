@@ -2,7 +2,8 @@
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
 import { getStatDefinitionsForWorld } from '../../../db/queries/rule.queries';
-import { getAbilityTreesForWorld } from '../../../db/queries/ability.queries';
+// FIX: Import the missing 'getAbilitiesForTree' function.
+import { getAbilityTreesForWorld, getAbilitiesForTree } from '../../../db/queries/ability.queries';
 // NEW: Import queries and types for Character Classes.
 import { getClassesForWorld } from '../../../db/queries/class.queries';
 import type {
