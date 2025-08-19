@@ -1,35 +1,37 @@
 // src/db/queries/character.queries.ts
 import { db } from '../db';
 import type { Character } from '../types';
-import { getStatDefinitionsForWorld } from './rule.queries';
 
-// The creation data now includes the optional classId.
+// The creation data now requires a classId.
 type CreateCharacterData = {
     name: string;
     description: string;
     type: 'PC' | 'NPC' | 'Enemy';
     worldId: number;
-    classId?: number; // NEW: Allow specifying a class on creation.
+    classId: number;
 };
 
 /**
- * Adds a new Character to the database, linked to a specific World.
+ * Adds a new Character to the database, instantiated from a specific Class blueprint.
  * @param characterData - An object containing the character's details.
  * @returns The ID of the newly created character.
  */
 export async function addCharacter(characterData: CreateCharacterData): Promise<number> {
     try {
-        const statDefinitions = await getStatDefinitionsForWorld(characterData.worldId);
-        const initialStats: { [statId: number]: number } = {};
-        for (const stat of statDefinitions) {
-            initialStats[stat.id!] = stat.defaultValue;
+        // Fetch the class blueprint to use as a template.
+        const classBlueprint = await db.characterClasses.get(characterData.classId);
+        if (!classBlueprint) {
+            throw new Error(`Class with ID ${characterData.classId} not found.`);
         }
 
         const newCharacter: Character = {
             ...characterData,
             campaignIds: [],
-            stats: initialStats,
+            // The character's initial stats are a copy of the class's base stats.
+            stats: { ...classBlueprint.baseStats },
             learnedAbilities: [],
+            // Initialize with an empty object for instance-specific data.
+            instanceData: {},
             createdAt: new Date(),
         };
 
@@ -62,12 +64,11 @@ export type UpdateCharacterPayload = {
     type: 'PC' | 'NPC' | 'Enemy';
     stats: { [statId: number]: number };
     learnedAbilities: number[];
-    classId?: number; // NEW: Allow updating the class.
+    instanceData: { [blockId: string]: any };
 };
 
 /**
  * Updates an existing Character in the database.
- * The `updates` parameter is a Partial, allowing for flexible updates.
  * @param characterId - The ID of the character to update.
  * @param updates - An object containing the fields to update.
  */
