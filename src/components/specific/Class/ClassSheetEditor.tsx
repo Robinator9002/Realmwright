@@ -3,8 +3,9 @@ import { useState, type FC } from 'react';
 import { ArrowLeft, X, Type, BarChart2, Swords, Backpack, FileText } from 'lucide-react';
 import type { CharacterClass, SheetPage, SheetBlock } from '../../../db/types';
 import { updateClass } from '../../../db/queries/class.queries';
-// NEW: Import the first real block component.
 import { StatsBlock } from '../SheetBlocks/StatsBlock';
+// NEW: Import the DetailsBlock component.
+import { DetailsBlock } from '../SheetBlocks/DetailsBlock';
 
 export interface ClassSheetEditorProps {
     characterClass: CharacterClass;
@@ -27,12 +28,12 @@ const BlockRenderer: FC<{ block: SheetBlock; characterClass: CharacterClass }> =
     characterClass,
 }) => {
     switch (block.type) {
+        // NEW: Add a case to render the DetailsBlock.
+        case 'details':
+            return <DetailsBlock characterClass={characterClass} />;
         case 'stats':
-            // Render the actual StatsBlock component
             return <StatsBlock baseStats={characterClass.baseStats} />;
-        // Add cases for other block types here as we build them
         default:
-            // Placeholder for block types we haven't built yet
             return (
                 <div className="sheet-block__header">
                     <span className="sheet-block__type">{block.type.replace('_', ' ')}</span>
@@ -97,7 +98,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 <div className="sheet-editor__canvas">
                     {sheet[0].blocks.map((block) => (
                         <div key={block.id} className="sheet-block">
-                            {/* NEW: Use the BlockRenderer to display the correct component */}
                             <BlockRenderer block={block} characterClass={characterClass} />
                             <button
                                 onClick={() => handleRemoveBlock(block.id)}
