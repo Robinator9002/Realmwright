@@ -1,37 +1,36 @@
 /* src/styles/components/_ability-manager.css */
 
-/* FIX: New styles to support the focused editor layout and fix stacking issues. */
-
-/* This makes the main panel a flex container that can grow vertically. */
+/* Styles to support the focused editor layout and fix stacking issues. */
 .ability-editor-panel {
     display: flex;
     flex-direction: column;
-    /* This is important for flex-grow to work inside a grid/flex parent */
     align-self: stretch;
-
-    /* NEW: These properties make the editor a full-screen overlay within its container. */
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 20; /* Ensures it sits on top of the tree list */
-    background-color: var(--color-panel-bg); /* Makes it opaque, hiding content below */
+    z-index: 20;
+    background-color: var(--color-panel-bg);
 }
 
-/* This class on the editor's parent section makes it take up all available vertical space. */
 .ability-editor-panel .flex-grow {
     flex-grow: 1;
-    /* This is necessary to contain the React Flow component */
     position: relative;
-    min-height: 400px; /* A minimum height for smaller screens */
+    min-height: 400px;
 }
 
-/* This ensures the React Flow wrapper div fills its parent. */
 .ability-editor-wrapper {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+}
+
+/* NEW: Styles for the tier lines in the background of the editor */
+.react-flow__background .tier-line {
+    stroke: var(--color-border);
+    stroke-width: 2;
+    stroke-dasharray: 5 5; /* Creates a dashed line effect */
 }

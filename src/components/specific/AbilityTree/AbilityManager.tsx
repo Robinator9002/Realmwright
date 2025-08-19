@@ -30,16 +30,14 @@ export const AbilityManager: FC = () => {
     const [selectedTree, setSelectedTree] = useState<AbilityTree | null>(null);
     const [abilities, setAbilities] = useState<Ability[]>([]);
 
-    // NEW: State to manage the number of tiers in the editor.
-    const [tierCount, setTierCount] = useState(5); // Default to 5 tiers for now.
+    const [tierCount, setTierCount] = useState(5);
 
-    // Forms State
     const [newTreeName, setNewTreeName] = useState('');
     const [newTreeDesc, setNewTreeDesc] = useState('');
     const [newAbilityName, setNewAbilityName] = useState('');
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityPrereqs, setNewAbilityPrereqs] = useState('');
-    const [newAbilityTier, setNewAbilityTier] = useState(1); // Default to tier 1.
+    const [newAbilityTier, setNewAbilityTier] = useState(1);
 
     const [managingTree, setManagingTree] = useState<AbilityTree | null>(null);
     const [managingAbility, setManagingAbility] = useState<Ability | null>(null);
@@ -146,7 +144,7 @@ export const AbilityManager: FC = () => {
             prerequisites,
             worldId: selectedWorld.id,
             abilityTreeId: selectedTree.id,
-            tier: newAbilityTier, // Pass the selected tier.
+            tier: newAbilityTier,
         });
         setNewAbilityName('');
         setNewAbilityDesc('');
@@ -175,15 +173,21 @@ export const AbilityManager: FC = () => {
         });
     };
 
-    const handleNodeDragStop = async (node: Node) => {
+    // REFACTOR: The handler now receives the new tier from the editor.
+    const handleNodeDragStop = async (node: Node, closestTier: number) => {
         const abilityId = parseInt(node.id, 10);
+        // Save the new position AND the new tier.
         await updateAbility(abilityId, {
             x: node.position.x,
             y: node.position.y,
+            tier: closestTier,
         });
+        // Optimistically update local state for a snappy UI response.
         setAbilities((prev) =>
             prev.map((a) =>
-                a.id === abilityId ? { ...a, x: node.position.x, y: node.position.y } : a,
+                a.id === abilityId
+                    ? { ...a, x: node.position.x, y: node.position.y, tier: closestTier }
+                    : a,
             ),
         );
     };
@@ -202,8 +206,6 @@ export const AbilityManager: FC = () => {
             await refreshAbilities();
         }
     };
-
-    // --- RENDER FUNCTIONS FOR DIFFERENT VIEWS ---
 
     const renderTreeView = () => (
         <div className="panel">
@@ -286,7 +288,6 @@ export const AbilityManager: FC = () => {
                         placeholder="Description"
                         className="form__input"
                     />
-                    {/* NEW: Dropdown for selecting the tier */}
                     <div className="form__group">
                         <label htmlFor="abilityTier" className="form__label">
                             Tier
@@ -323,6 +324,7 @@ export const AbilityManager: FC = () => {
                 ) : (
                     <AbilityTreeEditor
                         abilities={abilities}
+                        tierCount={tierCount}
                         onNodeDragStop={handleNodeDragStop}
                         onConnect={handleConnect}
                     />

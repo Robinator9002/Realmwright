@@ -8,6 +8,7 @@ import ReactFlow, {
     useNodesState,
     useEdgesState,
     addEdge,
+    BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -17,21 +18,23 @@ import { AbilityNode } from './AbilityNode';
 
 interface AbilityTreeEditorProps {
     abilities: Ability[];
-    onNodeDragStop: (node: Node) => void;
+    tierCount: number;
+    onNodeDragStop: (node: Node, closestTier: number) => void;
     onConnect: (connection: Connection) => void;
 }
 
-// FIX: Define nodeTypes outside the component.
-// This prevents it from being recreated on every render, resolving the performance warning.
 const nodeTypes = {
     abilityNode: AbilityNode,
 };
 
+const TIER_WIDTH = 250;
+
 /**
- * A visual, node-based editor for displaying and modifying an Ability Tree.
+ * A visual, node-based editor for displaying and modifying an Ability Tree with a tiered layout.
  */
 export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
     abilities,
+    tierCount,
     onNodeDragStop,
     onConnect,
 }) => {
@@ -43,9 +46,12 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
         const initialEdges: Edge[] = [];
 
         for (const ability of abilities) {
+            const xPos = ability.x ?? TIER_WIDTH * ability.tier - TIER_WIDTH / 2;
+            const yPos = ability.y ?? 100;
+
             initialNodes.push({
                 id: String(ability.id!),
-                position: { x: ability.x || 0, y: ability.y || 0 },
+                position: { x: xPos, y: yPos },
                 data: { label: ability.name, description: ability.description },
                 type: 'abilityNode',
             });
@@ -67,9 +73,28 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            onNodeDragStop(node);
+            let closestTier = 1;
+            let minDistance = Infinity;
+
+            for (let i = 1; i <= tierCount; i++) {
+                const tierX = TIER_WIDTH * i - TIER_WIDTH / 2;
+                const distance = Math.abs(node.position.x - tierX);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestTier = i;
+                }
+            }
+
+            const snappedX = TIER_WIDTH * closestTier - TIER_WIDTH / 2;
+            setNodes((nds) =>
+                nds.map((n) =>
+                    n.id === node.id ? { ...n, position: { ...n.position, x: snappedX } } : n,
+                ),
+            );
+
+            onNodeDragStop({ ...node, position: { ...node.position, x: snappedX } }, closestTier);
         },
-        [onNodeDragStop],
+        [onNodeDragStop, tierCount, setNodes],
     );
 
     const handleConnect: OnConnect = useCallback(
@@ -81,8 +106,6 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
     );
 
     return (
-        // FIX: The wrapper div now has a class instead of inline styles.
-        // This allows us to control its height more effectively from the parent.
         <div className="ability-editor-wrapper">
             <ReactFlow
                 nodes={nodes}
@@ -96,7 +119,24 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
                 nodesDraggable={true}
                 nodesConnectable={true}
             >
-                <Background />
+                {/* FIX: The Background component is self-closing. */}
+                <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+
+                {/* FIX: Render the tier lines as direct children of ReactFlow, not Background. */}
+                {/* This places them as SVG elements on the canvas background layer. */}
+                <svg>
+                    {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
+                        <line
+                            key={`tier-line-${tierNum}`}
+                            x1={TIER_WIDTH * tierNum}
+                            y1={0}
+                            x2={TIER_WIDTH * tierNum}
+                            y2="100%"
+                            className="tier-line"
+                        />
+                    ))}
+                </svg>
+
                 <Controls />
                 <MiniMap />
             </ReactFlow>
