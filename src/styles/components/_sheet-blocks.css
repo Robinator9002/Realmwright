@@ -64,3 +64,49 @@
     color: var(--color-muted-foreground);
     font-style: italic;
 }
+
+/* --- NEW: Ability Tree Block --- */
+.ability-tree-block {
+    width: 100%;
+}
+
+.ability-tree-block__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-2);
+}
+
+.ability-tree-block__title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    margin: 0;
+}
+
+.ability-tree-block__config-button {
+    background: none;
+    border: none;
+    color: var(--color-muted-foreground);
+    cursor: pointer;
+    padding: var(--spacing-1);
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.ability-tree-block__config-button:hover {
+    background-color: var(--color-border);
+    color: var(--color-accent);
+}
+
+.ability-tree-block__content .placeholder-text {
+    font-style: italic;
+    color: var(--color-muted-foreground);
+    text-align: center;
+    padding: var(--spacing-4);
+}
+
+.ability-tree-block__config {
+    width: 100%;
+}
