@@ -35,6 +35,8 @@ export interface Character extends BaseManageable {
     campaignIds: number[];
     createdAt: Date;
     stats: { [statId: number]: number };
+    // NEW: An array of Ability IDs that the character has learned.
+    learnedAbilities: number[];
 }
 
 /**
@@ -69,12 +71,11 @@ export interface Prerequisite {
  */
 export interface Ability extends BaseManageable {
     worldId: number;
-    abilityTreeId: number; // Foreign key to the AbilityTree table.
-    prerequisites: Prerequisite; // Structured object for requirements.
+    abilityTreeId: number;
+    prerequisites: Prerequisite;
     createdAt: Date;
     x?: number;
     y?: number;
-    // NEW: The vertical column or "tier" this ability belongs to in the editor.
     tier: number;
 }
 
@@ -82,6 +83,6 @@ export interface Ability extends BaseManageable {
  * Represents a container for a set of related abilities (a "tree").
  */
 export interface AbilityTree extends BaseManageable {
-    worldId: number; // Foreign key to the World table.
+    worldId: number;
     createdAt: Date;
 }

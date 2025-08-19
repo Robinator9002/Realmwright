@@ -57,10 +57,15 @@ export class RealmwrightDB extends Dexie {
             abilities: '++id, worldId, abilityTreeId, name, x, y',
         });
 
-        // NEW: Version 7 Upgrade
-        // This block adds the `tier` property to the abilities table for the tier system.
         this.version(7).stores({
             abilities: '++id, worldId, abilityTreeId, name, x, y, tier',
+        });
+
+        // NEW: Version 8 Upgrade
+        // This block adds the `learnedAbilities` property to the characters table.
+        // We use a multi-entry index '*' to allow for efficient querying of characters by a learned ability.
+        this.version(8).stores({
+            characters: '++id, worldId, *campaignIds, name, stats, *learnedAbilities',
         });
     }
 }
