@@ -3,10 +3,15 @@ import { useState, useEffect, useCallback, type FC } from 'react';
 import { Settings, PlusCircle, Trash2 } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
-import { getClassesForWorld, deleteClass } from '../../../db/queries/class.queries';
+import {
+    getClassesForWorld,
+    deleteClass,
+    addClass,
+    updateClass,
+} from '../../../db/queries/class.queries';
 import type { CharacterClass } from '../../../db/types';
-// We will create this modal in the next step.
-// import { ManageClassModal } from './ManageClassModal';
+// NEW: Import the modal and its save data type.
+import { ManageClassModal, type ClassSaveData } from './ManageClassModal';
 
 /**
  * A component for listing and managing Character Classes within the active world.
@@ -19,7 +24,7 @@ export const ClassManager: FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // State for the management modal (to be built next)
+    // State for the management modal
     const [isManageModalOpen, setIsManageModalOpen] = useState(false);
     const [classToEdit, setClassToEdit] = useState<CharacterClass | null>(null);
 
@@ -44,14 +49,41 @@ export const ClassManager: FC = () => {
 
     const handleOpenCreateModal = () => {
         setClassToEdit(null);
-        // setIsManageModalOpen(true); // This will be enabled when the modal is created
-        alert('ManageClassModal not yet implemented!'); // Placeholder
+        setIsManageModalOpen(true); // NEW: Enable opening the modal.
     };
 
     const handleOpenEditModal = (characterClass: CharacterClass) => {
         setClassToEdit(characterClass);
-        // setIsManageModalOpen(true); // This will be enabled when the modal is created
-        alert('ManageClassModal not yet implemented!'); // Placeholder
+        setIsManageModalOpen(true); // NEW: Enable opening the modal.
+    };
+
+    // NEW: Handler to save data from the modal.
+    const handleSaveClass = async (saveData: ClassSaveData) => {
+        if (!selectedWorld?.id) {
+            setError('Cannot save class: No world selected.');
+            return;
+        }
+        if (!saveData.name.trim()) {
+            showModal('alert', {
+                title: 'Invalid Input',
+                message: 'Class name cannot be empty.',
+            });
+            return;
+        }
+
+        try {
+            if (classToEdit) {
+                // Update existing class
+                await updateClass(classToEdit.id!, { ...saveData });
+            } else {
+                // Create new class
+                await addClass({ ...saveData, worldId: selectedWorld.id });
+            }
+            await fetchClasses(); // Refresh the list
+        } catch (err) {
+            setError('Failed to save the character class.');
+            console.error(err);
+        }
     };
 
     const handleDeleteClass = (characterClass: CharacterClass) => {
@@ -125,13 +157,13 @@ export const ClassManager: FC = () => {
                 </div>
             </div>
 
-            {/* <ManageClassModal
+            {/* NEW: Wire up the actual modal component. */}
+            <ManageClassModal
                 isOpen={isManageModalOpen}
                 onClose={() => setIsManageModalOpen(false)}
-                onSave={handleSaveClass} // We will create this handler
+                onSave={handleSaveClass}
                 classToEdit={classToEdit}
             />
-            */}
         </>
     );
 };
