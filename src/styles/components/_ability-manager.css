@@ -1,6 +1,6 @@
 /* src/styles/components/_ability-manager.css */
 
-/* FIX: New styles to support the focused editor layout. */
+/* FIX: New styles to support the focused editor layout and fix stacking issues. */
 
 /* This makes the main panel a flex container that can grow vertically. */
 .ability-editor-panel {
@@ -8,6 +8,15 @@
     flex-direction: column;
     /* This is important for flex-grow to work inside a grid/flex parent */
     align-self: stretch;
+
+    /* NEW: These properties make the editor a full-screen overlay within its container. */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 20; /* Ensures it sits on top of the tree list */
+    background-color: var(--color-panel-bg); /* Makes it opaque, hiding content below */
 }
 
 /* This class on the editor's parent section makes it take up all available vertical space. */
