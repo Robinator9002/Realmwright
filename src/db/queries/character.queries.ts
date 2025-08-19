@@ -3,18 +3,17 @@ import { db } from '../db';
 import type { Character } from '../types';
 import { getStatDefinitionsForWorld } from './rule.queries';
 
-// This type remains the same for the public-facing creation function.
-// `stats` and `learnedAbilities` are handled internally upon creation.
+// The creation data now includes the optional classId.
 type CreateCharacterData = {
     name: string;
     description: string;
     type: 'PC' | 'NPC' | 'Enemy';
     worldId: number;
+    classId?: number; // NEW: Allow specifying a class on creation.
 };
 
 /**
  * Adds a new Character to the database, linked to a specific World.
- * REFACTOR: Now initializes the `learnedAbilities` array.
  * @param characterData - An object containing the character's details.
  * @returns The ID of the newly created character.
  */
@@ -30,7 +29,7 @@ export async function addCharacter(characterData: CreateCharacterData): Promise<
             ...characterData,
             campaignIds: [],
             stats: initialStats,
-            learnedAbilities: [], // NEW: Initialize with an empty array.
+            learnedAbilities: [],
             createdAt: new Date(),
         };
 
@@ -56,18 +55,19 @@ export async function getCharactersForWorld(worldId: number): Promise<Character[
     }
 }
 
-// REFACTOR: A dedicated type for all updatable fields of a character.
+// A dedicated type for all updatable fields of a character.
 export type UpdateCharacterPayload = {
     name: string;
     description: string;
     type: 'PC' | 'NPC' | 'Enemy';
     stats: { [statId: number]: number };
-    learnedAbilities: number[]; // NEW: Abilities can now be updated.
+    learnedAbilities: number[];
+    classId?: number; // NEW: Allow updating the class.
 };
 
 /**
- * REFACTOR: Updates an existing Character in the database.
- * The `updates` parameter is now a Partial, allowing for more flexible updates.
+ * Updates an existing Character in the database.
+ * The `updates` parameter is a Partial, allowing for flexible updates.
  * @param characterId - The ID of the character to update.
  * @param updates - An object containing the fields to update.
  */
