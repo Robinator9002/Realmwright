@@ -6,8 +6,15 @@ import type { ReactNode, FC } from 'react';
 export type MainView = 'worlds' | 'world_dashboard' | 'settings';
 
 // Define the available tabs within the world dashboard
-// NEW: Add 'abilities' as a possible tab option.
-export type WorldTab = 'campaigns' | 'characters' | 'lore' | 'rules' | 'abilities' | 'maps';
+// NEW: Add 'classes' as a possible tab option.
+export type WorldTab =
+    | 'campaigns'
+    | 'characters'
+    | 'lore'
+    | 'rules'
+    | 'abilities'
+    | 'classes'
+    | 'maps';
 
 // Define the available tabs within the settings page
 export type SettingsTab = 'appearance' | 'data';
