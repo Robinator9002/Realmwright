@@ -1,19 +1,79 @@
 // src/components/specific/Class/ClassSheetEditor.tsx
-import { type FC } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import type { CharacterClass } from '../../../db/types';
+import { useState, type FC } from 'react';
+import { ArrowLeft, X, Type, BarChart2, Swords, Backpack, FileText } from 'lucide-react';
+import type { CharacterClass, SheetPage, SheetBlock } from '../../../db/types';
+import { updateClass } from '../../../db/queries/class.queries';
+// NEW: Import the first real block component.
+import { StatsBlock } from '../SheetBlocks/StatsBlock';
 
 export interface ClassSheetEditorProps {
     characterClass: CharacterClass;
     onBack: () => void; // Function to return to the ClassManager list
 }
 
+const blockTypes: { type: SheetBlock['type']; label: string; icon: React.ReactNode }[] = [
+    { type: 'details', label: 'Details', icon: <Type size={16} /> },
+    { type: 'stats', label: 'Stats Panel', icon: <BarChart2 size={16} /> },
+    { type: 'ability_tree', label: 'Ability Tree', icon: <Swords size={16} /> },
+    { type: 'inventory', label: 'Inventory', icon: <Backpack size={16} /> },
+    { type: 'rich_text', label: 'Rich Text', icon: <FileText size={16} /> },
+];
+
+/**
+ * A component that renders the correct block based on its type.
+ */
+const BlockRenderer: FC<{ block: SheetBlock; characterClass: CharacterClass }> = ({
+    block,
+    characterClass,
+}) => {
+    switch (block.type) {
+        case 'stats':
+            // Render the actual StatsBlock component
+            return <StatsBlock baseStats={characterClass.baseStats} />;
+        // Add cases for other block types here as we build them
+        default:
+            // Placeholder for block types we haven't built yet
+            return (
+                <div className="sheet-block__header">
+                    <span className="sheet-block__type">{block.type.replace('_', ' ')}</span>
+                </div>
+            );
+    }
+};
+
 /**
  * A full-page editor for designing the character sheet layout for a specific class.
  */
 export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, onBack }) => {
-    // We will add state here to manage the sheet layout (pages, blocks, etc.)
-    // For now, it's just a placeholder.
+    const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleAddBlock = (blockType: SheetBlock['type']) => {
+        const newBlock: SheetBlock = {
+            id: crypto.randomUUID(),
+            type: blockType,
+        };
+        const newSheet = JSON.parse(JSON.stringify(sheet));
+        newSheet[0].blocks.push(newBlock);
+        setSheet(newSheet);
+    };
+
+    const handleRemoveBlock = (blockId: string) => {
+        const newSheet = JSON.parse(JSON.stringify(sheet));
+        newSheet[0].blocks = newSheet[0].blocks.filter((block: SheetBlock) => block.id !== blockId);
+        setSheet(newSheet);
+    };
+
+    const handleSaveSheet = async () => {
+        setIsSaving(true);
+        try {
+            await updateClass(characterClass.id!, { characterSheet: sheet });
+        } catch (error) {
+            console.error('Failed to save sheet layout:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <div className="panel sheet-editor">
@@ -24,18 +84,42 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 <h2 className="panel__title" style={{ border: 'none', padding: 0 }}>
                     Designing Sheet for: {characterClass.name}
                 </h2>
-                <button className="button button--primary">Save Sheet Layout</button>
+                <button
+                    onClick={handleSaveSheet}
+                    className="button button--primary"
+                    disabled={isSaving}
+                >
+                    {isSaving ? 'Saving...' : 'Save Sheet Layout'}
+                </button>
             </div>
 
             <div className="sheet-editor__content">
                 <div className="sheet-editor__canvas">
-                    {/* The main area where pages and blocks will be rendered */}
-                    <p>Character Sheet Canvas Area - Coming Soon!</p>
+                    {sheet[0].blocks.map((block) => (
+                        <div key={block.id} className="sheet-block">
+                            {/* NEW: Use the BlockRenderer to display the correct component */}
+                            <BlockRenderer block={block} characterClass={characterClass} />
+                            <button
+                                onClick={() => handleRemoveBlock(block.id)}
+                                className="sheet-block__remove-button"
+                                title="Remove Block"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                    ))}
                 </div>
                 <div className="sheet-editor__sidebar">
-                    {/* The sidebar for adding new blocks to the sheet */}
                     <h3 className="sidebar__title">Add Blocks</h3>
-                    <p>Block selection UI - Coming Soon!</p>
+                    {blockTypes.map(({ type, label, icon }) => (
+                        <button
+                            key={type}
+                            onClick={() => handleAddBlock(type)}
+                            className="button sidebar__block-button"
+                        >
+                            {icon} {label}
+                        </button>
+                    ))}
                 </div>
             </div>
         </div>
