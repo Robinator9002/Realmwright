@@ -35,7 +35,6 @@ export interface Character extends BaseManageable {
     campaignIds: number[];
     createdAt: Date;
     stats: { [statId: number]: number };
-    // NEW: An array of Ability IDs that the character has learned.
     learnedAbilities: number[];
 }
 
@@ -84,5 +83,18 @@ export interface Ability extends BaseManageable {
  */
 export interface AbilityTree extends BaseManageable {
     worldId: number;
+    createdAt: Date;
+}
+
+/**
+ * NEW: Represents a Character Class template.
+ * This is a reusable blueprint for creating characters (especially NPCs).
+ */
+export interface CharacterClass extends BaseManageable {
+    worldId: number;
+    // The base stats for any character of this class.
+    baseStats: { [statId: number]: number };
+    // An array of AbilityTree IDs that this class has access to.
+    abilityTreeIds: number[];
     createdAt: Date;
 }
