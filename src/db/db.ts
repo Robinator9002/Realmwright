@@ -53,11 +53,14 @@ export class RealmwrightDB extends Dexie {
             abilities: '++id, worldId, abilityTreeId, name',
         });
 
-        // NEW: Version 6 Upgrade
-        // This block adds the optional x and y properties to the abilities table
-        // for storing node positions in the visual editor.
         this.version(6).stores({
             abilities: '++id, worldId, abilityTreeId, name, x, y',
+        });
+
+        // NEW: Version 7 Upgrade
+        // This block adds the `tier` property to the abilities table for the tier system.
+        this.version(7).stores({
+            abilities: '++id, worldId, abilityTreeId, name, x, y, tier',
         });
     }
 }

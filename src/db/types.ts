@@ -72,9 +72,10 @@ export interface Ability extends BaseManageable {
     abilityTreeId: number; // Foreign key to the AbilityTree table.
     prerequisites: Prerequisite; // Structured object for requirements.
     createdAt: Date;
-    // NEW: Optional x and y coordinates for positioning in the visual editor.
     x?: number;
     y?: number;
+    // NEW: The vertical column or "tier" this ability belongs to in the editor.
+    tier: number;
 }
 
 /**
