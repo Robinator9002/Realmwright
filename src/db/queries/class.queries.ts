@@ -1,22 +1,30 @@
 // src/db/queries/class.queries.ts
 import { db } from '../db';
-import type { CharacterClass } from '../types';
+import type { CharacterClass, SheetPage } from '../types';
 
 /**
- * Adds a new Character Class to the database, linked to a specific World.
- * @param classData - An object containing the new class's details.
+ * Adds a new, empty Character Class to the database.
+ * It's initialized with a default, empty character sheet.
+ * @param classData - An object containing the new class's basic details.
  * @returns The ID of the newly created class.
  */
 export async function addClass(classData: {
     name: string;
     description: string;
-    baseStats: { [statId: number]: number };
-    abilityTreeIds: number[];
     worldId: number;
 }): Promise<number> {
     try {
         const newClass: CharacterClass = {
             ...classData,
+            baseStats: {},
+            // Initialize with a single, empty "Main" page.
+            characterSheet: [
+                {
+                    id: crypto.randomUUID(),
+                    name: 'Main Page',
+                    blocks: [],
+                },
+            ],
             createdAt: new Date(),
         };
         const id = await db.characterClasses.add(newClass);
@@ -29,8 +37,7 @@ export async function addClass(classData: {
 
 /**
  * Retrieves all Character Classes for a specific World, sorted by name.
- * @param worldId - The ID of the world whose classes are to be fetched.
- * @returns A promise that resolves to an array of CharacterClass objects.
+ * (This function remains unchanged)
  */
 export async function getClassesForWorld(worldId: number): Promise<CharacterClass[]> {
     try {
@@ -43,18 +50,23 @@ export async function getClassesForWorld(worldId: number): Promise<CharacterClas
 }
 
 /**
+ * A dedicated type for all updatable fields of a Character Class.
+ */
+export type UpdateClassPayload = {
+    name: string;
+    description: string;
+    baseStats: { [statId: number]: number };
+    characterSheet: SheetPage[];
+};
+
+/**
  * Updates an existing Character Class in the database.
  * @param classId - The ID of the class to update.
  * @param updates - An object containing the fields to update.
  */
 export async function updateClass(
     classId: number,
-    updates: {
-        name: string;
-        description: string;
-        baseStats: { [statId: number]: number };
-        abilityTreeIds: number[];
-    },
+    updates: Partial<UpdateClassPayload>,
 ): Promise<void> {
     try {
         await db.characterClasses.update(classId, updates);
@@ -66,9 +78,7 @@ export async function updateClass(
 
 /**
  * Deletes a specific Character Class from the database.
- * Note: This does not currently delete characters of this class.
- * That logic would need to be handled at the application level.
- * @param classId - The ID of the class to delete.
+ * (This function remains unchanged)
  */
 export async function deleteClass(classId: number): Promise<void> {
     try {
