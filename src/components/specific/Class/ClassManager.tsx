@@ -1,6 +1,6 @@
 // src/components/specific/Class/ClassManager.tsx
 import { useState, useEffect, useCallback, type FC } from 'react';
-import { Settings, PlusCircle, Trash2 } from 'lucide-react';
+import { Settings, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
 import {
@@ -10,11 +10,16 @@ import {
     updateClass,
 } from '../../../db/queries/class.queries';
 import type { CharacterClass } from '../../../db/types';
-// NEW: Import the modal and its save data type.
-import { ManageClassModal, type ClassSaveData } from './ManageClassModal';
+// We are no longer using the ManageClassModal, so it can be removed.
+// We will build a simple creation modal later if needed.
+import { ManageModal } from '../../common/Modal/ManageModal';
+
+// NEW: Import the ClassSheetEditor.
+import { ClassSheetEditor } from './ClassSheetEditor';
 
 /**
  * A component for listing and managing Character Classes within the active world.
+ * It can now switch between the list view and the sheet editor view.
  */
 export const ClassManager: FC = () => {
     const { selectedWorld } = useWorld();
@@ -24,9 +29,12 @@ export const ClassManager: FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // State for the management modal
-    const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-    const [classToEdit, setClassToEdit] = useState<CharacterClass | null>(null);
+    // NEW: State to track which class is being edited in the full-page editor.
+    const [editingClass, setEditingClass] = useState<CharacterClass | null>(null);
+
+    // State for the simple name/description management modal
+    const [managingClass, setManagingClass] = useState<CharacterClass | null>(null);
+    const isManageModalOpen = !!managingClass;
 
     const fetchClasses = useCallback(async () => {
         if (!selectedWorld?.id) return;
@@ -47,50 +55,30 @@ export const ClassManager: FC = () => {
         fetchClasses();
     }, [fetchClasses]);
 
-    const handleOpenCreateModal = () => {
-        setClassToEdit(null);
-        setIsManageModalOpen(true); // NEW: Enable opening the modal.
+    const handleCreateClass = async () => {
+        if (!selectedWorld?.id) return;
+        // For now, we'll use a simple prompt. We can build a creation modal later.
+        const name = prompt('Enter new class name:');
+        if (name) {
+            await addClass({ name, description: '', worldId: selectedWorld.id });
+            await fetchClasses();
+        }
     };
 
-    const handleOpenEditModal = (characterClass: CharacterClass) => {
-        setClassToEdit(characterClass);
-        setIsManageModalOpen(true); // NEW: Enable opening the modal.
-    };
-
-    // NEW: Handler to save data from the modal.
-    const handleSaveClass = async (saveData: ClassSaveData) => {
-        if (!selectedWorld?.id) {
-            setError('Cannot save class: No world selected.');
-            return;
-        }
-        if (!saveData.name.trim()) {
-            showModal('alert', {
-                title: 'Invalid Input',
-                message: 'Class name cannot be empty.',
-            });
-            return;
-        }
-
-        try {
-            if (classToEdit) {
-                // Update existing class
-                await updateClass(classToEdit.id!, { ...saveData });
-            } else {
-                // Create new class
-                await addClass({ ...saveData, worldId: selectedWorld.id });
-            }
-            await fetchClasses(); // Refresh the list
-        } catch (err) {
-            setError('Failed to save the character class.');
-            console.error(err);
-        }
+    const handleSaveClassDetails = async (updatedClass: CharacterClass) => {
+        // This only saves name and description from the generic modal.
+        await updateClass(updatedClass.id!, {
+            name: updatedClass.name,
+            description: updatedClass.description,
+        });
+        await fetchClasses();
     };
 
     const handleDeleteClass = (characterClass: CharacterClass) => {
         showModal('confirmation', {
             title: `Delete ${characterClass.name}?`,
             message:
-                'Are you sure you want to delete this class? This does not delete characters using this class, but they will no longer be linked to it. This action is permanent.',
+                'Are you sure you want to delete this class blueprint? This action is permanent.',
             onConfirm: async () => {
                 try {
                     await deleteClass(characterClass.id!);
@@ -102,6 +90,14 @@ export const ClassManager: FC = () => {
         });
     };
 
+    // If a class is being edited, render the editor.
+    if (editingClass) {
+        return (
+            <ClassSheetEditor characterClass={editingClass} onBack={() => setEditingClass(null)} />
+        );
+    }
+
+    // Otherwise, render the list of classes.
     return (
         <>
             <div className="panel">
@@ -109,7 +105,7 @@ export const ClassManager: FC = () => {
                     <h2 className="panel__title" style={{ border: 'none', padding: 0 }}>
                         Character Classes
                     </h2>
-                    <button onClick={handleOpenCreateModal} className="button button--primary">
+                    <button onClick={handleCreateClass} className="button button--primary">
                         <PlusCircle size={16} /> Create New Class
                     </button>
                 </div>
@@ -127,17 +123,19 @@ export const ClassManager: FC = () => {
                                         <p className="panel__item-description">
                                             {charClass.description}
                                         </p>
-                                        <p className="panel__item-meta">
-                                            Base Stats: {Object.keys(charClass.baseStats).length} |
-                                            Ability Trees: {charClass.abilityTreeIds.length}
-                                        </p>
                                     </div>
                                     <div className="panel__item-actions">
                                         <button
-                                            onClick={() => handleOpenEditModal(charClass)}
+                                            onClick={() => setManagingClass(charClass)}
                                             className="button"
                                         >
-                                            <Settings size={16} /> Manage
+                                            <Settings size={16} /> Details
+                                        </button>
+                                        <button
+                                            onClick={() => setEditingClass(charClass)}
+                                            className="button button--primary"
+                                        >
+                                            <Edit size={16} /> Design Sheet
                                         </button>
                                         <button
                                             onClick={() => handleDeleteClass(charClass)}
@@ -157,12 +155,15 @@ export const ClassManager: FC = () => {
                 </div>
             </div>
 
-            {/* NEW: Wire up the actual modal component. */}
-            <ManageClassModal
+            <ManageModal<CharacterClass>
                 isOpen={isManageModalOpen}
-                onClose={() => setIsManageModalOpen(false)}
-                onSave={handleSaveClass}
-                classToEdit={classToEdit}
+                onClose={() => setManagingClass(null)}
+                item={managingClass}
+                onSave={handleSaveClassDetails}
+                onDelete={() => {
+                    if (managingClass) handleDeleteClass(managingClass);
+                }}
+                itemType="Class"
             />
         </>
     );
