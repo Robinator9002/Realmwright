@@ -15,33 +15,29 @@ import type { Ability } from '../../../db/types';
 import type { Node, Edge, OnConnect, NodeDragHandler, Connection } from 'reactflow';
 import { AbilityNode } from './AbilityNode';
 
-// Define the props for our editor component, now including event handlers.
 interface AbilityTreeEditorProps {
     abilities: Ability[];
     onNodeDragStop: (node: Node) => void;
     onConnect: (connection: Connection) => void;
 }
 
+// FIX: Define nodeTypes outside the component.
+// This prevents it from being recreated on every render, resolving the performance warning.
 const nodeTypes = {
     abilityNode: AbilityNode,
 };
 
 /**
  * A visual, node-based editor for displaying and modifying an Ability Tree.
- * It now handles user interactions and reports changes back to its parent component.
  */
 export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
     abilities,
     onNodeDragStop,
     onConnect,
 }) => {
-    // React Flow's built-in hooks for managing state. This is more efficient
-    // than recalculating on every render with useMemo.
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-    // This effect synchronizes the internal state of the editor with the
-    // `abilities` data passed down from the parent.
     useEffect(() => {
         const initialNodes: Node[] = [];
         const initialEdges: Edge[] = [];
@@ -69,8 +65,6 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
         setEdges(initialEdges);
     }, [abilities, setNodes, setEdges]);
 
-    // This handler is called when a user finishes dragging a node.
-    // We pass the event up to the parent component to handle the database update.
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
             onNodeDragStop(node);
@@ -78,9 +72,6 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
         [onNodeDragStop],
     );
 
-    // This handler is called when a user successfully connects two nodes.
-    // We optimistically update the UI by adding the edge, then pass the
-    // connection details up to the parent to update the database.
     const handleConnect: OnConnect = useCallback(
         (connection) => {
             setEdges((eds) => addEdge(connection, eds));
@@ -90,7 +81,9 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
     );
 
     return (
-        <div style={{ height: '100%', width: '100%', minHeight: '500px' }}>
+        // FIX: The wrapper div now has a class instead of inline styles.
+        // This allows us to control its height more effectively from the parent.
+        <div className="ability-editor-wrapper">
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -100,7 +93,6 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
                 onNodeDragStop={handleNodeDragStop}
                 onConnect={handleConnect}
                 fitView
-                // REFACTOR: The editor is now fully interactive.
                 nodesDraggable={true}
                 nodesConnectable={true}
             >
