@@ -1,0 +1,28 @@
+/* src/styles/components/_ability-manager.css */
+
+/* FIX: New styles to support the focused editor layout. */
+
+/* This makes the main panel a flex container that can grow vertically. */
+.ability-editor-panel {
+    display: flex;
+    flex-direction: column;
+    /* This is important for flex-grow to work inside a grid/flex parent */
+    align-self: stretch;
+}
+
+/* This class on the editor's parent section makes it take up all available vertical space. */
+.ability-editor-panel .flex-grow {
+    flex-grow: 1;
+    /* This is necessary to contain the React Flow component */
+    position: relative;
+    min-height: 400px; /* A minimum height for smaller screens */
+}
+
+/* This ensures the React Flow wrapper div fills its parent. */
+.ability-editor-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}

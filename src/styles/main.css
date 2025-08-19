@@ -18,6 +18,7 @@
 @import url('./components/_modal.css');
 @import url('./components/_panel.css');
 @import url('./components/_status-badge.css');
+@import url('./components/_ability-manager.css');
 @import url('./components/_ability-node.css');
 
 /* 4. Page-specific styles that might override components. */
