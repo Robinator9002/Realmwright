@@ -71,10 +71,16 @@ export class RealmwrightDB extends Dexie {
             characterClasses: '++id, worldId, name',
         });
 
-        // NEW: Version 10 Upgrade
-        // Adds the `classId` index to the characters table.
         this.version(10).stores({
             characters: '++id, worldId, classId, *campaignIds, name',
+        });
+
+        // NEW: Version 11 Upgrade
+        // This version formally acknowledges the new data shapes for classes and characters.
+        // No new indexes are needed as the complex sheet/instance data is not indexed.
+        this.version(11).stores({
+            characterClasses: '++id, worldId, name', // Now contains characterSheet
+            characters: '++id, worldId, classId, *campaignIds, name', // Now contains instanceData
         });
     }
 }
