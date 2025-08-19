@@ -58,12 +58,18 @@ export async function deleteAbilityTree(treeId: number): Promise<void> {
 
 // --- Ability Queries ---
 
+/**
+ * REFACTOR: Adds a new Ability to a specific Ability Tree, now including its tier.
+ * @param abilityData - An object containing the new ability's details.
+ * @returns The ID of the newly created ability.
+ */
 export async function addAbility(abilityData: {
     name: string;
     description: string;
     prerequisites: Prerequisite;
     worldId: number;
     abilityTreeId: number;
+    tier: number; // NEW: Tier is now a required property for creation.
 }): Promise<number> {
     try {
         const newAbility: Ability = {
@@ -91,20 +97,18 @@ export async function getAbilitiesForTree(abilityTreeId: number): Promise<Abilit
     }
 }
 
-// FIX: A dedicated type for the updatable fields of an Ability.
-// This makes our function signatures explicit and type-safe.
+// A dedicated type for the updatable fields of an Ability.
 export type UpdateAbilityPayload = {
     name: string;
     description: string;
     prerequisites: Prerequisite;
     x: number;
     y: number;
+    tier: number; // NEW: Tier can now be updated.
 };
 
 /**
- * FIX: Updates an existing Ability in the database.
- * The `updates` parameter is now a Partial of the payload, meaning you can
- * provide only the properties you want to change (e.g., just position, or just prerequisites).
+ * Updates an existing Ability in the database.
  * @param abilityId - The ID of the ability to update.
  * @param updates - An object containing the fields to update.
  */
