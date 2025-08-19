@@ -43,3 +43,24 @@
     font-size: 0.75rem;
     color: var(--color-muted-foreground);
 }
+
+/* --- Details Block --- */
+.details-block {
+    width: 100%;
+    text-align: center;
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: var(--spacing-4);
+}
+
+.details-block__name {
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    color: var(--color-foreground);
+    margin-bottom: var(--spacing-2);
+}
+
+.details-block__description {
+    font-size: var(--font-size-lg);
+    color: var(--color-muted-foreground);
+    font-style: italic;
+}
