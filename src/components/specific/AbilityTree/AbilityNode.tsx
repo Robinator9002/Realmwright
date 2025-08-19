@@ -1,4 +1,4 @@
-// src/components/specific/AbilityTreeEditor/AbilityNode.tsx
+// src/components/specific/AbilityTree/AbilityNode.tsx
 import type { FC } from 'react';
 // Handle is the component that creates the connection points on our nodes.
 import { Handle, Position } from 'reactflow';
@@ -11,8 +11,8 @@ import type { NodeProps } from 'reactflow';
 export const AbilityNode: FC<NodeProps> = ({ data }) => {
     return (
         <div className="ability-node">
-            {/* This Handle is the connection point for incoming edges (prerequisites). */}
-            <Handle type="target" position={Position.Left} className="ability-node__handle" />
+            {/* FIX: This Handle is now at the top for incoming edges (prerequisites). */}
+            <Handle type="target" position={Position.Top} className="ability-node__handle" />
 
             <div className="ability-node__header">
                 <h4 className="ability-node__title">{data.label}</h4>
@@ -21,8 +21,8 @@ export const AbilityNode: FC<NodeProps> = ({ data }) => {
                 <p className="ability-node__description">{data.description}</p>
             </div>
 
-            {/* This Handle is the connection point for outgoing edges (abilities that require this one). */}
-            <Handle type="source" position={Position.Right} className="ability-node__handle" />
+            {/* FIX: This Handle is now at the bottom for outgoing edges (abilities that require this one). */}
+            <Handle type="source" position={Position.Bottom} className="ability-node__handle" />
         </div>
     );
 };
