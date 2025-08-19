@@ -8,7 +8,7 @@ import type {
     StatDefinition,
     Ability,
     AbilityTree,
-    CharacterClass, // NEW: Import the new CharacterClass type.
+    CharacterClass,
 } from './types';
 
 /**
@@ -24,7 +24,6 @@ export class RealmwrightDB extends Dexie {
     public statDefinitions!: Table<StatDefinition, number>;
     public abilityTrees!: Table<AbilityTree, number>;
     public abilities!: Table<Ability, number>;
-    // NEW: Add the table property for our new character classes.
     public characterClasses!: Table<CharacterClass, number>;
 
     public constructor() {
@@ -68,10 +67,14 @@ export class RealmwrightDB extends Dexie {
             characters: '++id, worldId, *campaignIds, name, stats, *learnedAbilities',
         });
 
-        // NEW: Version 9 Upgrade
-        // This block adds the new `characterClasses` table to the database.
         this.version(9).stores({
             characterClasses: '++id, worldId, name',
+        });
+
+        // NEW: Version 10 Upgrade
+        // Adds the `classId` index to the characters table.
+        this.version(10).stores({
+            characters: '++id, worldId, classId, *campaignIds, name',
         });
     }
 }
