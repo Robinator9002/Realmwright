@@ -21,7 +21,6 @@ import { AbilityTreeEditor } from '../AbilityTree/AbilityTreeEditor';
 
 /**
  * A component for managing Ability Trees and the Abilities within them.
- * REFACTOR: Now uses a two-view system: a list of trees, and a focused editor for a single tree.
  */
 export const AbilityManager: FC = () => {
     const { selectedWorld } = useWorld();
@@ -31,11 +30,16 @@ export const AbilityManager: FC = () => {
     const [selectedTree, setSelectedTree] = useState<AbilityTree | null>(null);
     const [abilities, setAbilities] = useState<Ability[]>([]);
 
+    // NEW: State to manage the number of tiers in the editor.
+    const [tierCount, setTierCount] = useState(5); // Default to 5 tiers for now.
+
+    // Forms State
     const [newTreeName, setNewTreeName] = useState('');
     const [newTreeDesc, setNewTreeDesc] = useState('');
     const [newAbilityName, setNewAbilityName] = useState('');
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityPrereqs, setNewAbilityPrereqs] = useState('');
+    const [newAbilityTier, setNewAbilityTier] = useState(1); // Default to tier 1.
 
     const [managingTree, setManagingTree] = useState<AbilityTree | null>(null);
     const [managingAbility, setManagingAbility] = useState<Ability | null>(null);
@@ -142,10 +146,12 @@ export const AbilityManager: FC = () => {
             prerequisites,
             worldId: selectedWorld.id,
             abilityTreeId: selectedTree.id,
+            tier: newAbilityTier, // Pass the selected tier.
         });
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityPrereqs('');
+        setNewAbilityTier(1);
         await refreshAbilities();
     };
 
@@ -257,7 +263,7 @@ export const AbilityManager: FC = () => {
     );
 
     const renderEditorView = () => (
-        <div className="panel">
+        <div className="panel ability-editor-panel">
             <div className="panel__header-actions">
                 <button onClick={() => setSelectedTree(null)} className="button">
                     <ArrowLeft size={16} /> Back to Tree List
@@ -265,50 +271,62 @@ export const AbilityManager: FC = () => {
                 <h2 className="panel__title">Editing: {selectedTree?.name}</h2>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* --- Left Column: Add Ability Form --- */}
-                <div className="lg:col-span-1">
-                    <div className="panel__form-section">
-                        <h3 className="panel__form-title">Create New Ability</h3>
-                        <form onSubmit={handleAddAbility} className="form">
-                            <input
-                                value={newAbilityName}
-                                onChange={(e) => setNewAbilityName(e.target.value)}
-                                placeholder="Ability Name (e.g., Fireball)"
-                                className="form__input"
-                            />
-                            <input
-                                value={newAbilityDesc}
-                                onChange={(e) => setNewAbilityDesc(e.target.value)}
-                                placeholder="Description"
-                                className="form__input"
-                            />
-                            <input
-                                value={newAbilityPrereqs}
-                                onChange={(e) => setNewAbilityPrereqs(e.target.value)}
-                                placeholder="Prerequisite IDs (e.g., 1, 5, 12)"
-                                className="form__input"
-                            />
-                            <button type="submit" className="button button--primary">
-                                Create Ability
-                            </button>
-                        </form>
+            <div className="panel__form-section">
+                <h3 className="panel__form-title">Create New Ability</h3>
+                <form onSubmit={handleAddAbility} className="form">
+                    <input
+                        value={newAbilityName}
+                        onChange={(e) => setNewAbilityName(e.target.value)}
+                        placeholder="Ability Name (e.g., Fireball)"
+                        className="form__input"
+                    />
+                    <input
+                        value={newAbilityDesc}
+                        onChange={(e) => setNewAbilityDesc(e.target.value)}
+                        placeholder="Description"
+                        className="form__input"
+                    />
+                    {/* NEW: Dropdown for selecting the tier */}
+                    <div className="form__group">
+                        <label htmlFor="abilityTier" className="form__label">
+                            Tier
+                        </label>
+                        <select
+                            id="abilityTier"
+                            value={newAbilityTier}
+                            onChange={(e) => setNewAbilityTier(parseInt(e.target.value, 10))}
+                            className="form__select"
+                        >
+                            {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
+                                <option key={tierNum} value={tierNum}>
+                                    Tier {tierNum}
+                                </option>
+                            ))}
+                        </select>
                     </div>
-                </div>
+                    <input
+                        value={newAbilityPrereqs}
+                        onChange={(e) => setNewAbilityPrereqs(e.target.value)}
+                        placeholder="Prerequisite IDs (e.g., 1, 5, 12)"
+                        className="form__input"
+                    />
+                    <button type="submit" className="button button--primary">
+                        Create Ability
+                    </button>
+                </form>
+            </div>
 
-                {/* --- Right Column: Visual Editor --- */}
-                <div className="lg:col-span-2 panel__list-section">
-                    <h3 className="panel__list-title">Ability Tree Editor</h3>
-                    {isLoadingAbilities ? (
-                        <p>Loading...</p>
-                    ) : (
-                        <AbilityTreeEditor
-                            abilities={abilities}
-                            onNodeDragStop={handleNodeDragStop}
-                            onConnect={handleConnect}
-                        />
-                    )}
-                </div>
+            <div className="panel__list-section flex-grow">
+                <h3 className="panel__list-title">Ability Tree Editor</h3>
+                {isLoadingAbilities ? (
+                    <p>Loading...</p>
+                ) : (
+                    <AbilityTreeEditor
+                        abilities={abilities}
+                        onNodeDragStop={handleNodeDragStop}
+                        onConnect={handleConnect}
+                    />
+                )}
             </div>
         </div>
     );
@@ -317,10 +335,8 @@ export const AbilityManager: FC = () => {
         <>
             {error && <p className="error-message mb-4">{error}</p>}
 
-            {/* REFACTOR: Conditionally render either the tree list or the focused editor */}
             {selectedTree ? renderEditorView() : renderTreeView()}
 
-            {/* Modals remain unchanged and available to both views */}
             <ManageModal<AbilityTree>
                 isOpen={!!managingTree}
                 onClose={() => setManagingTree(null)}
