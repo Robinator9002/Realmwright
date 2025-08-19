@@ -1,12 +1,11 @@
 // src/components/specific/Character/ManageCharacterModal.tsx
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
+import { useModal } from '../../../context/ModalContext'; // NEW: For confirmation
 import { getClassesForWorld } from '../../../db/queries/class.queries';
 import type { Character, CharacterClass } from '../../../db/types';
 
 // The save data is now much simpler.
-// For creation, it only needs the basics and the blueprint (classId).
-// For updates, it's a partial of the editable fields.
 export type CharacterSaveData = {
     name: string;
     description: string;
@@ -35,6 +34,7 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
     characterToEdit,
 }) => {
     const { selectedWorld } = useWorld();
+    const { showModal } = useModal(); // NEW: For confirmation
     const isEditMode = !!characterToEdit;
 
     // --- Form State ---
@@ -53,7 +53,6 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
             setIsLoading(true);
             getClassesForWorld(selectedWorld.id).then((classData) => {
                 setCharacterClasses(classData);
-                // If creating, pre-select the first class if available.
                 if (!isEditMode && classData.length > 0) {
                     setClassId(classData[0].id);
                 }
@@ -71,7 +70,6 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
                 setType(characterToEdit.type);
                 setClassId(characterToEdit.classId);
             } else {
-                // Reset for creation
                 setName('');
                 setDescription('');
                 setType('NPC');
@@ -81,18 +79,35 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
 
     const handleSave = async () => {
         if (isEditMode && characterToEdit) {
-            const saveData: Partial<CharacterSaveData> = { name, description, type };
+            const saveData: Partial<CharacterSaveData> = { name, description, type, classId };
             await onSave(saveData, characterToEdit.id);
         } else {
             if (classId === undefined) {
-                // In a real app, you'd show a proper alert here.
-                alert('Please select a class.');
+                showModal('alert', { title: 'Error', message: 'Please select a class.' });
                 return;
             }
             const saveData: CharacterSaveData = { name, description, type, classId };
             await onSave(saveData);
         }
         onClose();
+    };
+
+    // NEW: Handle class changes with a confirmation dialog in edit mode.
+    const handleClassChange = (newClassId: number | undefined) => {
+        if (isEditMode) {
+            showModal('confirmation', {
+                title: 'Change Class?',
+                message:
+                    "Changing a character's class will reset their stats to the new class's defaults. This action cannot be undone.",
+                onConfirm: () => {
+                    setClassId(newClassId);
+                    // Note: The stat reset will be handled by the character sheet view later.
+                    // For now, this just allows changing the blueprint link.
+                },
+            });
+        } else {
+            setClassId(newClassId);
+        }
     };
 
     if (!isOpen) return null;
@@ -155,31 +170,39 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
                                     <option value="Enemy">Enemy</option>
                                 </select>
                             </div>
-                            {/* Class selection is only available during creation */}
-                            {!isEditMode && (
-                                <div className="form__group">
-                                    <label htmlFor="charClass" className="form__label">
-                                        Class
-                                    </label>
-                                    <select
-                                        id="charClass"
-                                        value={classId ?? ''}
-                                        onChange={(e) => setClassId(parseInt(e.target.value, 10))}
-                                        className="form__select"
-                                        disabled={characterClasses.length === 0}
-                                    >
-                                        {characterClasses.length === 0 ? (
-                                            <option>No classes created yet</option>
-                                        ) : (
-                                            characterClasses.map((c) => (
+                            {/* NEW: Class selection is now always visible */}
+                            <div className="form__group">
+                                <label htmlFor="charClass" className="form__label">
+                                    Class
+                                </label>
+                                <select
+                                    id="charClass"
+                                    value={classId ?? ''}
+                                    onChange={(e) =>
+                                        handleClassChange(
+                                            e.target.value
+                                                ? parseInt(e.target.value, 10)
+                                                : undefined,
+                                        )
+                                    }
+                                    className="form__select"
+                                    disabled={characterClasses.length === 0}
+                                >
+                                    {characterClasses.length === 0 ? (
+                                        <option>No classes created yet</option>
+                                    ) : (
+                                        <>
+                                            {/* In edit mode, a character can be classless if their class was deleted. */}
+                                            {isEditMode && <option value="">None</option>}
+                                            {characterClasses.map((c) => (
                                                 <option key={c.id} value={c.id}>
                                                     {c.name}
                                                 </option>
-                                            ))
-                                        )}
-                                    </select>
-                                </div>
-                            )}
+                                            ))}
+                                        </>
+                                    )}
+                                </select>
+                            </div>
                         </form>
                     )}
                 </div>
