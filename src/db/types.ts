@@ -36,6 +36,9 @@ export interface Character extends BaseManageable {
     createdAt: Date;
     stats: { [statId: number]: number };
     learnedAbilities: number[];
+    // NEW: A character can optionally belong to a class.
+    // This allows for classless characters/monsters.
+    classId?: number;
 }
 
 /**
@@ -87,8 +90,8 @@ export interface AbilityTree extends BaseManageable {
 }
 
 /**
- * NEW: Represents a Character Class template.
- * This is a reusable blueprint for creating characters (especially NPCs).
+ * Represents a Character Class template.
+ * This is a reusable blueprint for creating characters.
  */
 export interface CharacterClass extends BaseManageable {
     worldId: number;
