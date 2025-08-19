@@ -60,6 +60,13 @@ export const Topbar: FC = () => {
                     >
                         Characters
                     </TabButton>
+                    {/* NEW: Add the TabButton for the Classes section. */}
+                    <TabButton
+                        isActive={activeWorldTab === 'classes'}
+                        onClick={() => setActiveWorldTab('classes')}
+                    >
+                        Classes
+                    </TabButton>
                     <TabButton
                         isActive={activeWorldTab === 'lore'}
                         onClick={() => setActiveWorldTab('lore')}
@@ -72,7 +79,6 @@ export const Topbar: FC = () => {
                     >
                         Rules
                     </TabButton>
-                    {/* NEW: Add the TabButton for the Abilities section. */}
                     <TabButton
                         isActive={activeWorldTab === 'abilities'}
                         onClick={() => setActiveWorldTab('abilities')}
