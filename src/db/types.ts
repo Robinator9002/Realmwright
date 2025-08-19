@@ -1,13 +1,37 @@
 // src/db/types.ts
 
+// --- NEW: Character Sheet Structure Definition ---
+
 /**
- * A base interface for all manageable entities, ensuring they have
- * a consistent core structure.
+ * Represents a single configurable block on a character sheet.
+ * The 'content' will hold different data depending on the block type.
+ * e.g., for 'ability_tree', content would be an abilityTreeId.
+ * e.g., for 'rich_text', content would be a string of HTML/Markdown.
+ */
+export type SheetBlock = {
+    id: string; // A unique ID for this block (e.g., generated with crypto.randomUUID())
+    type: 'details' | 'stats' | 'ability_tree' | 'inventory' | 'rich_text' | 'notes';
+    content?: any;
+};
+
+/**
+ * Represents a single page within a character sheet layout.
+ */
+export type SheetPage = {
+    id: string; // A unique ID for the page
+    name: string;
+    blocks: SheetBlock[];
+};
+
+// --- Core Entity Interfaces ---
+
+/**
+ * A base interface for all manageable entities.
  */
 export interface BaseManageable {
     id?: number;
-    name: string; // The title or name of the entity.
-    description: string; // A short summary or description.
+    name: string;
+    description: string;
 }
 
 /**
@@ -27,18 +51,34 @@ export interface Campaign extends BaseManageable {
 }
 
 /**
- * Represents a Character within a specific World.
+ * Represents a Character, which is an INSTANCE of a Class.
  */
 export interface Character extends BaseManageable {
     worldId: number;
+    classId: number; // A character MUST belong to a class now.
     type: 'PC' | 'NPC' | 'Enemy';
     campaignIds: number[];
     createdAt: Date;
+    // Holds the character's CURRENT stats, which may be modified from the class base.
     stats: { [statId: number]: number };
+    // Holds the IDs of abilities the character has specifically learned.
     learnedAbilities: number[];
-    // NEW: A character can optionally belong to a class.
-    // This allows for classless characters/monsters.
-    classId?: number;
+    // Holds instance-specific data, like inventory items or notes content.
+    instanceData: { [blockId: string]: any };
+}
+
+/**
+ * Represents a Character Class, the BLUEPRINT for a character sheet.
+ */
+export interface CharacterClass extends BaseManageable {
+    worldId: number;
+    // The base stats for any character of this class.
+    baseStats: { [statId: number]: number };
+    // The layout and structure of the character sheet for this class.
+    characterSheet: SheetPage[];
+    createdAt: Date;
+    // REPLACED by characterSheet: An array of AbilityTree IDs that this class has access to.
+    // abilityTreeIds: number[];
 }
 
 /**
@@ -86,18 +126,5 @@ export interface Ability extends BaseManageable {
  */
 export interface AbilityTree extends BaseManageable {
     worldId: number;
-    createdAt: Date;
-}
-
-/**
- * Represents a Character Class template.
- * This is a reusable blueprint for creating characters.
- */
-export interface CharacterClass extends BaseManageable {
-    worldId: number;
-    // The base stats for any character of this class.
-    baseStats: { [statId: number]: number };
-    // An array of AbilityTree IDs that this class has access to.
-    abilityTreeIds: number[];
     createdAt: Date;
 }
