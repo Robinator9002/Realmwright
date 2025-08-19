@@ -1,6 +1,5 @@
 // src/components/specific/Character/CharacterManager.tsx
-import { useState, useEffect, useCallback } from 'react';
-import type { FC } from 'react';
+import { useState, useEffect, useCallback, type FC } from 'react';
 import { Settings, PlusCircle, Trash2 } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
@@ -11,7 +10,7 @@ import {
     deleteCharacter,
 } from '../../../db/queries/character.queries';
 import type { Character } from '../../../db/types';
-// REFACTOR: Corrected import path for the specialized modal.
+// Import the newly refactored modal.
 import { ManageCharacterModal, type CharacterSaveData } from './ManageCharacterModal';
 
 /**
@@ -57,12 +56,15 @@ export const CharacterManager: FC = () => {
         setIsManageModalOpen(true);
     };
 
-    const handleSaveCharacter = async (saveData: CharacterSaveData) => {
+    const handleSaveCharacter = async (
+        saveData: CharacterSaveData | Partial<CharacterSaveData>,
+        characterId?: number,
+    ) => {
         if (!selectedWorld?.id) {
             setError('Cannot save character: No world selected.');
             return;
         }
-        if (!saveData.name.trim()) {
+        if (!saveData.name?.trim()) {
             showModal('alert', {
                 title: 'Invalid Input',
                 message: 'Character name cannot be empty.',
@@ -71,10 +73,15 @@ export const CharacterManager: FC = () => {
         }
 
         try {
-            if (characterToEdit) {
-                await updateCharacter(characterToEdit.id!, { ...saveData });
+            if (characterId) {
+                // This is an update
+                await updateCharacter(characterId, saveData);
             } else {
-                await addCharacter({ ...saveData, worldId: selectedWorld.id });
+                // This is a creation
+                await addCharacter({
+                    ...(saveData as CharacterSaveData),
+                    worldId: selectedWorld.id,
+                });
             }
             await fetchCharacters();
         } catch (err) {
@@ -134,10 +141,6 @@ export const CharacterManager: FC = () => {
                                         <h4 className="panel__item-title">{char.name}</h4>
                                         <p className="panel__item-description">
                                             "{char.description}"
-                                        </p>
-                                        {/* NEW: Display the count of learned abilities */}
-                                        <p className="panel__item-meta">
-                                            Learned Abilities: {char.learnedAbilities?.length || 0}
                                         </p>
                                     </div>
                                     <div className="panel__item-actions">
