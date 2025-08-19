@@ -1,7 +1,7 @@
-// src/components/specific/CharacterManager/CharacterManager.tsx
+// src/components/specific/Character/CharacterManager.tsx
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
-import { Settings, PlusCircle } from 'lucide-react';
+import { Settings, PlusCircle, Trash2 } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
 import {
@@ -11,15 +11,11 @@ import {
     deleteCharacter,
 } from '../../../db/queries/character.queries';
 import type { Character } from '../../../db/types';
-// NEW: Import our new specialized modal and its save data type.
-import {
-    ManageCharacterModal,
-    type CharacterSaveData,
-} from './ManageCharacterModal';
+// REFACTOR: Corrected import path for the specialized modal.
+import { ManageCharacterModal, type CharacterSaveData } from './ManageCharacterModal';
 
 /**
  * A component for listing and managing characters within the active world.
- * The creation and editing logic is now handled by the specialized ManageCharacterModal.
  */
 export const CharacterManager: FC = () => {
     const { selectedWorld } = useWorld();
@@ -29,7 +25,6 @@ export const CharacterManager: FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // REFACTOR: This state now controls our new specialized modal.
     const [isManageModalOpen, setIsManageModalOpen] = useState(false);
     const [characterToEdit, setCharacterToEdit] = useState<Character | null>(null);
 
@@ -52,19 +47,16 @@ export const CharacterManager: FC = () => {
         fetchCharacters();
     }, [fetchCharacters]);
 
-    // --- NEW: Handlers for the specialized modal ---
-
     const handleOpenCreateModal = () => {
-        setCharacterToEdit(null); // Ensure we're in "create" mode
+        setCharacterToEdit(null);
         setIsManageModalOpen(true);
     };
 
     const handleOpenEditModal = (character: Character) => {
-        setCharacterToEdit(character); // Set the character to edit
+        setCharacterToEdit(character);
         setIsManageModalOpen(true);
     };
 
-    // This single function handles both creating and updating.
     const handleSaveCharacter = async (saveData: CharacterSaveData) => {
         if (!selectedWorld?.id) {
             setError('Cannot save character: No world selected.');
@@ -80,26 +72,24 @@ export const CharacterManager: FC = () => {
 
         try {
             if (characterToEdit) {
-                // Update existing character
                 await updateCharacter(characterToEdit.id!, { ...saveData });
             } else {
-                // Create new character
                 await addCharacter({ ...saveData, worldId: selectedWorld.id });
             }
-            await fetchCharacters(); // Refresh the list
+            await fetchCharacters();
         } catch (err) {
             setError('Failed to save the character.');
             console.error(err);
         }
     };
 
-    const handleDeleteCharacter = (characterId: number) => {
+    const handleDeleteCharacter = (character: Character) => {
         showModal('confirmation', {
-            title: 'Delete Character?',
+            title: `Delete ${character.name}?`,
             message: 'Are you sure you want to delete this character? This action is permanent.',
             onConfirm: async () => {
                 try {
-                    await deleteCharacter(characterId);
+                    await deleteCharacter(character.id!);
                     await fetchCharacters();
                 } catch (err) {
                     setError('Failed to delete the character.');
@@ -123,17 +113,16 @@ export const CharacterManager: FC = () => {
     return (
         <>
             <div className="panel">
-                <h2 className="panel__title">Characters</h2>
-
-                {/* REFACTOR: The old form is gone, replaced by a single button. */}
                 <div className="panel__header-actions">
+                    <h2 className="panel__title" style={{ border: 'none', padding: 0 }}>
+                        Characters
+                    </h2>
                     <button onClick={handleOpenCreateModal} className="button button--primary">
                         <PlusCircle size={16} /> Create New Character
                     </button>
                 </div>
 
                 <div className="panel__list-section">
-                    <h3 className="panel__list-title">Existing Characters</h3>
                     {error && <p className="error-message">{error}</p>}
                     {isLoading ? (
                         <p>Loading characters...</p>
@@ -146,9 +135,12 @@ export const CharacterManager: FC = () => {
                                         <p className="panel__item-description">
                                             "{char.description}"
                                         </p>
+                                        {/* NEW: Display the count of learned abilities */}
+                                        <p className="panel__item-meta">
+                                            Learned Abilities: {char.learnedAbilities?.length || 0}
+                                        </p>
                                     </div>
                                     <div className="panel__item-actions">
-                                        {/* REFACTOR: Manage button now opens the specialized modal */}
                                         <button
                                             onClick={() => handleOpenEditModal(char)}
                                             className="button"
@@ -156,10 +148,10 @@ export const CharacterManager: FC = () => {
                                             <Settings size={16} /> Manage
                                         </button>
                                         <button
-                                            onClick={() => handleDeleteCharacter(char.id!)}
+                                            onClick={() => handleDeleteCharacter(char)}
                                             className="button button--danger"
                                         >
-                                            Delete
+                                            <Trash2 size={16} />
                                         </button>
                                         <span
                                             className={`status-badge ${getBadgeClass(char.type)}`}
@@ -178,7 +170,6 @@ export const CharacterManager: FC = () => {
                 </div>
             </div>
 
-            {/* REFACTOR: Render our new, powerful, specialized modal. */}
             <ManageCharacterModal
                 isOpen={isManageModalOpen}
                 onClose={() => setIsManageModalOpen(false)}

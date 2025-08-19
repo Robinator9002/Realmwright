@@ -19,6 +19,15 @@
     color: var(--color-foreground);
 }
 
+/* NEW: A simple header for panels that just contains actions */
+.panel__header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+}
+
 .panel__form-section {
     background-color: var(--color-background);
     border: 1px solid var(--color-border);
@@ -68,14 +77,23 @@
     font-size: 0.875rem;
     color: var(--color-muted-foreground);
     font-style: italic;
+    margin-bottom: var(--spacing-2); /* Add some space for meta info below */
 }
 
-/* --- New Styles for Action Buttons --- */
+/* NEW: A small text style for metadata like ability counts. */
+.panel__item-meta {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 .panel__item-actions {
     display: flex;
     align-items: center;
     gap: var(--spacing-4);
-    flex-shrink: 0; /* Prevents buttons from shrinking */
+    flex-shrink: 0;
 }
 
 .panel__empty-message {
