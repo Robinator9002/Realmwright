@@ -41,21 +41,21 @@ The initial architectural phase is complete. The foundational UI, data structure
 
 2.  **► Base Camp 2: The Chronicle Keeper (Current Focus)**
 
-    -   [ ] Design and implement the **Lore Creator** module.
-    -   [ ] Develop a rich text editor for detailed lore entries.
+    -   [x] Design and implement the **Lore Creator** module.
+    -   [x] Develop a rich text editor for detailed lore entries.
     -   [ ] Implement categorization (Factions, Locations, etc.) and cross-linking/tagging.
     -   [ ] Integrate a chronological timeline view for historical events.
 
 3.  **Base Camp 3: The Persona Forge**
 
-    -   [ ] Build the **Character Template Creator** with modular components.
-    -   [ ] Integrate stats and abilities from a future Rule Creator.
+    -   [x] Build the **Character Template Creator** with modular components.
+    -   [x] Integrate stats and abilities from a future Rule Creator.
     -   [ ] Allow for custom, free-form pages within a character sheet.
 
 4.  **Base Camp 4: The System Architect & The Skill Weaver**
 
-    -   [ ] Build the **Rule Creator** to define game mechanics and rule packs.
-    -   [ ] Design and implement the node-based **Ability Tree Creator**.
+    -   [x] Build the **Rule Creator** to define game mechanics and rule packs.
+    -   [x] Design and implement the node-based **Ability Tree Creator**.
 
 5.  **The Summit Push: The Live Console & World Canvas**
     -   [ ] Develop the **"Active Play Mode"** with its various trackers (Quests, Combat, etc.).
