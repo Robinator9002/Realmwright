@@ -1,10 +1,10 @@
 // src/db/queries/character.queries.ts
 import { db } from '../db';
 import type { Character } from '../types';
-// NEW: We need to get the stat definitions to create a new character.
 import { getStatDefinitionsForWorld } from './rule.queries';
 
-// This type remains the same, as stats are added automatically.
+// This type remains the same for the public-facing creation function.
+// `stats` and `learnedAbilities` are handled internally upon creation.
 type CreateCharacterData = {
     name: string;
     description: string;
@@ -14,28 +14,23 @@ type CreateCharacterData = {
 
 /**
  * Adds a new Character to the database, linked to a specific World.
- * REFACTOR: This function is now "stat-aware". It fetches all stat definitions
- * for the world and populates the new character's stat block with default values.
+ * REFACTOR: Now initializes the `learnedAbilities` array.
  * @param characterData - An object containing the character's details.
  * @returns The ID of the newly created character.
  */
 export async function addCharacter(characterData: CreateCharacterData): Promise<number> {
     try {
-        // 1. Fetch all stat definitions for the current world.
         const statDefinitions = await getStatDefinitionsForWorld(characterData.worldId);
-
-        // 2. Create the initial stat block from the definitions.
         const initialStats: { [statId: number]: number } = {};
         for (const stat of statDefinitions) {
-            // The key is the stat's ID, the value is its default.
             initialStats[stat.id!] = stat.defaultValue;
         }
 
-        // 3. Create the new character object with the generated stat block.
         const newCharacter: Character = {
             ...characterData,
             campaignIds: [],
-            stats: initialStats, // Add the populated stats object.
+            stats: initialStats,
+            learnedAbilities: [], // NEW: Initialize with an empty array.
             createdAt: new Date(),
         };
 
@@ -49,8 +44,7 @@ export async function addCharacter(characterData: CreateCharacterData): Promise<
 
 /**
  * Retrieves all Characters for a specific World, sorted by name.
- * @param worldId - The ID of the world whose characters are to be fetched.
- * @returns A promise that resolves to an array of Character objects.
+ * (This function remains unchanged)
  */
 export async function getCharactersForWorld(worldId: number): Promise<Character[]> {
     try {
@@ -62,22 +56,24 @@ export async function getCharactersForWorld(worldId: number): Promise<Character[
     }
 }
 
-// NEW: A type for the updatable fields of a character.
-type UpdateCharacterPayload = {
+// REFACTOR: A dedicated type for all updatable fields of a character.
+export type UpdateCharacterPayload = {
     name: string;
     description: string;
     type: 'PC' | 'NPC' | 'Enemy';
     stats: { [statId: number]: number };
+    learnedAbilities: number[]; // NEW: Abilities can now be updated.
 };
 
 /**
- * REFACTOR: Updates an existing Character in the database. Now supports updating stats.
+ * REFACTOR: Updates an existing Character in the database.
+ * The `updates` parameter is now a Partial, allowing for more flexible updates.
  * @param characterId - The ID of the character to update.
  * @param updates - An object containing the fields to update.
  */
 export async function updateCharacter(
     characterId: number,
-    updates: UpdateCharacterPayload,
+    updates: Partial<UpdateCharacterPayload>,
 ): Promise<void> {
     try {
         await db.characters.update(characterId, updates);
@@ -89,7 +85,7 @@ export async function updateCharacter(
 
 /**
  * Deletes a specific Character from the database.
- * @param characterId - The ID of the character to delete.
+ * (This function remains unchanged)
  */
 export async function deleteCharacter(characterId: number): Promise<void> {
     try {
