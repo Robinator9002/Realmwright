@@ -1,0 +1,94 @@
+/* src/styles/components/_sheet-editor.css */
+
+.sheet-editor {
+    /* This allows the editor to take up the full space of its container */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 20; /* Ensures it renders above other dashboard panels */
+}
+
+.sheet-editor__content {
+    display: grid;
+    grid-template-columns: 1fr 280px; /* Main canvas and a fixed-width sidebar */
+    gap: var(--spacing-6);
+    flex-grow: 1; /* Allows the content to fill the panel's height */
+    height: 100%;
+    overflow: hidden; /* Prevent scrolling on the main editor body */
+}
+
+.sheet-editor__canvas {
+    background-color: var(--color-background);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+    overflow-y: auto; /* Allow the canvas itself to scroll if content overflows */
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+}
+
+.sheet-editor__sidebar {
+    background-color: var(--color-background);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+}
+
+.sidebar__title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-2);
+    margin-bottom: var(--spacing-2);
+}
+
+.sidebar__block-button {
+    width: 100%;
+    justify-content: flex-start; /* Align button content to the left */
+}
+
+/* --- Canvas Block Styles --- */
+.sheet-block {
+    background-color: var(--color-panel-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.sheet-block__header {
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+}
+
+.sheet-block__type {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-accent);
+}
+
+.sheet-block__remove-button {
+    background: none;
+    border: none;
+    color: var(--color-muted-foreground);
+    cursor: pointer;
+    padding: var(--spacing-1);
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.sheet-block__remove-button:hover {
+    background-color: var(--color-danger);
+    color: white;
+}

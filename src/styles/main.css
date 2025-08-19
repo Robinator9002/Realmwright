@@ -20,6 +20,7 @@
 @import url('./components/_status-badge.css');
 @import url('./components/_ability-manager.css');
 @import url('./components/_ability-node.css');
+@import url('./components/_sheet-editor.css'); /* NEW */
 
 /* 4. Page-specific styles that might override components. */
 @import url('./pages/_world-manager.css');
