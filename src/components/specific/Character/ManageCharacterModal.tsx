@@ -3,27 +3,28 @@ import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
 import { getStatDefinitionsForWorld } from '../../../db/queries/rule.queries';
-import type { Character, StatDefinition } from '../../../db/types';
+// NEW: Import queries for fetching abilities.
+import { getAbilityTreesForWorld, getAbilitiesForTree } from '../../../db/queries/ability.queries';
+import type { Character, StatDefinition, AbilityTree, Ability } from '../../../db/types';
 
-// Define the shape of the data this modal will save.
-// This matches the payload for our `addCharacter` and `updateCharacter` queries.
+// The save data now includes the list of learned abilities.
 export type CharacterSaveData = {
     name: string;
     description: string;
     type: 'PC' | 'NPC' | 'Enemy';
     stats: { [statId: number]: number };
+    learnedAbilities: number[];
 };
 
-// Define the props for our new, specialized modal.
 export interface ManageCharacterModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (data: CharacterSaveData) => Promise<void>;
-    characterToEdit: Character | null; // If null, we're in "create" mode.
+    characterToEdit: Character | null;
 }
 
 /**
- * A specialized modal for creating and editing characters, including their stats.
+ * A specialized modal for creating and editing characters, including their stats and abilities.
  */
 export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
     isOpen,
@@ -34,41 +35,57 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
     const { selectedWorld } = useWorld();
     const isEditMode = !!characterToEdit;
 
-    // State for the form fields
+    // --- Form State ---
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [type, setType] = useState<'PC' | 'NPC' | 'Enemy'>('NPC');
     const [stats, setStats] = useState<{ [statId: number]: number }>({});
+    const [learnedAbilities, setLearnedAbilities] = useState<number[]>([]);
 
-    // State to hold the world's stat definitions
+    // --- Data Loading State ---
     const [statDefs, setStatDefs] = useState<StatDefinition[]>([]);
+    const [abilityTrees, setAbilityTrees] = useState<AbilityTree[]>([]);
+    const [abilitiesByTree, setAbilitiesByTree] = useState<Record<number, Ability[]>>({});
     const [isLoading, setIsLoading] = useState(true);
 
-    // Effect to fetch stat definitions when the modal is opened.
+    // Effect to fetch all necessary data (stats, ability trees, and all abilities) when the modal opens.
     useEffect(() => {
         if (isOpen && selectedWorld?.id) {
             setIsLoading(true);
-            getStatDefinitionsForWorld(selectedWorld.id)
-                .then(setStatDefs)
-                .finally(() => setIsLoading(false));
+            Promise.all([
+                getStatDefinitionsForWorld(selectedWorld.id),
+                getAbilityTreesForWorld(selectedWorld.id),
+            ]).then(async ([statData, treeData]) => {
+                setStatDefs(statData);
+                setAbilityTrees(treeData);
+
+                // Fetch abilities for each tree
+                const abilitiesMap: Record<number, Ability[]> = {};
+                for (const tree of treeData) {
+                    const abilities = await getAbilitiesForTree(tree.id!);
+                    abilitiesMap[tree.id!] = abilities;
+                }
+                setAbilitiesByTree(abilitiesMap);
+
+                setIsLoading(false);
+            });
         }
     }, [isOpen, selectedWorld]);
 
-    // Effect to populate the form when the modal opens or the character changes.
+    // Effect to populate the form once data is loaded.
     useEffect(() => {
         if (isOpen && !isLoading) {
             if (isEditMode && characterToEdit) {
-                // Edit mode: Populate from the existing character.
                 setName(characterToEdit.name);
                 setDescription(characterToEdit.description);
                 setType(characterToEdit.type);
                 setStats(characterToEdit.stats || {});
+                setLearnedAbilities(characterToEdit.learnedAbilities || []);
             } else {
-                // Create mode: Populate with default values.
                 setName('');
                 setDescription('');
                 setType('NPC');
-                // Create a default stat block from the definitions.
+                setLearnedAbilities([]);
                 const defaultStats: { [statId: number]: number } = {};
                 for (const def of statDefs) {
                     defaultStats[def.id!] = def.defaultValue;
@@ -78,28 +95,32 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
         }
     }, [isOpen, isLoading, isEditMode, characterToEdit, statDefs]);
 
-    // Handles changes to a specific stat input.
     const handleStatChange = (statId: number, value: string) => {
-        setStats((prevStats) => ({
-            ...prevStats,
-            [statId]: parseInt(value, 10) || 0,
-        }));
+        setStats((prev) => ({ ...prev, [statId]: parseInt(value, 10) || 0 }));
     };
 
-    // Gathers all form data and calls the onSave prop.
+    // NEW: Handler for toggling an ability's learned status.
+    const handleAbilityToggle = (abilityId: number) => {
+        setLearnedAbilities((prev) =>
+            prev.includes(abilityId) ? prev.filter((id) => id !== abilityId) : [...prev, abilityId],
+        );
+    };
+
     const handleSave = async () => {
-        const saveData: CharacterSaveData = { name, description, type, stats };
+        const saveData: CharacterSaveData = { name, description, type, stats, learnedAbilities };
         await onSave(saveData);
         onClose();
     };
 
-    if (!isOpen) {
-        return null;
-    }
+    if (!isOpen) return null;
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div
+                className="modal"
+                style={{ maxWidth: '800px' }}
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="modal__header">
                     <h2 className="modal__title">
                         {isEditMode ? `Edit ${characterToEdit.name}` : 'Create New Character'}
@@ -111,79 +132,130 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
 
                 <div className="modal__content">
                     {isLoading ? (
-                        <p>Loading rules...</p>
+                        <p>Loading...</p>
                     ) : (
-                        <form className="form">
-                            {/* --- Core Details Section --- */}
-                            <div className="form__group">
-                                <label htmlFor="charName" className="form__label">
-                                    Character Name
-                                </label>
-                                <input
-                                    id="charName"
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    className="form__input"
-                                />
-                            </div>
-                            <div className="form__group">
-                                <label htmlFor="charDesc" className="form__label">
-                                    Description
-                                </label>
-                                <textarea
-                                    id="charDesc"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    className="form__textarea"
-                                    rows={3}
-                                />
-                            </div>
-                            <div className="form__group">
-                                <label htmlFor="charType" className="form__label">
-                                    Character Type
-                                </label>
-                                <select
-                                    id="charType"
-                                    value={type}
-                                    onChange={(e) =>
-                                        setType(e.target.value as 'PC' | 'NPC' | 'Enemy')
-                                    }
-                                    className="form__select"
-                                >
-                                    <option value="NPC">NPC</option>
-                                    <option value="PC">Player Character</option>
-                                    <option value="Enemy">Enemy</option>
-                                </select>
+                        <form className="form grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* --- Left Column: Details & Stats --- */}
+                            <div className="flex flex-col gap-4">
+                                <div className="form__group">
+                                    <label htmlFor="charName" className="form__label">
+                                        Name
+                                    </label>
+                                    <input
+                                        id="charName"
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="form__input"
+                                    />
+                                </div>
+                                <div className="form__group">
+                                    <label htmlFor="charDesc" className="form__label">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        id="charDesc"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        className="form__textarea"
+                                        rows={3}
+                                    />
+                                </div>
+                                <div className="form__group">
+                                    <label htmlFor="charType" className="form__label">
+                                        Type
+                                    </label>
+                                    <select
+                                        id="charType"
+                                        value={type}
+                                        onChange={(e) =>
+                                            setType(e.target.value as 'PC' | 'NPC' | 'Enemy')
+                                        }
+                                        className="form__select"
+                                    >
+                                        <option value="NPC">NPC</option>
+                                        <option value="PC">Player Character</option>
+                                        <option value="Enemy">Enemy</option>
+                                    </select>
+                                </div>
+                                {statDefs.length > 0 && (
+                                    <div className="form__group">
+                                        <label className="form__label">Statistics</label>
+                                        <div className="grid grid-cols-3 gap-4">
+                                            {statDefs.map((def) => (
+                                                <div key={def.id} className="form__group">
+                                                    <label
+                                                        htmlFor={`stat-${def.id}`}
+                                                        className="form__label text-xs"
+                                                    >
+                                                        {def.name} ({def.abbreviation})
+                                                    </label>
+                                                    <input
+                                                        id={`stat-${def.id}`}
+                                                        type="number"
+                                                        value={stats[def.id!] || ''}
+                                                        onChange={(e) =>
+                                                            handleStatChange(
+                                                                def.id!,
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        className="form__input"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* --- Dynamic Stats Section --- */}
-                            {statDefs.length > 0 && (
+                            {/* --- Right Column: Abilities --- */}
+                            <div className="flex flex-col gap-4">
                                 <div className="form__group">
-                                    <label className="form__label">Statistics</label>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        {statDefs.map((def) => (
-                                            <div key={def.id} className="form__group">
-                                                <label
-                                                    htmlFor={`stat-${def.id}`}
-                                                    className="form__label text-xs"
+                                    <label className="form__label">Abilities</label>
+                                    <div className="ability-selection-container">
+                                        {abilityTrees.length > 0 ? (
+                                            abilityTrees.map((tree) => (
+                                                <details
+                                                    key={tree.id}
+                                                    className="ability-tree-group"
                                                 >
-                                                    {def.name} ({def.abbreviation})
-                                                </label>
-                                                <input
-                                                    id={`stat-${def.id}`}
-                                                    type="number"
-                                                    value={stats[def.id!] || ''}
-                                                    onChange={(e) =>
-                                                        handleStatChange(def.id!, e.target.value)
-                                                    }
-                                                    className="form__input"
-                                                />
-                                            </div>
-                                        ))}
+                                                    <summary className="ability-tree-summary">
+                                                        {tree.name}
+                                                    </summary>
+                                                    <div className="ability-list">
+                                                        {(abilitiesByTree[tree.id!] || []).map(
+                                                            (ability) => (
+                                                                <label
+                                                                    key={ability.id}
+                                                                    className="ability-checkbox-label"
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={learnedAbilities.includes(
+                                                                            ability.id!,
+                                                                        )}
+                                                                        onChange={() =>
+                                                                            handleAbilityToggle(
+                                                                                ability.id!,
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                    {ability.name}
+                                                                </label>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                </details>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-gray-500">
+                                                No ability trees defined for this world.
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </form>
                     )}
                 </div>
@@ -193,7 +265,7 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
                         Cancel
                     </button>
                     <button onClick={handleSave} className="button button--primary">
-                        {isEditMode ? "Save Changes" : "Create Character"}
+                        {isEditMode ? 'Save Changes' : 'Create Character'}
                     </button>
                 </div>
             </div>
