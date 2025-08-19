@@ -15,7 +15,7 @@ import type { Character } from '../../../db/types';
 import {
     ManageCharacterModal,
     type CharacterSaveData,
-} from '../ManageCharacterModal/ManageCharacterModal';
+} from './ManageCharacterModal';
 
 /**
  * A component for listing and managing characters within the active world.
