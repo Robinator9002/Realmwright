@@ -5,8 +5,9 @@ import { CampaignManager } from '../../components/specific/Campaign/CampaignMana
 import { CharacterManager } from '../../components/specific/Character/CharacterManager';
 import { LoreManager } from '../../components/specific/Lore/LoreManager';
 import { RuleManager } from '../../components/specific/Rules/RuleManager';
-// NEW: Import the real AbilityManager component.
 import { AbilityManager } from '../../components/specific/AbilityTree/AbilityManager';
+// NEW: Import the ClassManager component.
+import { ClassManager } from '../../components/specific/Class/ClassManager';
 
 /**
  * Acts as a content switcher for the main world dashboard area.
@@ -22,11 +23,13 @@ export const WorldDashboardPage: FC = () => {
                 return <CampaignManager />;
             case 'characters':
                 return <CharacterManager />;
+            // NEW: Add the case for the 'classes' tab.
+            case 'classes':
+                return <ClassManager />;
             case 'lore':
                 return <LoreManager />;
             case 'rules':
                 return <RuleManager />;
-            // NEW: Replace the placeholder with the actual AbilityManager component.
             case 'abilities':
                 return <AbilityManager />;
             default:
