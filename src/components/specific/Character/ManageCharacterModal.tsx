@@ -1,19 +1,26 @@
-// src/components/specific/ManageCharacterModal/ManageCharacterModal.tsx
-import { useState, useEffect } from 'react';
-import type { FC } from 'react';
+// src/components/specific/Character/ManageCharacterModal.tsx
+import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
 import { getStatDefinitionsForWorld } from '../../../db/queries/rule.queries';
-// NEW: Import queries for fetching abilities.
-import { getAbilityTreesForWorld, getAbilitiesForTree } from '../../../db/queries/ability.queries';
-import type { Character, StatDefinition, AbilityTree, Ability } from '../../../db/types';
+import { getAbilityTreesForWorld } from '../../../db/queries/ability.queries';
+// NEW: Import queries and types for Character Classes.
+import { getClassesForWorld } from '../../../db/queries/class.queries';
+import type {
+    Character,
+    StatDefinition,
+    AbilityTree,
+    Ability,
+    CharacterClass,
+} from '../../../db/types';
 
-// The save data now includes the list of learned abilities.
+// The save data now includes the optional classId.
 export type CharacterSaveData = {
     name: string;
     description: string;
     type: 'PC' | 'NPC' | 'Enemy';
     stats: { [statId: number]: number };
     learnedAbilities: number[];
+    classId?: number;
 };
 
 export interface ManageCharacterModalProps {
@@ -41,23 +48,27 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
     const [type, setType] = useState<'PC' | 'NPC' | 'Enemy'>('NPC');
     const [stats, setStats] = useState<{ [statId: number]: number }>({});
     const [learnedAbilities, setLearnedAbilities] = useState<number[]>([]);
+    const [classId, setClassId] = useState<number | undefined>(undefined); // NEW
 
     // --- Data Loading State ---
     const [statDefs, setStatDefs] = useState<StatDefinition[]>([]);
     const [abilityTrees, setAbilityTrees] = useState<AbilityTree[]>([]);
+    const [characterClasses, setCharacterClasses] = useState<CharacterClass[]>([]); // NEW
     const [abilitiesByTree, setAbilitiesByTree] = useState<Record<number, Ability[]>>({});
     const [isLoading, setIsLoading] = useState(true);
 
-    // Effect to fetch all necessary data (stats, ability trees, and all abilities) when the modal opens.
+    // Effect to fetch all necessary data (stats, trees, classes, and all abilities) when the modal opens.
     useEffect(() => {
         if (isOpen && selectedWorld?.id) {
             setIsLoading(true);
             Promise.all([
                 getStatDefinitionsForWorld(selectedWorld.id),
                 getAbilityTreesForWorld(selectedWorld.id),
-            ]).then(async ([statData, treeData]) => {
+                getClassesForWorld(selectedWorld.id), // NEW: Fetch classes
+            ]).then(async ([statData, treeData, classData]) => {
                 setStatDefs(statData);
                 setAbilityTrees(treeData);
+                setCharacterClasses(classData); // NEW: Store classes
 
                 // Fetch abilities for each tree
                 const abilitiesMap: Record<number, Ability[]> = {};
@@ -81,11 +92,13 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
                 setType(characterToEdit.type);
                 setStats(characterToEdit.stats || {});
                 setLearnedAbilities(characterToEdit.learnedAbilities || []);
+                setClassId(characterToEdit.classId); // NEW
             } else {
                 setName('');
                 setDescription('');
                 setType('NPC');
                 setLearnedAbilities([]);
+                setClassId(undefined); // NEW
                 const defaultStats: { [statId: number]: number } = {};
                 for (const def of statDefs) {
                     defaultStats[def.id!] = def.defaultValue;
@@ -95,11 +108,27 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
         }
     }, [isOpen, isLoading, isEditMode, characterToEdit, statDefs]);
 
+    // NEW: Effect to apply class template when classId changes.
+    useEffect(() => {
+        if (!isLoading) {
+            const selectedClass = characterClasses.find((c) => c.id === classId);
+            if (selectedClass) {
+                setStats(selectedClass.baseStats);
+            } else {
+                // If "None" is selected or class not found, reset to defaults.
+                const defaultStats: { [statId: number]: number } = {};
+                for (const def of statDefs) {
+                    defaultStats[def.id!] = def.defaultValue;
+                }
+                setStats(defaultStats);
+            }
+        }
+    }, [classId, characterClasses, statDefs, isLoading]);
+
     const handleStatChange = (statId: number, value: string) => {
         setStats((prev) => ({ ...prev, [statId]: parseInt(value, 10) || 0 }));
     };
 
-    // NEW: Handler for toggling an ability's learned status.
     const handleAbilityToggle = (abilityId: number) => {
         setLearnedAbilities((prev) =>
             prev.includes(abilityId) ? prev.filter((id) => id !== abilityId) : [...prev, abilityId],
@@ -107,10 +136,25 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
     };
 
     const handleSave = async () => {
-        const saveData: CharacterSaveData = { name, description, type, stats, learnedAbilities };
+        const saveData: CharacterSaveData = {
+            name,
+            description,
+            type,
+            stats,
+            learnedAbilities,
+            classId,
+        };
         await onSave(saveData);
         onClose();
     };
+
+    // NEW: Determine which ability trees to show based on the selected class.
+    const visibleAbilityTrees =
+        characterClasses.find((c) => c.id === classId)?.abilityTreeIds ?? null;
+
+    const filteredAbilityTrees = visibleAbilityTrees
+        ? abilityTrees.filter((tree) => visibleAbilityTrees.includes(tree.id!))
+        : abilityTrees;
 
     if (!isOpen) return null;
 
@@ -148,6 +192,31 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
                                         onChange={(e) => setName(e.target.value)}
                                         className="form__input"
                                     />
+                                </div>
+                                {/* NEW: Class Selection Dropdown */}
+                                <div className="form__group">
+                                    <label htmlFor="charClass" className="form__label">
+                                        Class
+                                    </label>
+                                    <select
+                                        id="charClass"
+                                        value={classId ?? ''}
+                                        onChange={(e) =>
+                                            setClassId(
+                                                e.target.value
+                                                    ? parseInt(e.target.value, 10)
+                                                    : undefined,
+                                            )
+                                        }
+                                        className="form__select"
+                                    >
+                                        <option value="">None</option>
+                                        {characterClasses.map((c) => (
+                                            <option key={c.id} value={c.id}>
+                                                {c.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="form__group">
                                     <label htmlFor="charDesc" className="form__label">
@@ -193,7 +262,7 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
                                                     <input
                                                         id={`stat-${def.id}`}
                                                         type="number"
-                                                        value={stats[def.id!] || ''}
+                                                        value={stats[def.id!] ?? ''}
                                                         onChange={(e) =>
                                                             handleStatChange(
                                                                 def.id!,
@@ -214,11 +283,12 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
                                 <div className="form__group">
                                     <label className="form__label">Abilities</label>
                                     <div className="ability-selection-container">
-                                        {abilityTrees.length > 0 ? (
-                                            abilityTrees.map((tree) => (
+                                        {filteredAbilityTrees.length > 0 ? (
+                                            filteredAbilityTrees.map((tree) => (
                                                 <details
                                                     key={tree.id}
                                                     className="ability-tree-group"
+                                                    open
                                                 >
                                                     <summary className="ability-tree-summary">
                                                         {tree.name}
@@ -250,7 +320,7 @@ export const ManageCharacterModal: FC<ManageCharacterModalProps> = ({
                                             ))
                                         ) : (
                                             <p className="text-sm text-gray-500">
-                                                No ability trees defined for this world.
+                                                No ability trees are available for this class.
                                             </p>
                                         )}
                                     </div>
