@@ -2,18 +2,22 @@
 import { db } from '../db';
 import type { StatDefinition } from '../types';
 
-/**
- * Adds a new Stat Definition to the database, linked to a specific World.
- * @param statData - An object containing the new stat's details.
- * @returns The ID of the newly created stat definition.
- */
-export async function addStatDefinition(statData: {
+// A dedicated type for the creation payload to ensure `type` is included.
+type CreateStatData = {
     name: string;
     description: string;
     abbreviation: string;
     defaultValue: number;
     worldId: number;
-}): Promise<number> {
+    type: 'primary' | 'derived' | 'resource';
+};
+
+/**
+ * Adds a new Stat Definition to the database, linked to a specific World.
+ * @param statData - An object containing the new stat's details.
+ * @returns The ID of the newly created stat definition.
+ */
+export async function addStatDefinition(statData: CreateStatData): Promise<number> {
     try {
         const newStatDefinition: StatDefinition = {
             ...statData,
@@ -42,6 +46,15 @@ export async function getStatDefinitionsForWorld(worldId: number): Promise<StatD
     }
 }
 
+// A dedicated type for all updatable fields of a StatDefinition.
+export type UpdateStatPayload = {
+    name: string;
+    description: string;
+    abbreviation: string;
+    defaultValue: number;
+    type: 'primary' | 'derived' | 'resource';
+};
+
 /**
  * Updates an existing Stat Definition in the database.
  * @param statId - The ID of the stat definition to update.
@@ -49,7 +62,7 @@ export async function getStatDefinitionsForWorld(worldId: number): Promise<StatD
  */
 export async function updateStatDefinition(
     statId: number,
-    updates: { name: string; description: string; abbreviation: string; defaultValue: number },
+    updates: Partial<UpdateStatPayload>,
 ): Promise<void> {
     try {
         await db.statDefinitions.update(statId, updates);
