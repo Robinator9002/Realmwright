@@ -5,6 +5,8 @@ import WorldManagerPage from './pages/WorldManager/WorldManagerPage';
 import { WorldDashboardPage } from './pages/WorldDashboard/WorldDashboardPage';
 import { SettingsPage } from './pages/SettingsPage/SettingsPage';
 import { ModalManager } from './components/common/Modal/ModalManager';
+// NEW: Import the (soon-to-be-created) CharacterSheetPage
+import { CharacterSheetPage } from './pages/CharacterSheet/CharacterSheetPage';
 
 /**
  * A helper component to select which main page to render
@@ -18,6 +20,9 @@ const CurrentView = () => {
             return <WorldDashboardPage />;
         case 'settings':
             return <SettingsPage />;
+        // NEW: Add the case to handle rendering the character sheet
+        case 'character_sheet':
+            return <CharacterSheetPage />;
         case 'worlds':
         default:
             return <WorldManagerPage />;
@@ -35,7 +40,6 @@ function App() {
             <AppLayout>
                 <CurrentView />
             </AppLayout>
-            {/* By placing ModalManager here, it exists in the root stacking context. */}
             <ModalManager />
         </>
     );
