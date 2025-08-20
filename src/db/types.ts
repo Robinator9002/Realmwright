@@ -77,8 +77,6 @@ export interface CharacterClass extends BaseManageable {
     // The layout and structure of the character sheet for this class.
     characterSheet: SheetPage[];
     createdAt: Date;
-    // REPLACED by characterSheet: An array of AbilityTree IDs that this class has access to.
-    // abilityTreeIds: number[];
 }
 
 /**
@@ -99,6 +97,8 @@ export interface StatDefinition extends BaseManageable {
     abbreviation: string;
     defaultValue: number;
     createdAt: Date;
+    // NEW: Categorizes the stat to determine its behavior.
+    type: 'primary' | 'derived' | 'resource';
 }
 
 /**
