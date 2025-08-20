@@ -1,0 +1,62 @@
+// src/components/specific/SheetBlocks/RichTextBlock.tsx
+import { useState, type FC } from 'react';
+import { Edit, Save } from 'lucide-react';
+
+export interface RichTextBlockProps {
+    content: string | undefined;
+    onContentChange: (newContent: string) => void;
+}
+
+/**
+ * A sheet block for displaying and editing free-form rich text content.
+ */
+export const RichTextBlock: FC<RichTextBlockProps> = ({ content, onContentChange }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [text, setText] = useState(content || '');
+
+    const handleSave = () => {
+        onContentChange(text);
+        setIsEditing(false);
+    };
+
+    if (isEditing) {
+        return (
+            <div className="rich-text-block rich-text-block--editing">
+                <textarea
+                    className="form__textarea"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    rows={8}
+                    placeholder="Enter your text here..."
+                />
+                <button
+                    onClick={handleSave}
+                    className="button button--primary rich-text-block__save-button"
+                >
+                    <Save size={16} /> Save
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="rich-text-block">
+            <div
+                className="rich-text-block__display"
+                // In a real app, you'd sanitize this HTML or use a proper renderer
+                dangerouslySetInnerHTML={{
+                    __html: content
+                        ? content.replace(/\n/g, '<br />')
+                        : '<p><i>Empty text block. Click edit to add content.</i></p>',
+                }}
+            />
+            <button
+                onClick={() => setIsEditing(true)}
+                className="rich-text-block__edit-button"
+                title="Edit Block"
+            >
+                <Edit size={16} />
+            </button>
+        </div>
+    );
+};
