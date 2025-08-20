@@ -5,8 +5,9 @@ import type { CharacterClass, SheetPage, SheetBlock } from '../../../db/types';
 import { updateClass } from '../../../db/queries/class.queries';
 import { StatsBlock } from '../SheetBlocks/StatsBlock';
 import { DetailsBlock } from '../SheetBlocks/DetailsBlock';
-// NEW: Import the AbilityTreeBlock component.
 import { AbilityTreeBlock } from '../SheetBlocks/AbilityTreeBlock';
+// NEW: Import the RichTextBlock component.
+import { RichTextBlock } from '../SheetBlocks/RichTextBlock';
 
 export interface ClassSheetEditorProps {
     characterClass: CharacterClass;
@@ -23,7 +24,6 @@ const blockTypes: { type: SheetBlock['type']; label: string; icon: React.ReactNo
 
 /**
  * A component that renders the correct block based on its type.
- * NEW: It now passes down a function to handle content changes.
  */
 const BlockRenderer: FC<{
     block: SheetBlock;
@@ -35,10 +35,17 @@ const BlockRenderer: FC<{
             return <DetailsBlock characterClass={characterClass} />;
         case 'stats':
             return <StatsBlock baseStats={characterClass.baseStats} />;
-        // NEW: Add a case to render the AbilityTreeBlock.
         case 'ability_tree':
             return (
                 <AbilityTreeBlock
+                    content={block.content}
+                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
+                />
+            );
+        // NEW: Add a case to render the RichTextBlock.
+        case 'rich_text':
+            return (
+                <RichTextBlock
                     content={block.content}
                     onContentChange={(newContent) => onContentChange(block.id, newContent)}
                 />
@@ -64,7 +71,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             id: crypto.randomUUID(),
             type: blockType,
             // Initialize content for configurable blocks
-            content: blockType === 'ability_tree' ? undefined : null,
+            content: blockType === 'rich_text' ? '' : undefined,
         };
         const newSheet = JSON.parse(JSON.stringify(sheet));
         newSheet[0].blocks.push(newBlock);
@@ -77,7 +84,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         setSheet(newSheet);
     };
 
-    // NEW: A handler to update a specific block's content in the sheet state.
     const handleBlockContentChange = (blockId: string, newContent: any) => {
         const newSheet = JSON.parse(JSON.stringify(sheet));
         const blockToUpdate = newSheet[0].blocks.find((block: SheetBlock) => block.id === blockId);
