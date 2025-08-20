@@ -10,16 +10,12 @@ import {
     updateClass,
 } from '../../../db/queries/class.queries';
 import type { CharacterClass } from '../../../db/types';
-// We are no longer using the ManageClassModal, so it can be removed.
-// We will build a simple creation modal later if needed.
-import { ManageModal } from '../../common/Modal/ManageModal';
-
-// NEW: Import the ClassSheetEditor.
+// FIX: The generic ManageModal has been replaced by the specialized ManageClassModal
+import { ManageClassModal, type ClassSaveData } from './ManageClassModal';
 import { ClassSheetEditor } from './ClassSheetEditor';
 
 /**
  * A component for listing and managing Character Classes within the active world.
- * It can now switch between the list view and the sheet editor view.
  */
 export const ClassManager: FC = () => {
     const { selectedWorld } = useWorld();
@@ -29,10 +25,7 @@ export const ClassManager: FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // NEW: State to track which class is being edited in the full-page editor.
     const [editingClass, setEditingClass] = useState<CharacterClass | null>(null);
-
-    // State for the simple name/description management modal
     const [managingClass, setManagingClass] = useState<CharacterClass | null>(null);
     const isManageModalOpen = !!managingClass;
 
@@ -55,23 +48,29 @@ export const ClassManager: FC = () => {
         fetchClasses();
     }, [fetchClasses]);
 
-    const handleCreateClass = async () => {
-        if (!selectedWorld?.id) return;
-        // For now, we'll use a simple prompt. We can build a creation modal later.
-        const name = prompt('Enter new class name:');
-        if (name) {
-            await addClass({ name, description: '', worldId: selectedWorld.id });
-            await fetchClasses();
-        }
+    // FIX: Replaced prompt() with modal logic.
+    const handleOpenCreateModal = () => {
+        setManagingClass({} as CharacterClass); // Open modal with a placeholder
     };
 
-    const handleSaveClassDetails = async (updatedClass: CharacterClass) => {
-        // This only saves name and description from the generic modal.
-        await updateClass(updatedClass.id!, {
-            name: updatedClass.name,
-            description: updatedClass.description,
-        });
-        await fetchClasses();
+    const handleOpenEditModal = (characterClass: CharacterClass) => {
+        setManagingClass(characterClass);
+    };
+
+    const handleSaveClass = async (saveData: ClassSaveData) => {
+        if (!selectedWorld?.id) return;
+        try {
+            if (managingClass && managingClass.id) {
+                // This is an update
+                await updateClass(managingClass.id, saveData);
+            } else {
+                // This is a creation
+                await addClass({ ...saveData, worldId: selectedWorld.id });
+            }
+            await fetchClasses();
+        } catch (err) {
+            setError('Failed to save class.');
+        }
     };
 
     const handleDeleteClass = (characterClass: CharacterClass) => {
@@ -90,14 +89,12 @@ export const ClassManager: FC = () => {
         });
     };
 
-    // If a class is being edited, render the editor.
     if (editingClass) {
         return (
             <ClassSheetEditor characterClass={editingClass} onBack={() => setEditingClass(null)} />
         );
     }
 
-    // Otherwise, render the list of classes.
     return (
         <>
             <div className="panel">
@@ -105,7 +102,7 @@ export const ClassManager: FC = () => {
                     <h2 className="panel__title" style={{ border: 'none', padding: 0 }}>
                         Character Classes
                     </h2>
-                    <button onClick={handleCreateClass} className="button button--primary">
+                    <button onClick={handleOpenCreateModal} className="button button--primary">
                         <PlusCircle size={16} /> Create New Class
                     </button>
                 </div>
@@ -126,7 +123,7 @@ export const ClassManager: FC = () => {
                                     </div>
                                     <div className="panel__item-actions">
                                         <button
-                                            onClick={() => setManagingClass(charClass)}
+                                            onClick={() => handleOpenEditModal(charClass)}
                                             className="button"
                                         >
                                             <Settings size={16} /> Details
@@ -155,15 +152,11 @@ export const ClassManager: FC = () => {
                 </div>
             </div>
 
-            <ManageModal<CharacterClass>
+            <ManageClassModal
                 isOpen={isManageModalOpen}
                 onClose={() => setManagingClass(null)}
-                item={managingClass}
-                onSave={handleSaveClassDetails}
-                onDelete={() => {
-                    if (managingClass) handleDeleteClass(managingClass);
-                }}
-                itemType="Class"
+                classToEdit={managingClass}
+                onSave={handleSaveClass}
             />
         </>
     );
