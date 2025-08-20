@@ -1,27 +1,46 @@
 // src/components/specific/SheetBlocks/AbilityTreeBlock.tsx
 import { useState, useEffect, type FC } from 'react';
+import ReactFlow, {
+    Background,
+    useNodesState,
+    useEdgesState,
+    type Node,
+    type Edge,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+
 import { useWorld } from '../../../context/WorldContext';
-import { getAbilityTreesForWorld } from '../../../db/queries/ability.queries';
-import type { AbilityTree } from '../../../db/types';
+import { getAbilityTreesForWorld, getAbilitiesForTree } from '../../../db/queries/ability.queries';
+import type { AbilityTree, Ability } from '../../../db/types';
 import { Settings } from 'lucide-react';
+import { AbilityNode } from '../AbilityTree/AbilityNode';
+
+// Define the custom node types for React Flow
+const nodeTypes = {
+    abilityNode: AbilityNode,
+};
 
 export interface AbilityTreeBlockProps {
-    // The content property will hold the ID of the selected tree.
     content: number | undefined;
-    // A function to save the selected tree ID back to the parent editor.
     onContentChange: (abilityTreeId: number | undefined) => void;
 }
 
 /**
  * A sheet block for displaying a selected Ability Tree.
- * Includes a configuration mode to choose which tree to display.
+ * Includes a configuration mode and a read-only visual render of the tree.
  */
 export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContentChange }) => {
     const { selectedWorld } = useWorld();
     const [allTrees, setAllTrees] = useState<AbilityTree[]>([]);
+    const [abilities, setAbilities] = useState<Ability[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isConfiguring, setIsConfiguring] = useState(false);
 
+    // States for React Flow
+    const [nodes, setNodes] = useNodesState([]);
+    const [edges, setEdges] = useEdgesState([]);
+
+    // Effect to fetch the list of all available trees
     useEffect(() => {
         if (selectedWorld?.id) {
             getAbilityTreesForWorld(selectedWorld.id).then((trees) => {
@@ -31,12 +50,49 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
         }
     }, [selectedWorld]);
 
+    // Effect to fetch the abilities for the currently selected tree
+    useEffect(() => {
+        if (content) {
+            getAbilitiesForTree(content).then(setAbilities);
+        } else {
+            setAbilities([]); // Clear abilities if no tree is selected
+        }
+    }, [content]);
+
+    // Effect to transform the fetched abilities into nodes and edges for React Flow
+    useEffect(() => {
+        const initialNodes: Node[] = [];
+        const initialEdges: Edge[] = [];
+
+        for (const ability of abilities) {
+            initialNodes.push({
+                id: String(ability.id!),
+                position: { x: ability.x ?? 0, y: ability.y ?? 0 },
+                data: { label: ability.name, description: ability.description },
+                type: 'abilityNode',
+            });
+
+            if (ability.prerequisites?.abilityIds) {
+                for (const prereqId of ability.prerequisites.abilityIds) {
+                    initialEdges.push({
+                        id: `e-${prereqId}-${ability.id}`,
+                        source: String(prereqId),
+                        target: String(ability.id!),
+                        animated: true,
+                    });
+                }
+            }
+        }
+        setNodes(initialNodes);
+        setEdges(initialEdges);
+    }, [abilities, setNodes, setEdges]);
+
     const selectedTree = allTrees.find((tree) => tree.id === content);
 
     const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = e.target.value ? parseInt(e.target.value, 10) : undefined;
         onContentChange(id);
-        setIsConfiguring(false); // Close config mode after selection
+        setIsConfiguring(false);
     };
 
     // --- Render Logic ---
@@ -83,12 +139,28 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
                 </button>
             </div>
             <div className="ability-tree-block__content">
-                {/* In the future, this will render a read-only view of the tree. */}
-                <p className="placeholder-text">
-                    {selectedTree
-                        ? `Visual display for "${selectedTree.name}" will be rendered here.`
-                        : 'Click the gear icon to select an ability tree to display.'}
-                </p>
+                {selectedTree ? (
+                    <div className="ability-tree-block__react-flow-wrapper">
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            nodeTypes={nodeTypes}
+                            fitView
+                            nodesDraggable={false}
+                            nodesConnectable={false}
+                            panOnDrag={false}
+                            zoomOnScroll={false}
+                            zoomOnDoubleClick={false}
+                            preventScrolling={false}
+                        >
+                            <Background />
+                        </ReactFlow>
+                    </div>
+                ) : (
+                    <p className="placeholder-text">
+                        Click the gear icon to select an ability tree to display.
+                    </p>
+                )}
             </div>
         </div>
     );
