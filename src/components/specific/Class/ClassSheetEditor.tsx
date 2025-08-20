@@ -116,7 +116,8 @@ const BlockRenderer: FC<{
 };
 
 export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, onBack }) => {
-    const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet);
+    // FIX: Ensure the sheet state is always a valid array, even if the prop is null/undefined.
+    const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet || []);
     const [isSaving, setIsSaving] = useState(false);
 
     // Dnd Kit sensors for pointer (mouse, touch) and keyboard interactions
@@ -133,24 +134,43 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             type: blockType,
             content: blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
         };
-        const newSheet = JSON.parse(JSON.stringify(sheet));
-        newSheet[0].blocks.push(newBlock);
-        setSheet(newSheet);
+
+        setSheet((currentSheet) => {
+            const newSheet = JSON.parse(JSON.stringify(currentSheet));
+            // If there are no pages, create one.
+            if (newSheet.length === 0) {
+                newSheet.push({ id: crypto.randomUUID(), name: 'Main Page', blocks: [] });
+            }
+            newSheet[0].blocks.push(newBlock);
+            return newSheet;
+        });
     };
 
     const handleRemoveBlock = (blockId: string) => {
-        const newSheet = JSON.parse(JSON.stringify(sheet));
-        newSheet[0].blocks = newSheet[0].blocks.filter((block: SheetBlock) => block.id !== blockId);
-        setSheet(newSheet);
+        setSheet((currentSheet) => {
+            const newSheet = JSON.parse(JSON.stringify(currentSheet));
+            if (newSheet.length > 0) {
+                newSheet[0].blocks = newSheet[0].blocks.filter(
+                    (block: SheetBlock) => block.id !== blockId,
+                );
+            }
+            return newSheet;
+        });
     };
 
     const handleBlockContentChange = (blockId: string, newContent: any) => {
-        const newSheet = JSON.parse(JSON.stringify(sheet));
-        const blockToUpdate = newSheet[0].blocks.find((block: SheetBlock) => block.id === blockId);
-        if (blockToUpdate) {
-            blockToUpdate.content = newContent;
-            setSheet(newSheet);
-        }
+        setSheet((currentSheet) => {
+            const newSheet = JSON.parse(JSON.stringify(currentSheet));
+            if (newSheet.length > 0) {
+                const blockToUpdate = newSheet[0].blocks.find(
+                    (block: SheetBlock) => block.id === blockId,
+                );
+                if (blockToUpdate) {
+                    blockToUpdate.content = newContent;
+                }
+            }
+            return newSheet;
+        });
     };
 
     const handleSaveSheet = async () => {
@@ -164,7 +184,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         }
     };
 
-    // NEW: Dnd Kit's drag end handler
     function handleDragEnd(event: DragEndEvent) {
         const { active, over } = event;
 
@@ -180,6 +199,9 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             });
         }
     }
+
+    // FIX: Add a guard clause to handle cases where there are no pages in the sheet.
+    const currentPage = sheet && sheet.length > 0 ? sheet[0] : null;
 
     return (
         <div className="panel sheet-editor">
@@ -205,31 +227,37 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     collisionDetection={closestCenter}
                     onDragEnd={handleDragEnd}
                 >
-                    <SortableContext
-                        items={sheet[0].blocks.map((b) => b.id)}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        <div className="sheet-editor__canvas">
-                            {sheet[0].blocks.map((block) => (
-                                <SortableBlockItem key={block.id} block={block}>
-                                    <div className="sheet-block__content">
-                                        <BlockRenderer
-                                            block={block}
-                                            characterClass={characterClass}
-                                            onContentChange={handleBlockContentChange}
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={() => handleRemoveBlock(block.id)}
-                                        className="sheet-block__remove-button"
-                                        title="Remove Block"
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                </SortableBlockItem>
-                            ))}
-                        </div>
-                    </SortableContext>
+                    <div className="sheet-editor__canvas">
+                        {currentPage ? (
+                            <SortableContext
+                                items={currentPage.blocks.map((b) => b.id)}
+                                strategy={verticalListSortingStrategy}
+                            >
+                                {currentPage.blocks.map((block) => (
+                                    <SortableBlockItem key={block.id} block={block}>
+                                        <div className="sheet-block__content">
+                                            <BlockRenderer
+                                                block={block}
+                                                characterClass={characterClass}
+                                                onContentChange={handleBlockContentChange}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => handleRemoveBlock(block.id)}
+                                            className="sheet-block__remove-button"
+                                            title="Remove Block"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </SortableBlockItem>
+                                ))}
+                            </SortableContext>
+                        ) : (
+                            <p className="panel__empty-message">
+                                This sheet is empty. Add a block to get started.
+                            </p>
+                        )}
+                    </div>
                 </DndContext>
                 <div className="sheet-editor__sidebar">
                     <h3 className="sidebar__title">Add Blocks</h3>
