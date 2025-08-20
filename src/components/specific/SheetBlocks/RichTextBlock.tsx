@@ -1,6 +1,9 @@
 // src/components/specific/SheetBlocks/RichTextBlock.tsx
 import { useState, type FC } from 'react';
 import { Edit, Save } from 'lucide-react';
+// NEW: Import the safe Markdown renderer.
+// In a real project, you would add this with `npm install react-markdown`.
+import ReactMarkdown from 'react-markdown';
 
 export interface RichTextBlockProps {
     content: string | undefined;
@@ -27,7 +30,7 @@ export const RichTextBlock: FC<RichTextBlockProps> = ({ content, onContentChange
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     rows={8}
-                    placeholder="Enter your text here..."
+                    placeholder="Enter your text here... Supports Markdown."
                 />
                 <button
                     onClick={handleSave}
@@ -41,15 +44,12 @@ export const RichTextBlock: FC<RichTextBlockProps> = ({ content, onContentChange
 
     return (
         <div className="rich-text-block">
-            <div
-                className="rich-text-block__display"
-                // In a real app, you'd sanitize this HTML or use a proper renderer
-                dangerouslySetInnerHTML={{
-                    __html: content
-                        ? content.replace(/\n/g, '<br />')
-                        : '<p><i>Empty text block. Click edit to add content.</i></p>',
-                }}
-            />
+            {/* FIX: Replaced dangerouslySetInnerHTML with the safe ReactMarkdown component. */}
+            <div className="rich-text-block__display">
+                <ReactMarkdown>
+                    {content || '*Empty text block. Click edit to add content.*'}
+                </ReactMarkdown>
+            </div>
             <button
                 onClick={() => setIsEditing(true)}
                 className="rich-text-block__edit-button"
