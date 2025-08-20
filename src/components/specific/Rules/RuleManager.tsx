@@ -1,7 +1,7 @@
-// src/components/specific/RuleManager/RuleManager.tsx
+// src/components/specific/Rules/RuleManager.tsx
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Trash2 } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
 import {
@@ -9,9 +9,11 @@ import {
     getStatDefinitionsForWorld,
     updateStatDefinition,
     deleteStatDefinition,
+    type UpdateStatPayload,
 } from '../../../db/queries/rule.queries';
 import type { StatDefinition } from '../../../db/types';
-import { ManageModal } from '../../common/Modal/ManageModal';
+// NEW: Import the specialized modal
+import { ManageStatModal } from './ManageStatModal';
 
 /**
  * A component for defining and managing game statistics for the active world.
@@ -20,7 +22,6 @@ export const RuleManager: FC = () => {
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
 
-    // State for the list of stat definitions
     const [stats, setStats] = useState<StatDefinition[]>([]);
 
     // State for the creation form fields
@@ -28,16 +29,16 @@ export const RuleManager: FC = () => {
     const [newStatDescription, setNewStatDescription] = useState('');
     const [newStatAbbr, setNewStatAbbr] = useState('');
     const [newStatDefault, setNewStatDefault] = useState(10);
+    // NEW: Add state for the new stat's type
+    const [newStatType, setNewStatType] = useState<'primary' | 'derived' | 'resource'>('primary');
 
-    // Standard loading and error states
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // State for the ManageModal
+    // State for the new ManageStatModal
     const [managingStat, setManagingStat] = useState<StatDefinition | null>(null);
     const isManageModalOpen = !!managingStat;
 
-    // Fetches all stat definitions for the currently selected world.
     const fetchStats = useCallback(async () => {
         if (!selectedWorld?.id) return;
         try {
@@ -57,7 +58,6 @@ export const RuleManager: FC = () => {
         fetchStats();
     }, [fetchStats]);
 
-    // Handles the submission of the new stat definition form.
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         if (!newStatName.trim() || !newStatAbbr.trim() || !selectedWorld?.id) {
@@ -74,6 +74,7 @@ export const RuleManager: FC = () => {
                 description: newStatDescription,
                 abbreviation: newStatAbbr,
                 defaultValue: newStatDefault,
+                type: newStatType, // NEW: Pass the type
                 worldId: selectedWorld.id,
             });
             // Reset form fields
@@ -81,41 +82,31 @@ export const RuleManager: FC = () => {
             setNewStatDescription('');
             setNewStatAbbr('');
             setNewStatDefault(10);
-            await fetchStats(); // Refresh the list
+            setNewStatType('primary');
+            await fetchStats();
         } catch (err) {
             setError('Failed to save the new stat definition.');
         }
     };
 
-    // --- Handlers for the ManageModal ---
-
-    // Saves changes to a stat's name and description from the ManageModal.
-    const handleSaveStat = async (updatedStat: StatDefinition) => {
+    // --- Handlers for the new ManageStatModal ---
+    const handleSaveStat = async (updates: Partial<UpdateStatPayload>, statId: number) => {
         try {
-            // Our generic modal only handles name/description, which is fine for this entity.
-            // The more complex fields (abbr, default) are set at creation.
-            await updateStatDefinition(updatedStat.id!, {
-                name: updatedStat.name,
-                description: updatedStat.description,
-                abbreviation: updatedStat.abbreviation,
-                defaultValue: updatedStat.defaultValue,
-            });
+            await updateStatDefinition(statId, updates);
             await fetchStats();
         } catch (err) {
             setError('Failed to update the stat definition.');
         }
     };
 
-    // Triggers the deletion confirmation process.
-    const handleDeleteStat = (statId: number) => {
-        setManagingStat(null); // Close the manage modal
+    const handleDeleteStat = (stat: StatDefinition) => {
         showModal('confirmation', {
-            title: 'Delete Stat Definition?',
+            title: `Delete ${stat.name}?`,
             message:
                 'Are you sure you want to delete this stat? This action is permanent and cannot be undone.',
             onConfirm: async () => {
                 try {
-                    await deleteStatDefinition(statId);
+                    await deleteStatDefinition(stat.id!);
                     await fetchStats();
                 } catch (err) {
                     setError('Failed to delete the stat definition.');
@@ -132,31 +123,67 @@ export const RuleManager: FC = () => {
                 <div className="panel__form-section">
                     <h3 className="panel__form-title">Create New Stat</h3>
                     <form onSubmit={handleSubmit} className="form">
-                        <div className="form__group">
-                            <label htmlFor="statName" className="form__label">
-                                Stat Name
-                            </label>
-                            <input
-                                id="statName"
-                                type="text"
-                                value={newStatName}
-                                onChange={(e) => setNewStatName(e.target.value)}
-                                className="form__input"
-                                placeholder="e.g., Strength"
-                            />
-                        </div>
-                        <div className="form__group">
-                            <label htmlFor="statAbbr" className="form__label">
-                                Abbreviation
-                            </label>
-                            <input
-                                id="statAbbr"
-                                type="text"
-                                value={newStatAbbr}
-                                onChange={(e) => setNewStatAbbr(e.target.value)}
-                                className="form__input"
-                                placeholder="e.g., STR"
-                            />
+                        {/* Form fields are now in a grid for better layout */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="form__group">
+                                <label htmlFor="statName" className="form__label">
+                                    Stat Name
+                                </label>
+                                <input
+                                    id="statName"
+                                    type="text"
+                                    value={newStatName}
+                                    onChange={(e) => setNewStatName(e.target.value)}
+                                    className="form__input"
+                                    placeholder="e.g., Strength"
+                                />
+                            </div>
+                            <div className="form__group">
+                                <label htmlFor="statAbbr" className="form__label">
+                                    Abbreviation
+                                </label>
+                                <input
+                                    id="statAbbr"
+                                    type="text"
+                                    value={newStatAbbr}
+                                    onChange={(e) => setNewStatAbbr(e.target.value)}
+                                    className="form__input"
+                                    placeholder="e.g., STR"
+                                />
+                            </div>
+                            <div className="form__group">
+                                <label htmlFor="newStatType" className="form__label">
+                                    Type
+                                </label>
+                                <select
+                                    id="newStatType"
+                                    value={newStatType}
+                                    onChange={(e) =>
+                                        setNewStatType(
+                                            e.target.value as 'primary' | 'derived' | 'resource',
+                                        )
+                                    }
+                                    className="form__select"
+                                >
+                                    <option value="primary">Primary</option>
+                                    <option value="derived">Derived</option>
+                                    <option value="resource">Resource</option>
+                                </select>
+                            </div>
+                            <div className="form__group">
+                                <label htmlFor="statDefault" className="form__label">
+                                    Default Value
+                                </label>
+                                <input
+                                    id="statDefault"
+                                    type="number"
+                                    value={newStatDefault}
+                                    onChange={(e) =>
+                                        setNewStatDefault(parseInt(e.target.value, 10) || 0)
+                                    }
+                                    className="form__input"
+                                />
+                            </div>
                         </div>
                         <div className="form__group">
                             <label htmlFor="statDesc" className="form__label">
@@ -169,20 +196,6 @@ export const RuleManager: FC = () => {
                                 onChange={(e) => setNewStatDescription(e.target.value)}
                                 className="form__input"
                                 placeholder="A brief summary of what this stat represents."
-                            />
-                        </div>
-                        <div className="form__group">
-                            <label htmlFor="statDefault" className="form__label">
-                                Default Value
-                            </label>
-                            <input
-                                id="statDefault"
-                                type="number"
-                                value={newStatDefault}
-                                onChange={(e) =>
-                                    setNewStatDefault(parseInt(e.target.value, 10) || 0)
-                                }
-                                className="form__input"
                             />
                         </div>
                         <button type="submit" className="button button--primary">
@@ -215,9 +228,13 @@ export const RuleManager: FC = () => {
                                         >
                                             <Settings size={16} /> Manage
                                         </button>
-                                        <span className="status-badge">
-                                            Default: {stat.defaultValue}
-                                        </span>
+                                        <button
+                                            onClick={() => handleDeleteStat(stat)}
+                                            className="button button--danger"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                        <span className="status-badge">{stat.type}</span>
                                     </div>
                                 </li>
                             ))}
@@ -230,13 +247,12 @@ export const RuleManager: FC = () => {
                 </div>
             </div>
 
-            <ManageModal<StatDefinition>
+            {/* The old generic modal is replaced with our new specialized one. */}
+            <ManageStatModal
                 isOpen={isManageModalOpen}
                 onClose={() => setManagingStat(null)}
-                item={managingStat}
+                statToEdit={managingStat}
                 onSave={handleSaveStat}
-                onDelete={handleDeleteStat}
-                itemType="Stat Definition"
             />
         </>
     );
