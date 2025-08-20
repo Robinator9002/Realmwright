@@ -50,7 +50,7 @@ The initial architectural phase is complete. The foundational UI, data structure
 
     -   [x] Build the **Character Template Creator** with modular components.
     -   [x] Integrate stats and abilities from a future Rule Creator.
-    -   [ ] Allow for custom, free-form pages within a character sheet.
+    -   [x] Allow for custom, free-form pages within a character sheet.
 
 4.  **Base Camp 4: The System Architect & The Skill Weaver**
 
