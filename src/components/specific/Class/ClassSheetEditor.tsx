@@ -6,8 +6,9 @@ import { updateClass } from '../../../db/queries/class.queries';
 import { StatsBlock } from '../SheetBlocks/StatsBlock';
 import { DetailsBlock } from '../SheetBlocks/DetailsBlock';
 import { AbilityTreeBlock } from '../SheetBlocks/AbilityTreeBlock';
-// NEW: Import the RichTextBlock component.
 import { RichTextBlock } from '../SheetBlocks/RichTextBlock';
+// NEW: Import the InventoryBlock component.
+import { InventoryBlock } from '../SheetBlocks/InventoryBlock';
 
 export interface ClassSheetEditorProps {
     characterClass: CharacterClass;
@@ -42,10 +43,17 @@ const BlockRenderer: FC<{
                     onContentChange={(newContent) => onContentChange(block.id, newContent)}
                 />
             );
-        // NEW: Add a case to render the RichTextBlock.
         case 'rich_text':
             return (
                 <RichTextBlock
+                    content={block.content}
+                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
+                />
+            );
+        // NEW: Add a case to render the InventoryBlock.
+        case 'inventory':
+            return (
+                <InventoryBlock
                     content={block.content}
                     onContentChange={(newContent) => onContentChange(block.id, newContent)}
                 />
@@ -71,7 +79,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             id: crypto.randomUUID(),
             type: blockType,
             // Initialize content for configurable blocks
-            content: blockType === 'rich_text' ? '' : undefined,
+            content: blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
         };
         const newSheet = JSON.parse(JSON.stringify(sheet));
         newSheet[0].blocks.push(newBlock);
