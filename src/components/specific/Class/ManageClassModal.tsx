@@ -165,7 +165,6 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
                                     </div>
                                 </div>
                             )}
-                            {/* FIX: Removed the entire "Right Column: Ability Trees" section. */}
                         </form>
                     )}
                 </div>
