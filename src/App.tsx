@@ -26,16 +26,18 @@ const CurrentView = () => {
 
 /**
  * The root component of the Realmwright application.
- * It sets up the main layout, renders the current view inside it,
- * and includes the global ModalManager.
+ * It sets up the main layout and renders the global ModalManager
+ * as a sibling to the layout, ensuring it always appears on top.
  */
 function App() {
     return (
-        <AppLayout>
-            <CurrentView />
-            {/* The ModalManager sits here, ready to display modals over any page. */}
+        <>
+            <AppLayout>
+                <CurrentView />
+            </AppLayout>
+            {/* By placing ModalManager here, it exists in the root stacking context. */}
             <ModalManager />
-        </AppLayout>
+        </>
     );
 }
 
