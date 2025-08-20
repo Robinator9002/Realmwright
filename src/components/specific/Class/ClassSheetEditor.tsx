@@ -4,8 +4,9 @@ import { ArrowLeft, X, Type, BarChart2, Swords, Backpack, FileText } from 'lucid
 import type { CharacterClass, SheetPage, SheetBlock } from '../../../db/types';
 import { updateClass } from '../../../db/queries/class.queries';
 import { StatsBlock } from '../SheetBlocks/StatsBlock';
-// NEW: Import the DetailsBlock component.
 import { DetailsBlock } from '../SheetBlocks/DetailsBlock';
+// NEW: Import the AbilityTreeBlock component.
+import { AbilityTreeBlock } from '../SheetBlocks/AbilityTreeBlock';
 
 export interface ClassSheetEditorProps {
     characterClass: CharacterClass;
@@ -22,17 +23,26 @@ const blockTypes: { type: SheetBlock['type']; label: string; icon: React.ReactNo
 
 /**
  * A component that renders the correct block based on its type.
+ * NEW: It now passes down a function to handle content changes.
  */
-const BlockRenderer: FC<{ block: SheetBlock; characterClass: CharacterClass }> = ({
-    block,
-    characterClass,
-}) => {
+const BlockRenderer: FC<{
+    block: SheetBlock;
+    characterClass: CharacterClass;
+    onContentChange: (blockId: string, newContent: any) => void;
+}> = ({ block, characterClass, onContentChange }) => {
     switch (block.type) {
-        // NEW: Add a case to render the DetailsBlock.
         case 'details':
             return <DetailsBlock characterClass={characterClass} />;
         case 'stats':
             return <StatsBlock baseStats={characterClass.baseStats} />;
+        // NEW: Add a case to render the AbilityTreeBlock.
+        case 'ability_tree':
+            return (
+                <AbilityTreeBlock
+                    content={block.content}
+                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
+                />
+            );
         default:
             return (
                 <div className="sheet-block__header">
@@ -53,6 +63,8 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         const newBlock: SheetBlock = {
             id: crypto.randomUUID(),
             type: blockType,
+            // Initialize content for configurable blocks
+            content: blockType === 'ability_tree' ? undefined : null,
         };
         const newSheet = JSON.parse(JSON.stringify(sheet));
         newSheet[0].blocks.push(newBlock);
@@ -63,6 +75,16 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         const newSheet = JSON.parse(JSON.stringify(sheet));
         newSheet[0].blocks = newSheet[0].blocks.filter((block: SheetBlock) => block.id !== blockId);
         setSheet(newSheet);
+    };
+
+    // NEW: A handler to update a specific block's content in the sheet state.
+    const handleBlockContentChange = (blockId: string, newContent: any) => {
+        const newSheet = JSON.parse(JSON.stringify(sheet));
+        const blockToUpdate = newSheet[0].blocks.find((block: SheetBlock) => block.id === blockId);
+        if (blockToUpdate) {
+            blockToUpdate.content = newContent;
+            setSheet(newSheet);
+        }
     };
 
     const handleSaveSheet = async () => {
@@ -98,7 +120,11 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 <div className="sheet-editor__canvas">
                     {sheet[0].blocks.map((block) => (
                         <div key={block.id} className="sheet-block">
-                            <BlockRenderer block={block} characterClass={characterClass} />
+                            <BlockRenderer
+                                block={block}
+                                characterClass={characterClass}
+                                onContentChange={handleBlockContentChange}
+                            />
                             <button
                                 onClick={() => handleRemoveBlock(block.id)}
                                 className="sheet-block__remove-button"
