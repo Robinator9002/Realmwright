@@ -1,8 +1,9 @@
 // src/pages/CharacterSheet/CharacterSheetPage.tsx
 import { useState, useEffect, type FC } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { useView } from '../../context/ViewContext';
 import { db } from '../../db/db';
+import { updateCharacter } from '../../db/queries/character.queries';
 import type { Character, CharacterClass, SheetBlock } from '../../db/types';
 import { DetailsBlock } from '../../components/specific/SheetBlocks/DetailsBlock';
 import { StatsBlock } from '../../components/specific/SheetBlocks/StatsBlock';
@@ -15,30 +16,32 @@ const BlockRenderer: FC<{
     block: SheetBlock;
     character: Character;
     characterClass: CharacterClass;
-}> = ({ block, character, characterClass }) => {
-    // In a real sheet, you'd also pass functions to update character.instanceData
-    const onContentChange = (newContent: any) => {
-        console.log(`Block ${block.id} content changed:`, newContent);
-        // Here you would update the character's instanceData in the database.
-    };
-
+    onInstanceDataChange: (blockId: string, newContent: any) => void;
+}> = ({ block, character, characterClass, onInstanceDataChange }) => {
     switch (block.type) {
         case 'details':
-            // Details block uses data from the class blueprint.
             return <DetailsBlock characterClass={characterClass} />;
         case 'stats':
-            // Stats block uses the character's own stat values.
             return <StatsBlock baseStats={character.stats} />;
         case 'ability_tree':
-            return <AbilityTreeBlock content={block.content} onContentChange={onContentChange} />;
+            return (
+                <AbilityTreeBlock
+                    content={block.content}
+                    onContentChange={(newContent) => onInstanceDataChange(block.id, newContent)}
+                />
+            );
         case 'rich_text':
-            return <RichTextBlock content={block.content} onContentChange={onContentChange} />;
+            return (
+                <RichTextBlock
+                    content={character.instanceData?.[block.id] || block.content || ''}
+                    onContentChange={(newContent) => onInstanceDataChange(block.id, newContent)}
+                />
+            );
         case 'inventory':
-            // Inventory gets its data from the character's instanceData.
             return (
                 <InventoryBlock
                     content={character.instanceData?.[block.id] || []}
-                    onContentChange={onContentChange}
+                    onContentChange={(newContent) => onInstanceDataChange(block.id, newContent)}
                 />
             );
         default:
@@ -56,8 +59,10 @@ export const CharacterSheetPage: FC = () => {
     const [character, setCharacter] = useState<Character | null>(null);
     const [characterClass, setCharacterClass] = useState<CharacterClass | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Fetch initial data
     useEffect(() => {
         if (!characterIdForSheet) {
             setError('No character selected.');
@@ -68,13 +73,11 @@ export const CharacterSheetPage: FC = () => {
         const fetchData = async () => {
             try {
                 const char = await db.characters.get(characterIdForSheet);
-                if (!char) {
-                    throw new Error('Character not found.');
-                }
+                if (!char) throw new Error('Character not found.');
+
                 const charClass = await db.characterClasses.get(char.classId);
-                if (!charClass) {
-                    throw new Error('Character class blueprint not found.');
-                }
+                if (!charClass) throw new Error('Character class blueprint not found.');
+
                 setCharacter(char);
                 setCharacterClass(charClass);
             } catch (err) {
@@ -86,6 +89,33 @@ export const CharacterSheetPage: FC = () => {
 
         fetchData();
     }, [characterIdForSheet]);
+
+    const handleInstanceDataChange = (blockId: string, newContent: any) => {
+        setCharacter((prevCharacter) => {
+            if (!prevCharacter) return null;
+            const newInstanceData = {
+                ...prevCharacter.instanceData,
+                [blockId]: newContent,
+            };
+            return { ...prevCharacter, instanceData: newInstanceData };
+        });
+    };
+
+    const handleSaveChanges = async () => {
+        if (!character) return;
+        setIsSaving(true);
+        try {
+            await updateCharacter(character.id!, {
+                instanceData: character.instanceData,
+                stats: character.stats, // Also save stats in case they become editable
+            });
+            // Optionally, show a success message
+        } catch (err) {
+            setError('Failed to save changes.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const handleGoBack = () => {
         setCurrentView('world_dashboard');
@@ -112,7 +142,16 @@ export const CharacterSheetPage: FC = () => {
                     <ArrowLeft size={16} /> Back to Dashboard
                 </button>
                 <h1 className="character-sheet-page__title">{character.name}</h1>
-                <span className={`status-badge`}>{character.type}</span>
+                <div className="character-sheet-page__actions">
+                    <span className={`status-badge`}>{character.type}</span>
+                    <button
+                        onClick={handleSaveChanges}
+                        className="button button--primary"
+                        disabled={isSaving}
+                    >
+                        <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                </div>
             </div>
             <div className="character-sheet-page__content">
                 {currentPage &&
@@ -122,6 +161,7 @@ export const CharacterSheetPage: FC = () => {
                                 block={block}
                                 character={character}
                                 characterClass={characterClass}
+                                onInstanceDataChange={handleInstanceDataChange}
                             />
                         </div>
                     ))}
