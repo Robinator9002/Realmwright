@@ -1,14 +1,65 @@
 // src/components/specific/Class/ClassSheetEditor.tsx
 import { useState, type FC } from 'react';
-import { ArrowLeft, X, Type, BarChart2, Swords, Backpack, FileText } from 'lucide-react';
+import {
+    ArrowLeft,
+    X,
+    Type,
+    BarChart2,
+    Swords,
+    Backpack,
+    FileText,
+    GripVertical,
+} from 'lucide-react';
+// NEW: Import from Dnd Kit instead of react-beautiful-dnd
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
 import type { CharacterClass, SheetPage, SheetBlock } from '../../../db/types';
 import { updateClass } from '../../../db/queries/class.queries';
 import { StatsBlock } from '../SheetBlocks/StatsBlock';
 import { DetailsBlock } from '../SheetBlocks/DetailsBlock';
 import { AbilityTreeBlock } from '../SheetBlocks/AbilityTreeBlock';
 import { RichTextBlock } from '../SheetBlocks/RichTextBlock';
-// NEW: Import the InventoryBlock component.
 import { InventoryBlock } from '../SheetBlocks/InventoryBlock';
+
+// --- Reusable Sortable Item Wrapper ---
+const SortableBlockItem: FC<{ block: SheetBlock; children: React.ReactNode }> = ({
+    block,
+    children,
+}) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+        id: block.id,
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className="sheet-block">
+            <div className="sheet-block__drag-handle" {...attributes} {...listeners}>
+                <GripVertical size={16} />
+            </div>
+            {children}
+        </div>
+    );
+};
 
 export interface ClassSheetEditorProps {
     characterClass: CharacterClass;
@@ -23,14 +74,12 @@ const blockTypes: { type: SheetBlock['type']; label: string; icon: React.ReactNo
     { type: 'rich_text', label: 'Rich Text', icon: <FileText size={16} /> },
 ];
 
-/**
- * A component that renders the correct block based on its type.
- */
 const BlockRenderer: FC<{
     block: SheetBlock;
     characterClass: CharacterClass;
     onContentChange: (blockId: string, newContent: any) => void;
 }> = ({ block, characterClass, onContentChange }) => {
+    // This component's logic remains the same
     switch (block.type) {
         case 'details':
             return <DetailsBlock characterClass={characterClass} />;
@@ -50,7 +99,6 @@ const BlockRenderer: FC<{
                     onContentChange={(newContent) => onContentChange(block.id, newContent)}
                 />
             );
-        // NEW: Add a case to render the InventoryBlock.
         case 'inventory':
             return (
                 <InventoryBlock
@@ -67,18 +115,22 @@ const BlockRenderer: FC<{
     }
 };
 
-/**
- * A full-page editor for designing the character sheet layout for a specific class.
- */
 export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, onBack }) => {
     const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Dnd Kit sensors for pointer (mouse, touch) and keyboard interactions
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        }),
+    );
 
     const handleAddBlock = (blockType: SheetBlock['type']) => {
         const newBlock: SheetBlock = {
             id: crypto.randomUUID(),
             type: blockType,
-            // Initialize content for configurable blocks
             content: blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
         };
         const newSheet = JSON.parse(JSON.stringify(sheet));
@@ -112,6 +164,23 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         }
     };
 
+    // NEW: Dnd Kit's drag end handler
+    function handleDragEnd(event: DragEndEvent) {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            setSheet((currentSheet) => {
+                const newSheet = JSON.parse(JSON.stringify(currentSheet));
+                const blocks = newSheet[0].blocks;
+                const oldIndex = blocks.findIndex((b: SheetBlock) => b.id === active.id);
+                const newIndex = blocks.findIndex((b: SheetBlock) => b.id === over.id);
+
+                newSheet[0].blocks = arrayMove(blocks, oldIndex, newIndex);
+                return newSheet;
+            });
+        }
+    }
+
     return (
         <div className="panel sheet-editor">
             <div className="panel__header-actions">
@@ -131,24 +200,37 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             </div>
 
             <div className="sheet-editor__content">
-                <div className="sheet-editor__canvas">
-                    {sheet[0].blocks.map((block) => (
-                        <div key={block.id} className="sheet-block">
-                            <BlockRenderer
-                                block={block}
-                                characterClass={characterClass}
-                                onContentChange={handleBlockContentChange}
-                            />
-                            <button
-                                onClick={() => handleRemoveBlock(block.id)}
-                                className="sheet-block__remove-button"
-                                title="Remove Block"
-                            >
-                                <X size={16} />
-                            </button>
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext
+                        items={sheet[0].blocks.map((b) => b.id)}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        <div className="sheet-editor__canvas">
+                            {sheet[0].blocks.map((block) => (
+                                <SortableBlockItem key={block.id} block={block}>
+                                    <div className="sheet-block__content">
+                                        <BlockRenderer
+                                            block={block}
+                                            characterClass={characterClass}
+                                            onContentChange={handleBlockContentChange}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => handleRemoveBlock(block.id)}
+                                        className="sheet-block__remove-button"
+                                        title="Remove Block"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                </SortableBlockItem>
+                            ))}
                         </div>
-                    ))}
-                </div>
+                    </SortableContext>
+                </DndContext>
                 <div className="sheet-editor__sidebar">
                     <h3 className="sidebar__title">Add Blocks</h3>
                     {blockTypes.map(({ type, label, icon }) => (
