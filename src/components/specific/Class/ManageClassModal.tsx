@@ -2,18 +2,17 @@
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
 import { getStatDefinitionsForWorld } from '../../../db/queries/rule.queries';
-import { getAbilityTreesForWorld } from '../../../db/queries/ability.queries';
-import type { CharacterClass, StatDefinition, AbilityTree } from '../../../db/types';
+import type { CharacterClass, StatDefinition } from '../../../db/types';
 
 /**
  * The shape of the data that this modal will save.
  * It's a clean subset of the full CharacterClass type.
+ * FIX: Removed abilityTreeIds as it no longer exists on CharacterClass.
  */
 export type ClassSaveData = {
     name: string;
     description: string;
     baseStats: { [statId: number]: number };
-    abilityTreeIds: number[];
 };
 
 export interface ManageClassModalProps {
@@ -25,7 +24,7 @@ export interface ManageClassModalProps {
 
 /**
  * A specialized modal for creating and editing Character Classes,
- * including their base stats and available ability trees.
+ * including their base stats.
  */
 export const ManageClassModal: FC<ManageClassModalProps> = ({
     isOpen,
@@ -40,23 +39,18 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [baseStats, setBaseStats] = useState<{ [statId: number]: number }>({});
-    const [abilityTreeIds, setAbilityTreeIds] = useState<number[]>([]);
+    // FIX: Removed abilityTreeIds state.
 
     // --- Data Loading State ---
     const [statDefs, setStatDefs] = useState<StatDefinition[]>([]);
-    const [abilityTrees, setAbilityTrees] = useState<AbilityTree[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Effect to fetch all necessary definition data (stats & trees) when the modal opens.
+    // Effect to fetch all necessary definition data (stats) when the modal opens.
     useEffect(() => {
         if (isOpen && selectedWorld?.id) {
             setIsLoading(true);
-            Promise.all([
-                getStatDefinitionsForWorld(selectedWorld.id),
-                getAbilityTreesForWorld(selectedWorld.id),
-            ]).then(([statData, treeData]) => {
+            getStatDefinitionsForWorld(selectedWorld.id).then((statData) => {
                 setStatDefs(statData);
-                setAbilityTrees(treeData);
                 setIsLoading(false);
             });
         }
@@ -69,12 +63,11 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
                 setName(classToEdit.name);
                 setDescription(classToEdit.description);
                 setBaseStats(classToEdit.baseStats || {});
-                setAbilityTreeIds(classToEdit.abilityTreeIds || []);
+                // FIX: Removed logic for setting abilityTreeIds.
             } else {
                 // Reset for a new class
                 setName('');
                 setDescription('');
-                setAbilityTreeIds([]);
                 // Initialize stats with their default values
                 const defaultStats: { [statId: number]: number } = {};
                 for (const def of statDefs) {
@@ -89,14 +82,11 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
         setBaseStats((prev) => ({ ...prev, [statId]: parseInt(value, 10) || 0 }));
     };
 
-    const handleAbilityTreeToggle = (treeId: number) => {
-        setAbilityTreeIds((prev) =>
-            prev.includes(treeId) ? prev.filter((id) => id !== treeId) : [...prev, treeId],
-        );
-    };
+    // FIX: Removed handleAbilityTreeToggle function.
 
     const handleSave = async () => {
-        const saveData: ClassSaveData = { name, description, baseStats, abilityTreeIds };
+        // FIX: Removed abilityTreeIds from the save payload.
+        const saveData: ClassSaveData = { name, description, baseStats };
         await onSave(saveData);
         onClose();
     };
@@ -107,7 +97,8 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
         <div className="modal-overlay" onClick={onClose}>
             <div
                 className="modal"
-                style={{ maxWidth: '800px' }}
+                // FIX: Simplified to a single column layout.
+                style={{ maxWidth: '500px' }}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="modal__header">
@@ -123,94 +114,58 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
                     {isLoading ? (
                         <p>Loading definitions...</p>
                     ) : (
-                        <form className="form grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* --- Left Column: Details & Stats --- */}
-                            <div className="flex flex-col gap-4">
-                                <div className="form__group">
-                                    <label htmlFor="className" className="form__label">
-                                        Class Name
-                                    </label>
-                                    <input
-                                        id="className"
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        className="form__input"
-                                    />
-                                </div>
-                                <div className="form__group">
-                                    <label htmlFor="classDesc" className="form__label">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        id="classDesc"
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                        className="form__textarea"
-                                        rows={3}
-                                    />
-                                </div>
-                                {statDefs.length > 0 && (
-                                    <div className="form__group">
-                                        <label className="form__label">Base Statistics</label>
-                                        <div className="grid grid-cols-3 gap-4">
-                                            {statDefs.map((def) => (
-                                                <div key={def.id} className="form__group">
-                                                    <label
-                                                        htmlFor={`stat-${def.id}`}
-                                                        className="form__label text-xs"
-                                                    >
-                                                        {def.name} ({def.abbreviation})
-                                                    </label>
-                                                    <input
-                                                        id={`stat-${def.id}`}
-                                                        type="number"
-                                                        value={baseStats[def.id!] ?? ''}
-                                                        onChange={(e) =>
-                                                            handleStatChange(
-                                                                def.id!,
-                                                                e.target.value,
-                                                            )
-                                                        }
-                                                        className="form__input"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                        <form className="form">
+                            <div className="form__group">
+                                <label htmlFor="className" className="form__label">
+                                    Class Name
+                                </label>
+                                <input
+                                    id="className"
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="form__input"
+                                />
                             </div>
-
-                            {/* --- Right Column: Ability Trees --- */}
-                            <div className="flex flex-col gap-4">
+                            <div className="form__group">
+                                <label htmlFor="classDesc" className="form__label">
+                                    Description
+                                </label>
+                                <textarea
+                                    id="classDesc"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    className="form__textarea"
+                                    rows={3}
+                                />
+                            </div>
+                            {statDefs.length > 0 && (
                                 <div className="form__group">
-                                    <label className="form__label">Available Ability Trees</label>
-                                    <div className="ability-selection-container">
-                                        {abilityTrees.length > 0 ? (
-                                            abilityTrees.map((tree) => (
+                                    <label className="form__label">Base Statistics</label>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {statDefs.map((def) => (
+                                            <div key={def.id} className="form__group">
                                                 <label
-                                                    key={tree.id}
-                                                    className="ability-checkbox-label"
+                                                    htmlFor={`stat-${def.id}`}
+                                                    className="form__label text-xs"
                                                 >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={abilityTreeIds.includes(tree.id!)}
-                                                        onChange={() =>
-                                                            handleAbilityTreeToggle(tree.id!)
-                                                        }
-                                                    />
-                                                    {tree.name}
+                                                    {def.name} ({def.abbreviation})
                                                 </label>
-                                            ))
-                                        ) : (
-                                            <p className="text-sm text-gray-500">
-                                                No ability trees defined for this world. Create some
-                                                in the 'Abilities' tab.
-                                            </p>
-                                        )}
+                                                <input
+                                                    id={`stat-${def.id}`}
+                                                    type="number"
+                                                    value={baseStats[def.id!] ?? ''}
+                                                    onChange={(e) =>
+                                                        handleStatChange(def.id!, e.target.value)
+                                                    }
+                                                    className="form__input"
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
+                            )}
+                            {/* FIX: Removed the entire "Right Column: Ability Trees" section. */}
                         </form>
                     )}
                 </div>
