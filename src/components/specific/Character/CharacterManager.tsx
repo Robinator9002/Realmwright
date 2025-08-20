@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback, type FC } from 'react';
 import { Settings, PlusCircle, Trash2 } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
+// NEW: Import useView to control navigation
+import { useView } from '../../../context/ViewContext';
 import {
     addCharacter,
     getCharactersForWorld,
@@ -10,7 +12,6 @@ import {
     deleteCharacter,
 } from '../../../db/queries/character.queries';
 import type { Character } from '../../../db/types';
-// Import the newly refactored modal.
 import { ManageCharacterModal, type CharacterSaveData } from './ManageCharacterModal';
 
 /**
@@ -19,13 +20,15 @@ import { ManageCharacterModal, type CharacterSaveData } from './ManageCharacterM
 export const CharacterManager: FC = () => {
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
+    // NEW: Get the necessary functions from useView
+    const { setCurrentView, setCharacterIdForSheet } = useView();
     const [characters, setCharacters] = useState<Character[]>([]);
 
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const [isManageModalOpen, setIsManageModalOpen] = useState(false);
-    const [characterToEdit, setCharacterToEdit] = useState<Character | null>(null);
+    // This state is now only for the CREATE modal. Edit is handled by navigation.
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const fetchCharacters = useCallback(async () => {
         if (!selectedWorld?.id) return;
@@ -47,13 +50,15 @@ export const CharacterManager: FC = () => {
     }, [fetchCharacters]);
 
     const handleOpenCreateModal = () => {
-        setCharacterToEdit(null);
-        setIsManageModalOpen(true);
+        setIsCreateModalOpen(true);
     };
 
-    const handleOpenEditModal = (character: Character) => {
-        setCharacterToEdit(character);
-        setIsManageModalOpen(true);
+    // REWORK: This function no longer opens a modal. It navigates to the sheet view.
+    const handleViewCharacterSheet = (character: Character) => {
+        if (character.id) {
+            setCharacterIdForSheet(character.id);
+            setCurrentView('character_sheet');
+        }
     };
 
     const handleSaveCharacter = async (
@@ -73,11 +78,11 @@ export const CharacterManager: FC = () => {
         }
 
         try {
+            // This logic is now only for CREATION, as editing happens on the sheet page.
+            // We'll leave the updateCharacter call for now, but it will be moved later.
             if (characterId) {
-                // This is an update
                 await updateCharacter(characterId, saveData);
             } else {
-                // This is a creation
                 await addCharacter({
                     ...(saveData as CharacterSaveData),
                     worldId: selectedWorld.id,
@@ -144,8 +149,9 @@ export const CharacterManager: FC = () => {
                                         </p>
                                     </div>
                                     <div className="panel__item-actions">
+                                        {/* REWORK: This button now navigates instead of opening a modal */}
                                         <button
-                                            onClick={() => handleOpenEditModal(char)}
+                                            onClick={() => handleViewCharacterSheet(char)}
                                             className="button"
                                         >
                                             <Settings size={16} /> Manage
@@ -173,11 +179,12 @@ export const CharacterManager: FC = () => {
                 </div>
             </div>
 
+            {/* This modal is now only for creating characters. */}
             <ManageCharacterModal
-                isOpen={isManageModalOpen}
-                onClose={() => setIsManageModalOpen(false)}
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
                 onSave={handleSaveCharacter}
-                characterToEdit={characterToEdit}
+                characterToEdit={null} // Always pass null for creation mode
             />
         </>
     );
