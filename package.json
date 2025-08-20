@@ -21,6 +21,7 @@
         "lucide-react": "^0.539.0",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
+        "react-markdown": "^10.1.0",
         "reactflow": "^11.11.4",
         "wait-on": "^8.0.4"
     },
