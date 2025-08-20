@@ -75,13 +75,28 @@ export class RealmwrightDB extends Dexie {
             characters: '++id, worldId, classId, *campaignIds, name',
         });
 
-        // NEW: Version 11 Upgrade
-        // This version formally acknowledges the new data shapes for classes and characters.
-        // No new indexes are needed as the complex sheet/instance data is not indexed.
         this.version(11).stores({
-            characterClasses: '++id, worldId, name', // Now contains characterSheet
-            characters: '++id, worldId, classId, *campaignIds, name', // Now contains instanceData
+            characterClasses: '++id, worldId, name',
+            characters: '++id, worldId, classId, *campaignIds, name',
         });
+
+        // NEW: Version 12 Upgrade
+        // Adds the `type` property to stat definitions.
+        this.version(12)
+            .stores({
+                statDefinitions: '++id, worldId, name, type', // Added 'type'
+            })
+            .upgrade((tx) => {
+                // This migration function ensures that existing stats get a default type.
+                return tx
+                    .table('statDefinitions')
+                    .toCollection()
+                    .modify((stat: StatDefinition) => {
+                        if (!stat.type) {
+                            stat.type = 'primary'; // Default all old stats to 'primary'
+                        }
+                    });
+            });
     }
 }
 
