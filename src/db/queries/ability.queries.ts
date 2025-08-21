@@ -1,17 +1,21 @@
 // src/db/queries/ability.queries.ts
 import { db } from '../db';
-import type { Ability, AbilityTree, Prerequisite } from '../types';
+import type { Ability, AbilityTree, PrerequisiteGroup } from '../types';
 
-// --- AbilityTree Queries (unchanged) ---
+// --- AbilityTree Queries ---
 
-export async function addAbilityTree(treeData: {
+type CreateAbilityTreeData = {
     name: string;
     description: string;
     worldId: number;
-}): Promise<number> {
+    tierCount?: number; // tierCount is optional at creation, will get a default
+};
+
+export async function addAbilityTree(treeData: CreateAbilityTreeData): Promise<number> {
     try {
         const newAbilityTree: AbilityTree = {
             ...treeData,
+            tierCount: treeData.tierCount || 5, // Default to 5 tiers if not provided
             createdAt: new Date(),
         };
         const id = await db.abilityTrees.add(newAbilityTree);
@@ -32,9 +36,16 @@ export async function getAbilityTreesForWorld(worldId: number): Promise<AbilityT
     }
 }
 
+// NEW: A dedicated payload type for updates
+export type UpdateAbilityTreePayload = {
+    name: string;
+    description: string;
+    tierCount: number;
+};
+
 export async function updateAbilityTree(
     treeId: number,
-    updates: { name: string; description: string },
+    updates: Partial<UpdateAbilityTreePayload>,
 ): Promise<void> {
     try {
         await db.abilityTrees.update(treeId, updates);
@@ -58,22 +69,21 @@ export async function deleteAbilityTree(treeId: number): Promise<void> {
 
 // --- Ability Queries ---
 
-/**
- * REFACTOR: Adds a new Ability to a specific Ability Tree, now including its tier.
- * @param abilityData - An object containing the new ability's details.
- * @returns The ID of the newly created ability.
- */
-export async function addAbility(abilityData: {
+type CreateAbilityData = {
     name: string;
     description: string;
-    prerequisites: Prerequisite;
     worldId: number;
     abilityTreeId: number;
-    tier: number; // NEW: Tier is now a required property for creation.
-}): Promise<number> {
+    tier: number;
+    iconUrl?: string;
+};
+
+export async function addAbility(abilityData: CreateAbilityData): Promise<number> {
     try {
         const newAbility: Ability = {
             ...abilityData,
+            prerequisites: [], // Always start with no prerequisites
+            iconUrl: abilityData.iconUrl || '',
             createdAt: new Date(),
         };
         const id = await db.abilities.add(newAbility);
@@ -97,21 +107,16 @@ export async function getAbilitiesForTree(abilityTreeId: number): Promise<Abilit
     }
 }
 
-// A dedicated type for the updatable fields of an Ability.
 export type UpdateAbilityPayload = {
     name: string;
     description: string;
-    prerequisites: Prerequisite;
+    prerequisites: PrerequisiteGroup[];
     x: number;
     y: number;
-    tier: number; // NEW: Tier can now be updated.
+    tier: number;
+    iconUrl: string;
 };
 
-/**
- * Updates an existing Ability in the database.
- * @param abilityId - The ID of the ability to update.
- * @param updates - An object containing the fields to update.
- */
 export async function updateAbility(
     abilityId: number,
     updates: Partial<UpdateAbilityPayload>,
