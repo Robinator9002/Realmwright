@@ -13,22 +13,119 @@ import {
     addAbility,
     getAbilitiesForTree,
     updateAbility,
-    deleteAbility,
+    type UpdateAbilityTreePayload,
 } from '../../../db/queries/ability.queries';
-import type { Ability, AbilityTree, Prerequisite } from '../../../db/types';
-import { ManageModal } from '../../common/Modal/ManageModal';
+import type { Ability, AbilityTree, PrerequisiteGroup } from '../../../db/types';
+// REWORK: We need a specialized modal for this now.
+// import { ManageModal } from '../../common/Modal/ManageModal';
 import { AbilityTreeEditor } from '../AbilityTree/AbilityTreeEditor';
 
-// NEW: A dedicated component for the full-screen editor overlay.
+// A specialized modal for managing Ability Tree details.
+const ManageAbilityTreeModal: FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    item: AbilityTree | null;
+    onSave: (updates: Partial<UpdateAbilityTreePayload>, treeId: number) => Promise<void>;
+    onDelete: (itemId: number) => void;
+}> = ({ isOpen, onClose, item, onSave, onDelete }) => {
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    const [tierCount, setTierCount] = useState(5);
+
+    useEffect(() => {
+        if (item) {
+            setName(item.name);
+            setDescription(item.description);
+            setTierCount(item.tierCount);
+        }
+    }, [item]);
+
+    if (!isOpen || !item) return null;
+
+    const handleSave = async () => {
+        const updates: Partial<UpdateAbilityTreePayload> = { name, description, tierCount };
+        await onSave(updates, item.id!);
+        onClose();
+    };
+
+    const handleDelete = () => {
+        onDelete(item.id!);
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal__header">
+                    <h2 className="modal__title">Manage {item.name}</h2>
+                    <button onClick={onClose} className="modal__close-button">
+                        &times;
+                    </button>
+                </div>
+                <div className="modal__content">
+                    <form className="form">
+                        <div className="form__group">
+                            <label htmlFor="treeName" className="form__label">
+                                Tree Name
+                            </label>
+                            <input
+                                id="treeName"
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="form__input"
+                            />
+                        </div>
+                        <div className="form__group">
+                            <label htmlFor="treeDesc" className="form__label">
+                                Description
+                            </label>
+                            <textarea
+                                id="treeDesc"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                className="form__textarea"
+                                rows={3}
+                            />
+                        </div>
+                        <div className="form__group">
+                            <label htmlFor="treeTiers" className="form__label">
+                                Number of Tiers
+                            </label>
+                            <input
+                                id="treeTiers"
+                                type="number"
+                                value={tierCount}
+                                onChange={(e) => setTierCount(parseInt(e.target.value, 10) || 1)}
+                                className="form__input"
+                                min="1"
+                            />
+                        </div>
+                    </form>
+                </div>
+                <div className="modal__footer">
+                    <button onClick={handleDelete} className="button button--danger mr-auto">
+                        Delete Tree
+                    </button>
+                    <button onClick={onClose} className="button">
+                        Cancel
+                    </button>
+                    <button onClick={handleSave} className="button button--primary">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// The overlay component remains largely the same, but now receives tierCount as a prop.
 const AbilityTreeEditorOverlay: FC<{
     tree: AbilityTree;
     onClose: () => void;
 }> = ({ tree, onClose }) => {
-    // All the state and logic for managing the *contents* of the editor now live here.
     const { selectedWorld } = useWorld();
     const [abilities, setAbilities] = useState<Ability[]>([]);
     const [isLoadingAbilities, setIsLoadingAbilities] = useState(true);
-    const [tierCount, setTierCount] = useState(5); // This will be dynamic later
     const [newAbilityName, setNewAbilityName] = useState('');
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityTier, setNewAbilityTier] = useState(1);
@@ -51,7 +148,6 @@ const AbilityTreeEditorOverlay: FC<{
         await addAbility({
             name: newAbilityName,
             description: newAbilityDesc,
-            prerequisites: { abilityIds: [] }, // Simplified for now
             worldId: selectedWorld.id,
             abilityTreeId: tree.id!,
             tier: newAbilityTier,
@@ -69,7 +165,6 @@ const AbilityTreeEditorOverlay: FC<{
             y: node.position.y,
             tier: closestTier,
         });
-        // Optimistically update local state
         setAbilities((prev) =>
             prev.map((a) =>
                 a.id === abilityId
@@ -80,13 +175,14 @@ const AbilityTreeEditorOverlay: FC<{
     };
 
     const handleConnect = async (connection: Connection) => {
+        // This logic will be overhauled later for AND/OR
         const sourceId = parseInt(connection.source!, 10);
         const targetId = parseInt(connection.target!, 10);
         const targetAbility = abilities.find((a) => a.id === targetId);
 
         if (targetAbility) {
-            const newPrereqIds = new Set([...targetAbility.prerequisites.abilityIds, sourceId]);
-            const updatedPrerequisites: Prerequisite = { abilityIds: Array.from(newPrereqIds) };
+            const newPrereqGroup: PrerequisiteGroup = { type: 'AND', abilityIds: [sourceId] };
+            const updatedPrerequisites = [...targetAbility.prerequisites, newPrereqGroup];
             await updateAbility(targetId, { prerequisites: updatedPrerequisites });
             await refreshAbilities();
         }
@@ -112,7 +208,7 @@ const AbilityTreeEditorOverlay: FC<{
                         <input
                             value={newAbilityName}
                             onChange={(e) => setNewAbilityName(e.target.value)}
-                            placeholder="Ability Name (e.g., Fireball)"
+                            placeholder="Ability Name"
                             className="form__input"
                         />
                         <input
@@ -131,7 +227,7 @@ const AbilityTreeEditorOverlay: FC<{
                                 onChange={(e) => setNewAbilityTier(parseInt(e.target.value, 10))}
                                 className="form__select"
                             >
-                                {Array.from({ length: tierCount }, (_, i) => i + 1).map(
+                                {Array.from({ length: tree.tierCount }, (_, i) => i + 1).map(
                                     (tierNum) => (
                                         <option key={tierNum} value={tierNum}>
                                             Tier {tierNum}
@@ -151,7 +247,7 @@ const AbilityTreeEditorOverlay: FC<{
                     ) : (
                         <AbilityTreeEditor
                             abilities={abilities}
-                            tierCount={tierCount}
+                            tierCount={tree.tierCount} // Pass the dynamic tier count
                             onNodeDragStop={handleNodeDragStop}
                             onConnect={handleConnect}
                         />
@@ -162,10 +258,6 @@ const AbilityTreeEditorOverlay: FC<{
     );
 };
 
-/**
- * The main manager component for listing and creating Ability Trees.
- * It now delegates the editing experience to the AbilityTreeEditorOverlay.
- */
 export const AbilityManager: FC = () => {
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
@@ -209,11 +301,8 @@ export const AbilityManager: FC = () => {
         await fetchTrees();
     };
 
-    const handleSaveTree = async (updatedTree: AbilityTree) => {
-        await updateAbilityTree(updatedTree.id!, {
-            name: updatedTree.name,
-            description: updatedTree.description,
-        });
+    const handleSaveTree = async (updates: Partial<UpdateAbilityTreePayload>, treeId: number) => {
+        await updateAbilityTree(treeId, updates);
         await fetchTrees();
     };
 
@@ -288,17 +377,14 @@ export const AbilityManager: FC = () => {
                 </div>
             </div>
 
-            {/* The ManageModal for editing tree name/description remains unchanged */}
-            <ManageModal<AbilityTree>
+            <ManageAbilityTreeModal
                 isOpen={!!managingTree}
                 onClose={() => setManagingTree(null)}
                 item={managingTree}
                 onSave={handleSaveTree}
                 onDelete={handleDeleteTree}
-                itemType="Ability Tree"
             />
 
-            {/* The editor is now rendered here when a tree is selected */}
             {selectedTree && (
                 <AbilityTreeEditorOverlay
                     tree={selectedTree}
