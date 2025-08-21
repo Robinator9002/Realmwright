@@ -13,11 +13,10 @@ import {
     addAbility,
     getAbilitiesForTree,
     updateAbility,
+    deleteAbility,
     type UpdateAbilityTreePayload,
 } from '../../../db/queries/ability.queries';
 import type { Ability, AbilityTree, PrerequisiteGroup } from '../../../db/types';
-// REWORK: We need a specialized modal for this now.
-// import { ManageModal } from '../../common/Modal/ManageModal';
 import { AbilityTreeEditor } from '../AbilityTree/AbilityTreeEditor';
 
 // A specialized modal for managing Ability Tree details.
@@ -118,7 +117,7 @@ const ManageAbilityTreeModal: FC<{
     );
 };
 
-// The overlay component remains largely the same, but now receives tierCount as a prop.
+// The overlay component now handles the icon URL for new abilities.
 const AbilityTreeEditorOverlay: FC<{
     tree: AbilityTree;
     onClose: () => void;
@@ -129,6 +128,8 @@ const AbilityTreeEditorOverlay: FC<{
     const [newAbilityName, setNewAbilityName] = useState('');
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityTier, setNewAbilityTier] = useState(1);
+    // NEW: State for the icon URL input
+    const [newAbilityIconUrl, setNewAbilityIconUrl] = useState('');
 
     const refreshAbilities = useCallback(async () => {
         setIsLoadingAbilities(true);
@@ -151,10 +152,12 @@ const AbilityTreeEditorOverlay: FC<{
             worldId: selectedWorld.id,
             abilityTreeId: tree.id!,
             tier: newAbilityTier,
+            iconUrl: newAbilityIconUrl, // NEW: Pass the icon URL
         });
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityTier(1);
+        setNewAbilityIconUrl(''); // NEW: Reset the icon URL field
         await refreshAbilities();
     };
 
@@ -175,7 +178,6 @@ const AbilityTreeEditorOverlay: FC<{
     };
 
     const handleConnect = async (connection: Connection) => {
-        // This logic will be overhauled later for AND/OR
         const sourceId = parseInt(connection.source!, 10);
         const targetId = parseInt(connection.target!, 10);
         const targetAbility = abilities.find((a) => a.id === targetId);
@@ -217,6 +219,13 @@ const AbilityTreeEditorOverlay: FC<{
                             placeholder="Description"
                             className="form__input"
                         />
+                        {/* NEW: Input for the icon URL */}
+                        <input
+                            value={newAbilityIconUrl}
+                            onChange={(e) => setNewAbilityIconUrl(e.target.value)}
+                            placeholder="Icon Image URL (optional)"
+                            className="form__input"
+                        />
                         <div className="form__group">
                             <label htmlFor="abilityTier" className="form__label">
                                 Tier
@@ -247,7 +256,7 @@ const AbilityTreeEditorOverlay: FC<{
                     ) : (
                         <AbilityTreeEditor
                             abilities={abilities}
-                            tierCount={tree.tierCount} // Pass the dynamic tier count
+                            tierCount={tree.tierCount}
                             onNodeDragStop={handleNodeDragStop}
                             onConnect={handleConnect}
                         />
@@ -304,6 +313,10 @@ export const AbilityManager: FC = () => {
     const handleSaveTree = async (updates: Partial<UpdateAbilityTreePayload>, treeId: number) => {
         await updateAbilityTree(treeId, updates);
         await fetchTrees();
+        // Also update the selectedTree in state if it's the one being edited
+        if (selectedTree?.id === treeId) {
+            setSelectedTree((prev) => (prev ? { ...prev, ...updates } : null));
+        }
     };
 
     const handleDeleteTree = (treeId: number) => {
