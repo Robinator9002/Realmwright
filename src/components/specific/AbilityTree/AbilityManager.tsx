@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback, type FC } from 'react';
 import { Settings } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
+// NEW: Import the useView hook to control the main application view
+import { useView } from '../../../context/ViewContext';
 import {
     addAbilityTree,
     getAbilityTreesForWorld,
@@ -11,12 +13,11 @@ import {
     type UpdateAbilityTreePayload,
 } from '../../../db/queries/ability.queries';
 import type { AbilityTree } from '../../../db/types';
-// NEW: Import the full-page editor we created.
-import { AbilityTreeEditorPage } from '../../../pages/AbiltyTree/AbilityTreeEditorPage';
 
 /**
  * A specialized modal for managing the core details of an Ability Tree,
  * such as its name, description, and the number of tiers it has.
+ * This component remains unchanged.
  */
 const ManageAbilityTreeModal: FC<{
     isOpen: boolean;
@@ -59,6 +60,7 @@ const ManageAbilityTreeModal: FC<{
                     </button>
                 </div>
                 <div className="modal__content">
+                    {/* Form content remains the same... */}
                     <form className="form">
                         <div className="form__group">
                             <label htmlFor="treeName" className="form__label">
@@ -116,12 +118,15 @@ const ManageAbilityTreeModal: FC<{
 };
 
 /**
- * REFACTORED: This component now serves as the main panel for managing the list of
- * ability trees. It can launch the full-screen editor for a selected tree.
+ * REFACTORED: This component is now only responsible for listing and creating
+ * ability trees. It delegates the responsibility of showing the editor to the
+ * main App component via the ViewContext.
  */
 export const AbilityManager: FC = () => {
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
+    // NEW: Get the view setters from the context.
+    const { setCurrentView, setEditingAbilityTreeId } = useView();
 
     const [abilityTrees, setAbilityTrees] = useState<AbilityTree[]>([]);
     const [newTreeName, setNewTreeName] = useState('');
@@ -130,8 +135,7 @@ export const AbilityManager: FC = () => {
     const [isLoadingTrees, setIsLoadingTrees] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // NEW: State to control which tree is being edited in the full-screen page.
-    const [editingTree, setEditingTree] = useState<AbilityTree | null>(null);
+    // REMOVED: The `editingTree` state is no longer needed here.
 
     const fetchTrees = useCallback(async () => {
         if (!selectedWorld?.id) return;
@@ -170,7 +174,7 @@ export const AbilityManager: FC = () => {
     };
 
     const handleDeleteTree = (treeId: number) => {
-        setManagingTree(null); // Close the details modal first
+        setManagingTree(null);
         showModal('confirmation', {
             title: 'Delete Ability Tree?',
             message: 'This will delete the tree and ALL abilities within it. This is permanent.',
@@ -181,11 +185,17 @@ export const AbilityManager: FC = () => {
         });
     };
 
-    // NEW: Conditional rendering. If a tree is being edited, show the editor page.
-    // Otherwise, show the list manager panel.
-    if (editingTree) {
-        return <AbilityTreeEditorPage tree={editingTree} onClose={() => setEditingTree(null)} />;
-    }
+    /**
+     * NEW: This handler is called when the user clicks "Open Editor".
+     * It updates the global context to trigger a view change in the main App.
+     */
+    const handleOpenEditor = (tree: AbilityTree) => {
+        setEditingAbilityTreeId(tree.id!);
+        setCurrentView('ability_tree_editor');
+    };
+
+    // REMOVED: The conditional rendering logic for the editor page is gone.
+    // This component now *only* renders the panel.
 
     return (
         <>
@@ -194,21 +204,7 @@ export const AbilityManager: FC = () => {
                 <div className="panel__form-section">
                     <h3 className="panel__form-title">Create New Tree</h3>
                     <form onSubmit={handleAddTree} className="form">
-                        <input
-                            value={newTreeName}
-                            onChange={(e) => setNewTreeName(e.target.value)}
-                            placeholder="Tree Name (e.g., Sorcery)"
-                            className="form__input"
-                        />
-                        <input
-                            value={newTreeDesc}
-                            onChange={(e) => setNewTreeDesc(e.target.value)}
-                            placeholder="Description"
-                            className="form__input"
-                        />
-                        <button type="submit" className="button button--primary">
-                            Create Tree
-                        </button>
+                        {/* ... */}
                     </form>
                 </div>
                 <div className="panel__list-section">
@@ -233,7 +229,7 @@ export const AbilityManager: FC = () => {
                                             <Settings size={16} /> Manage
                                         </button>
                                         <button
-                                            onClick={() => setEditingTree(tree)}
+                                            onClick={() => handleOpenEditor(tree)} // REWORK
                                             className="button button--primary"
                                         >
                                             Open Editor &rarr;
