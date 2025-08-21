@@ -1,87 +1,55 @@
 // src/db/types.ts
 
-// --- NEW: Character Sheet Structure Definition ---
+// --- Character Sheet Structure Definition ---
 
-/**
- * Represents a single configurable block on a character sheet.
- * The 'content' will hold different data depending on the block type.
- * e.g., for 'ability_tree', content would be an abilityTreeId.
- * e.g., for 'rich_text', content would be a string of HTML/Markdown.
- */
 export type SheetBlock = {
-    id: string; // A unique ID for this block (e.g., generated with crypto.randomUUID())
+    id: string;
     type: 'details' | 'stats' | 'ability_tree' | 'inventory' | 'rich_text' | 'notes';
     content?: any;
 };
 
-/**
- * Represents a single page within a character sheet layout.
- */
 export type SheetPage = {
-    id: string; // A unique ID for the page
+    id: string;
     name: string;
     blocks: SheetBlock[];
 };
 
 // --- Core Entity Interfaces ---
 
-/**
- * A base interface for all manageable entities.
- */
 export interface BaseManageable {
     id?: number;
     name: string;
     description: string;
 }
 
-/**
- * Represents a single World, the top-level container for all content.
- */
 export interface World extends BaseManageable {
     createdAt: Date;
 }
 
-/**
- * Represents a Campaign within a specific World.
- */
 export interface Campaign extends BaseManageable {
     worldId: number;
     status: 'active' | 'archived' | 'planned';
     createdAt: Date;
 }
 
-/**
- * Represents a Character, which is an INSTANCE of a Class.
- */
 export interface Character extends BaseManageable {
     worldId: number;
-    classId: number; // A character MUST belong to a class now.
+    classId: number;
     type: 'PC' | 'NPC' | 'Enemy';
     campaignIds: number[];
     createdAt: Date;
-    // Holds the character's CURRENT stats, which may be modified from the class base.
     stats: { [statId: number]: number };
-    // Holds the IDs of abilities the character has specifically learned.
     learnedAbilities: number[];
-    // Holds instance-specific data, like inventory items or notes content.
     instanceData: { [blockId: string]: any };
 }
 
-/**
- * Represents a Character Class, the BLUEPRINT for a character sheet.
- */
 export interface CharacterClass extends BaseManageable {
     worldId: number;
-    // The base stats for any character of this class.
     baseStats: { [statId: number]: number };
-    // The layout and structure of the character sheet for this class.
     characterSheet: SheetPage[];
     createdAt: Date;
 }
 
-/**
- * Represents a single entry in the world's chronicle.
- */
 export interface LoreEntry extends BaseManageable {
     worldId: number;
     category: string;
@@ -89,24 +57,25 @@ export interface LoreEntry extends BaseManageable {
     createdAt: Date;
 }
 
-/**
- * Represents a definition for a game statistic.
- */
 export interface StatDefinition extends BaseManageable {
     worldId: number;
     abbreviation: string;
     defaultValue: number;
     createdAt: Date;
-    // NEW: Categorizes the stat to determine its behavior.
     type: 'primary' | 'derived' | 'resource';
 }
 
+// --- Ability System Interfaces ---
+
 /**
- * Defines the structure for ability prerequisites.
+ * REWORK: Defines a group of prerequisites with a specific logical operator.
+ * This allows for creating complex requirements like (AbilityA AND AbilityB) OR (AbilityC).
  */
-export interface Prerequisite {
+export type PrerequisiteGroup = {
+    type: 'AND' | 'OR'; // The logic gate for this group.
     abilityIds: number[];
-}
+    // In the future, we could even nest groups: nestedGroups?: PrerequisiteGroup[];
+};
 
 /**
  * Represents a single ability or skill (a "node" in a tree).
@@ -114,11 +83,14 @@ export interface Prerequisite {
 export interface Ability extends BaseManageable {
     worldId: number;
     abilityTreeId: number;
-    prerequisites: Prerequisite;
+    // REWORK: Prerequisites are now an array of logical groups.
+    prerequisites: PrerequisiteGroup[];
     createdAt: Date;
     x?: number;
     y?: number;
     tier: number;
+    // NEW: An optional URL for a custom icon image.
+    iconUrl?: string;
 }
 
 /**
@@ -127,4 +99,6 @@ export interface Ability extends BaseManageable {
 export interface AbilityTree extends BaseManageable {
     worldId: number;
     createdAt: Date;
+    // NEW: The number of tiers this specific tree has.
+    tierCount: number;
 }
