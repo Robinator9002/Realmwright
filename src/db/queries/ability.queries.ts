@@ -1,6 +1,6 @@
 // src/db/queries/ability.queries.ts
 import { db } from '../db';
-import type { Ability, AbilityTree, PrerequisiteGroup } from '../types';
+import type { Ability, AbilityTree, PrerequisiteGroup, AttachmentPoint } from '../types';
 
 // --- AbilityTree Queries ---
 
@@ -36,10 +36,6 @@ export async function getAbilityTreesForWorld(worldId: number): Promise<AbilityT
     }
 }
 
-/**
- * NEW: A query to retrieve a single ability tree by its primary key.
- * This is essential for loading the specific tree into the editor page.
- */
 export async function getAbilityTreeById(treeId: number): Promise<AbilityTree | undefined> {
     try {
         const tree = await db.abilityTrees.get(treeId);
@@ -82,6 +78,10 @@ export async function deleteAbilityTree(treeId: number): Promise<void> {
 
 // --- Ability Queries ---
 
+/**
+ * REWORKED: The data contract for creating a new ability now
+ * includes the optional attachmentPoint property.
+ */
 type CreateAbilityData = {
     name: string;
     description: string;
@@ -89,13 +89,14 @@ type CreateAbilityData = {
     abilityTreeId: number;
     tier: number;
     iconUrl?: string;
+    attachmentPoint?: AttachmentPoint; // NEW
 };
 
 export async function addAbility(abilityData: CreateAbilityData): Promise<number> {
     try {
         const newAbility: Ability = {
             ...abilityData,
-            prerequisites: [], // Always start with no prerequisites
+            prerequisites: [],
             iconUrl: abilityData.iconUrl || '',
             createdAt: new Date(),
         };
@@ -128,6 +129,7 @@ export type UpdateAbilityPayload = {
     y: number;
     tier: number;
     iconUrl: string;
+    attachmentPoint: AttachmentPoint;
 };
 
 export async function updateAbility(

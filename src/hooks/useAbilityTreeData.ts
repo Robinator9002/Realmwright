@@ -6,13 +6,14 @@ import {
     addAbility,
     getAbilitiesForTree,
     updateAbility,
-    deleteAbility, // NEW: Import the deleteAbility query
+    deleteAbility,
 } from '../db/queries/ability.queries';
-import type { Ability, AbilityTree, PrerequisiteGroup } from '../db/types';
+import type { Ability, AbilityTree, PrerequisiteGroup, AttachmentPoint } from '../db/types';
 import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/PrerequisiteModal';
 
 /**
- * REWORKED: The hook now manages the full lifecycle of abilities, including deletion.
+ * REWORKED: The hook now handles the creation of abilities that are
+ * designated as Attachment Points.
  */
 export const useAbilityTreeData = (tree: AbilityTree) => {
     const { selectedWorld } = useWorld();
@@ -34,14 +35,28 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     }, [tree.id]);
 
+    /**
+     * REWORKED: This function now accepts an `isAttachmentPoint` flag to
+     * determine what kind of ability to create.
+     */
     const handleAddAbility = async (
         name: string,
         description: string,
         tier: number,
         iconUrl: string,
+        isAttachmentPoint: boolean, // NEW parameter
     ) => {
         if (!name.trim() || !selectedWorld?.id) return;
         try {
+            let attachmentPoint: AttachmentPoint | undefined = undefined;
+
+            // If the checkbox was checked, create the attachment point object
+            if (isAttachmentPoint) {
+                attachmentPoint = {
+                    id: crypto.randomUUID(), // Generate a unique ID for the socket
+                };
+            }
+
             await addAbility({
                 name,
                 description,
@@ -49,6 +64,7 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
                 abilityTreeId: tree.id!,
                 tier,
                 iconUrl,
+                attachmentPoint, // Pass the new object to the query
             });
             await refreshAbilities();
         } catch (err) {
@@ -96,34 +112,22 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     };
 
-    /**
-     * NEW: Handles the deletion of nodes (abilities) and edges (prerequisites).
-     */
     const handleDelete = async (deletedNodes: Node[], deletedEdges: Edge[]) => {
         try {
-            // Handle node deletions
             for (const node of deletedNodes) {
                 await deleteAbility(parseInt(node.id, 10));
             }
-
-            // Handle edge deletions
             for (const edge of deletedEdges) {
                 const targetId = parseInt(edge.target, 10);
                 const sourceId = parseInt(edge.source, 10);
                 const targetAbility = abilities.find((a) => a.id === targetId);
-
                 if (targetAbility) {
-                    // Filter out the prerequisite group that corresponds to the deleted edge
-                    const updatedPrerequisites = targetAbility.prerequisites.filter((group) => {
-                        // This logic is simple for now. If a group has the sourceId, we remove it.
-                        // A more complex system might only remove the sourceId from the group's array.
-                        return !group.abilityIds.includes(sourceId);
-                    });
+                    const updatedPrerequisites = targetAbility.prerequisites.filter(
+                        (group) => !group.abilityIds.includes(sourceId),
+                    );
                     await updateAbility(targetId, { prerequisites: updatedPrerequisites });
                 }
             }
-
-            // If anything was deleted, refresh the data from the DB
             if (deletedNodes.length > 0 || deletedEdges.length > 0) {
                 await refreshAbilities();
             }
@@ -141,6 +145,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         handleAddAbility,
         handleNodeDragStop,
         handleConnect,
-        handleDelete, // Expose the new handler
+        handleDelete,
     };
 };
