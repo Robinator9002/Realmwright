@@ -80,20 +80,62 @@ export class RealmwrightDB extends Dexie {
             characters: '++id, worldId, classId, *campaignIds, name',
         });
 
-        // NEW: Version 12 Upgrade
-        // Adds the `type` property to stat definitions.
         this.version(12)
             .stores({
-                statDefinitions: '++id, worldId, name, type', // Added 'type'
+                statDefinitions: '++id, worldId, name, type',
             })
             .upgrade((tx) => {
-                // This migration function ensures that existing stats get a default type.
                 return tx
                     .table('statDefinitions')
                     .toCollection()
                     .modify((stat: StatDefinition) => {
                         if (!stat.type) {
-                            stat.type = 'primary'; // Default all old stats to 'primary'
+                            stat.type = 'primary';
+                        }
+                    });
+            });
+
+        // NEW: Version 13 Upgrade
+        // Overhauls the ability system to support new features.
+        this.version(13)
+            .stores({
+                // No index changes needed, just adding non-indexed properties.
+            })
+            .upgrade((tx) => {
+                // Upgrade Ability Trees with a default tier count
+                tx.table('abilityTrees')
+                    .toCollection()
+                    .modify((tree: AbilityTree) => {
+                        if (typeof tree.tierCount === 'undefined') {
+                            tree.tierCount = 5; // Default to 5 tiers
+                        }
+                    });
+
+                // Upgrade Abilities with new properties and prerequisite structure
+                return tx
+                    .table('abilities')
+                    .toCollection()
+                    .modify((ability: Ability & { prerequisites: any }) => {
+                        if (typeof ability.iconUrl === 'undefined') {
+                            ability.iconUrl = ''; // Default to empty string
+                        }
+
+                        // Check if the old prerequisite structure exists and convert it
+                        if (ability.prerequisites && !Array.isArray(ability.prerequisites)) {
+                            const oldPrereqIds = ability.prerequisites.abilityIds || [];
+                            if (oldPrereqIds.length > 0) {
+                                // Convert to the new structure
+                                ability.prerequisites = [
+                                    {
+                                        type: 'AND',
+                                        abilityIds: oldPrereqIds,
+                                    },
+                                ];
+                            } else {
+                                ability.prerequisites = []; // If no old IDs, make it an empty array
+                            }
+                        } else if (!ability.prerequisites) {
+                            ability.prerequisites = []; // Ensure it's always an array
                         }
                     });
             });
