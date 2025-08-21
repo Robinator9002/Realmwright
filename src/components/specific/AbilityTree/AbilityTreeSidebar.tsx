@@ -105,7 +105,76 @@ const CreateAbilityPanel: FC<any> = (props) => {
         <div>
             <h3 className="sidebar__title">Create New Ability</h3>
             <form onSubmit={props.onSubmit} className="form">
-                {/* ... create form content ... */}
+                <div className="form__group">
+                    <label htmlFor="abilityName" className="form__label">
+                        Ability Name
+                    </label>
+                    <input
+                        id="abilityName"
+                        value={props.name}
+                        onChange={(e) => props.onNameChange(e.target.value)}
+                        placeholder="e.g., Fireball or Weapon Socket"
+                        className="form__input"
+                        required
+                    />
+                </div>
+                <div className="form__group">
+                    <label htmlFor="abilityDesc" className="form__label">
+                        Description
+                    </label>
+                    <textarea
+                        id="abilityDesc"
+                        value={props.description}
+                        onChange={(e) => props.onDescriptionChange(e.target.value)}
+                        placeholder="A short description of the ability or socket."
+                        className="form__textarea"
+                        rows={3}
+                    />
+                </div>
+                <div className="form__group">
+                    <label htmlFor="abilityIcon" className="form__label">
+                        Icon URL (Optional)
+                    </label>
+                    <input
+                        id="abilityIcon"
+                        value={props.iconUrl}
+                        onChange={(e) => props.onIconUrlChange(e.target.value)}
+                        placeholder="https://example.com/icon.png"
+                        className="form__input"
+                    />
+                </div>
+                <div className="form__group">
+                    <label htmlFor="abilityTier" className="form__label">
+                        Tier
+                    </label>
+                    <select
+                        id="abilityTier"
+                        value={props.tier}
+                        onChange={(e) => props.onTierChange(parseInt(e.target.value, 10))}
+                        className="form__select"
+                    >
+                        {Array.from({ length: props.tierCount }, (_, i) => i + 1).map((tierNum) => (
+                            <option key={tierNum} value={tierNum}>
+                                Tier {tierNum}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="form__group form__group--checkbox">
+                    <input
+                        id="isAttachmentPoint"
+                        type="checkbox"
+                        checked={props.isAttachmentPoint}
+                        onChange={(e) => props.onIsAttachmentPointChange(e.target.checked)}
+                        className="form__checkbox"
+                    />
+                    <label htmlFor="isAttachmentPoint" className="form__label--checkbox">
+                        Is Attachment Point (Socket)
+                    </label>
+                </div>
+                <button type="submit" className="button button--primary button--full-width">
+                    Create
+                </button>
             </form>
         </div>
     );
@@ -128,7 +197,6 @@ interface AbilityTreeSidebarProps {
     isAttachmentPoint: boolean;
     onIsAttachmentPointChange: (value: boolean) => void;
     selectedNode: Node | null;
-    // NEW: Add the final props for the management panel
     availableTrees: AbilityTree[];
     onAttachTree: (abilityId: number, treeToAttachId: number) => void;
     onDetachTree: (abilityId: number) => void;
