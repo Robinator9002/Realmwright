@@ -15,15 +15,15 @@ import ReactFlow, {
     type Node,
     type NodeDragHandler,
     type Connection,
+    // NEW: Import the node click handler type
+    type NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Ability } from '../../../db/types';
 import { AbilityNode } from './AbilityNode';
 import { LogicEdge } from './LogicEdge';
-// NEW: Import the AttachmentNode component
 import { AttachmentNode } from './AttachmentNode';
 
-// REWORK: Add the new AttachmentNode to our list of custom node types.
 const nodeTypes = {
     abilityNode: AbilityNode,
     attachmentNode: AttachmentNode,
@@ -45,11 +45,13 @@ interface AbilityTreeCanvasProps {
     onNodeDragStop: (node: Node, closestTier: number) => void;
     onConnect: (connection: Connection) => void;
     onDelete: (deletedNodes: Node[], deletedEdges: Edge[]) => void;
+    // NEW: Define the onNodeClick prop in the interface
+    onNodeClick: (node: Node | null) => void;
 }
 
 /**
- * REWORKED: The canvas now intelligently renders either an AbilityNode or
- * an AttachmentNode based on the ability's data.
+ * REWORKED: The canvas now accepts an onNodeClick prop and reports
+ * when a node has been clicked.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
@@ -57,10 +59,12 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     onNodeDragStop,
     onConnect,
     onDelete,
+    onNodeClick, // Destructure the new prop
 }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+    // ... (useMemo for initialNodes and initialEdges remains the same)
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
             const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
@@ -68,7 +72,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
             return {
                 id: String(ability.id!),
                 position: { x: xPos, y: yPos },
-                // REWORK: Pass the attachmentPoint data to the node and set the node type conditionally.
                 data: {
                     label: ability.name,
                     iconUrl: ability.iconUrl,
@@ -143,6 +146,19 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         [onConnect],
     );
 
+    // NEW: The actual handler that gets called by React Flow
+    const handleNodeClick: NodeMouseHandler = useCallback(
+        (_, node) => {
+            onNodeClick(node);
+        },
+        [onNodeClick],
+    );
+
+    // NEW: Handler for when the user clicks on the canvas pane itself
+    const handlePaneClick = useCallback(() => {
+        onNodeClick(null); // Deselect any node
+    }, [onNodeClick]);
+
     return (
         <div className="ability-editor-wrapper">
             <ReactFlow
@@ -154,6 +170,9 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 onEdgesChange={handleEdgesChange}
                 onNodeDragStop={handleNodeDragStop}
                 onConnect={handleConnect}
+                // NEW: Wire up the click handlers
+                onNodeClick={handleNodeClick}
+                onPaneClick={handlePaneClick}
                 fitView
                 nodesDraggable={true}
                 nodesConnectable={true}
@@ -162,6 +181,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 nodesFocusable={true}
                 edgesFocusable={true}
             >
+                {/* ... (Background and SVG content remains the same) */}
                 <Background
                     variant={BackgroundVariant.Lines}
                     gap={48}
