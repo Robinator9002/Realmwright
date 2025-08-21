@@ -18,12 +18,10 @@ interface AbilityTreeEditorPageProps {
 }
 
 /**
- * REWORKED: The editor page now manages the state of the tree itself,
- * including the tier count, and passes the necessary handlers to the sidebar.
+ * REWORKED: The editor page now wires up the deletion handler from the
+ * data hook to the canvas component.
  */
 export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, onClose }) => {
-    // NEW: The tree passed via props is the initial state. We hold the mutable,
-    // "live" version of the tree in this component's state.
     const [currentTree, setCurrentTree] = useState<AbilityTree>(tree);
 
     const {
@@ -34,7 +32,8 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         handleAddAbility,
         handleNodeDragStop,
         handleConnect,
-    } = useAbilityTreeData(currentTree); // Pass the state version to the hook
+        handleDelete, // NEW: Get the delete handler from the hook
+    } = useAbilityTreeData(currentTree);
 
     // Form state for the sidebar
     const [newAbilityName, setNewAbilityName] = useState('');
@@ -72,27 +71,17 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         setIsModalOpen(false);
     };
 
-    /**
-     * NEW: Handles the logic for adding a new tier to the tree.
-     */
     const handleAddTier = async () => {
         const newTierCount = currentTree.tierCount + 1;
-        // Optimistically update the UI
         setCurrentTree({ ...currentTree, tierCount: newTierCount });
-        // Persist the change to the database
         await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
     };
 
-    /**
-     * NEW: Handles the logic for removing the last tier from the tree.
-     */
     const handleRemoveTier = async () => {
-        if (currentTree.tierCount <= 1) return; // Safety check
+        if (currentTree.tierCount <= 1) return;
         const newTierCount = currentTree.tierCount - 1;
         setCurrentTree({ ...currentTree, tierCount: newTierCount });
         await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
-        // Note: We might want to add logic here to handle abilities in the removed tier.
-        // For now, they will remain but may be inaccessible in the UI.
     };
 
     return (
@@ -121,7 +110,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         iconUrl={newAbilityIconUrl}
                         onIconUrlChange={setNewAbilityIconUrl}
                         onSubmit={handleCreateAbility}
-                        // NEW: Pass the state and handlers to the sidebar
                         tierCount={currentTree.tierCount}
                         onAddTier={handleAddTier}
                         onRemoveTier={handleRemoveTier}
@@ -135,6 +123,8 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                                 tierCount={currentTree.tierCount}
                                 onNodeDragStop={handleNodeDragStop}
                                 onConnect={onConnectStart}
+                                // NEW: Pass the handler to the canvas's onDelete prop
+                                onDelete={handleDelete}
                             />
                         )}
                     </div>
