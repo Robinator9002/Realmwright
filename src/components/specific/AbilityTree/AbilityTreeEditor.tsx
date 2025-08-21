@@ -1,4 +1,4 @@
-// src/components/specific/AbilityTreeEditor/AbilityTreeEditor.tsx
+// src/components/specific/AbilityTree/AbilityTreeEditor.tsx
 import { useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import ReactFlow, {
@@ -46,6 +46,7 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
         const initialEdges: Edge[] = [];
 
         for (const ability of abilities) {
+            // Ensure nodes don't start at the very edge
             const xPos = ability.x ?? TIER_WIDTH * ability.tier - TIER_WIDTH / 2;
             const yPos = ability.y ?? 100;
 
@@ -56,20 +57,22 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
                 type: 'abilityNode',
             });
 
-            if (ability.prerequisites?.abilityIds) {
-                for (const prereqId of ability.prerequisites.abilityIds) {
-                    initialEdges.push({
-                        id: `e-${prereqId}-${ability.id}`,
-                        source: String(prereqId),
-                        target: String(ability.id!),
-                        animated: true,
-                    });
+            if (ability.prerequisites) {
+                for (const group of ability.prerequisites) {
+                    for (const prereqId of group.abilityIds) {
+                        initialEdges.push({
+                            id: `e-${prereqId}-${ability.id}`,
+                            source: String(prereqId),
+                            target: String(ability.id!),
+                            animated: true,
+                        });
+                    }
                 }
             }
         }
         setNodes(initialNodes);
         setEdges(initialEdges);
-    }, [abilities, setNodes, setEdges]);
+    }, [abilities, setNodes, setEdges, tierCount]);
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
@@ -119,21 +122,26 @@ export const AbilityTreeEditor: FC<AbilityTreeEditorProps> = ({
                 nodesDraggable={true}
                 nodesConnectable={true}
             >
-                {/* FIX: The Background component is self-closing. */}
                 <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
-
-                {/* FIX: Render the tier lines as direct children of ReactFlow, not Background. */}
-                {/* This places them as SVG elements on the canvas background layer. */}
                 <svg>
+                    {/* REWORK: Dynamically render tier lines AND labels based on the prop */}
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
-                        <line
-                            key={`tier-line-${tierNum}`}
-                            x1={TIER_WIDTH * tierNum}
-                            y1={0}
-                            x2={TIER_WIDTH * tierNum}
-                            y2="100%"
-                            className="tier-line"
-                        />
+                        <g key={`tier-group-${tierNum}`}>
+                            <line
+                                x1={TIER_WIDTH * tierNum}
+                                y1={0}
+                                x2={TIER_WIDTH * tierNum}
+                                y2="100%"
+                                className="tier-line"
+                            />
+                            <text
+                                x={TIER_WIDTH * tierNum - TIER_WIDTH / 2}
+                                y={30}
+                                className="tier-label"
+                            >
+                                Tier {tierNum}
+                            </text>
+                        </g>
                     ))}
                 </svg>
 
