@@ -5,17 +5,18 @@ import type { NodeProps } from 'reactflow';
 import { ShieldCheck } from 'lucide-react'; // A nice default placeholder icon
 
 /**
- * A custom styled node for displaying an Ability in the React Flow editor.
- * It now supports displaying a custom icon.
+ * REWORKED: A custom styled node for displaying an Ability in the React Flow editor.
+ * The structure is now optimized for a compact, icon-focused, square layout.
  */
 export const AbilityNode: FC<NodeProps> = ({ data }) => {
     return (
         <div className="ability-node">
+            {/* Handles are the connection points for edges */}
             <Handle type="target" position={Position.Top} className="ability-node__handle" />
 
             <div className="ability-node__icon-container">
-                {/* We render the img tag if the URL exists */}
-                {data.iconUrl ? (
+                {/* We only render the img tag if the URL exists */}
+                {data.iconUrl && (
                     <img
                         src={data.iconUrl}
                         alt={data.label}
@@ -26,18 +27,16 @@ export const AbilityNode: FC<NodeProps> = ({ data }) => {
                             e.currentTarget.parentElement?.classList.add('error');
                         }}
                     />
-                ) : null}
-                {/* The default placeholder icon, which we can show or hide with CSS */}
+                )}
+                {/* The default placeholder icon, which is shown or hidden via CSS */}
                 <ShieldCheck className="ability-node__icon-placeholder" size={32} />
             </div>
 
             <div className="ability-node__main-content">
-                <div className="ability-node__header">
-                    <h4 className="ability-node__title">{data.label}</h4>
-                </div>
-                <div className="ability-node__content">
-                    <p className="ability-node__description">{data.description}</p>
-                </div>
+                {/* The title attribute provides a native tooltip for truncated names */}
+                <h4 className="ability-node__title" title={data.label}>
+                    {data.label}
+                </h4>
             </div>
 
             <Handle type="source" position={Position.Bottom} className="ability-node__handle" />
