@@ -50,19 +50,18 @@
     display: flex;
     flex-grow: 1;
     overflow: hidden;
-    /* REWORK: Reverse the flex direction to move the sidebar to the right. */
-    flex-direction: row-reverse;
+    /* REWORK: Revert to the original flex-direction to move the sidebar to the left. */
+    flex-direction: row;
 }
 
 .ability-editor-page__sidebar {
     width: 320px;
     flex-shrink: 0;
     padding: var(--spacing-6);
-    /* REWORK: The border is now on the left side. */
-    border-left: 1px solid var(--color-border);
+    /* REWORK: The border is now on the right side again. */
+    border-right: 1px solid var(--color-border);
     background-color: var(--color-panel-bg);
     overflow-y: auto;
-    /* NEW: Add a flexbox layout to the sidebar itself to push the tier controls to the bottom. */
     display: flex;
     flex-direction: column;
     justify-content: space-between;
