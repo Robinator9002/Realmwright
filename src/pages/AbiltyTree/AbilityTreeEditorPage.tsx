@@ -18,8 +18,8 @@ interface AbilityTreeEditorPageProps {
 }
 
 /**
- * REWORKED: The editor page now manages the state for the
- * "Is Attachment Point" checkbox in the sidebar.
+ * REWORKED: The editor page now passes the `isAttachmentPoint` state
+ * to the data hook when creating a new ability.
  */
 export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, onClose }) => {
     const [currentTree, setCurrentTree] = useState<AbilityTree>(tree);
@@ -40,7 +40,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityTier, setNewAbilityTier] = useState(1);
     const [newAbilityIconUrl, setNewAbilityIconUrl] = useState('');
-    // NEW: State for the attachment point checkbox
     const [isAttachmentPoint, setIsAttachmentPoint] = useState(false);
 
     // State to manage the prerequisite modal
@@ -53,14 +52,20 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
 
     const handleCreateAbility = async (e: React.FormEvent) => {
         e.preventDefault();
-        // We will pass `isAttachmentPoint` to the handler in the next step
-        await handleAddAbility(newAbilityName, newAbilityDesc, newAbilityTier, newAbilityIconUrl);
+        // REWORK: Pass the `isAttachmentPoint` state to the handler.
+        await handleAddAbility(
+            newAbilityName,
+            newAbilityDesc,
+            newAbilityTier,
+            newAbilityIconUrl,
+            isAttachmentPoint, // This is the new connection
+        );
         // Reset the form
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityTier(1);
         setNewAbilityIconUrl('');
-        setIsAttachmentPoint(false); // Reset the checkbox
+        setIsAttachmentPoint(false);
     };
 
     const onConnectStart = (connection: Connection) => {
@@ -118,7 +123,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         tierCount={currentTree.tierCount}
                         onAddTier={handleAddTier}
                         onRemoveTier={handleRemoveTier}
-                        // NEW: Pass the state and setter to the sidebar
                         isAttachmentPoint={isAttachmentPoint}
                         onIsAttachmentPointChange={setIsAttachmentPoint}
                     />
