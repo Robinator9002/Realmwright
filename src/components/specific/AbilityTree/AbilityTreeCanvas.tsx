@@ -4,13 +4,11 @@ import ReactFlow, {
     Background,
     Controls,
     MiniMap,
-    // REWORK: We now import the hooks directly from reactflow
     useNodesState,
     useEdgesState,
     addEdge,
     BackgroundVariant,
     type Edge,
-    // NEW: Import the change handlers for deletion logic
     type OnNodesChange,
     type OnEdgesChange,
     type OnConnect,
@@ -42,13 +40,12 @@ interface AbilityTreeCanvasProps {
     tierCount: number;
     onNodeDragStop: (node: Node, closestTier: number) => void;
     onConnect: (connection: Connection) => void;
-    // NEW: Add a prop for handling deletions
     onDelete: (deletedNodes: Node[], deletedEdges: Edge[]) => void;
 }
 
 /**
- * REWORKED: This component now correctly handles node and edge deletions
- * by using the state management hooks provided by React Flow.
+ * REWORKED: Final polish. Tier labels are now on the right, and the
+ * background grid is much more subtle.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
@@ -57,7 +54,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     onConnect,
     onDelete,
 }) => {
-    // We get the handlers directly from the hooks
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
@@ -97,11 +93,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         setEdges(initialEdges);
     }, [initialNodes, initialEdges, setNodes, setEdges]);
 
-    /**
-     * NEW: A wrapper for the onNodesChange handler. It calls the default
-     * handler to update the UI, then calls our onDelete prop to notify
-     * the parent of any deletions so they can be persisted.
-     */
     const handleNodesChange: OnNodesChange = (changes) => {
         const deletedNodeChanges = changes.filter((change) => change.type === 'remove');
         if (deletedNodeChanges.length > 0) {
@@ -112,9 +103,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         onNodesChange(changes);
     };
 
-    /**
-     * NEW: A wrapper for the onEdgesChange handler, with the same logic as above.
-     */
     const handleEdgesChange: OnEdgesChange = (changes) => {
         const deletedEdgeChanges = changes.filter((change) => change.type === 'remove');
         if (deletedEdgeChanges.length > 0) {
@@ -141,7 +129,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleConnect: OnConnect = useCallback(
         (connection) => {
-            // We don't add the edge here anymore, because the parent will trigger a refresh
             onConnect(connection);
         },
         [onConnect],
@@ -154,7 +141,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 edges={edges}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
-                // REWORK: We now pass our new wrapped handlers
                 onNodesChange={handleNodesChange}
                 onEdgesChange={handleEdgesChange}
                 onNodeDragStop={handleNodeDragStop}
@@ -163,12 +149,17 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 nodesDraggable={true}
                 nodesConnectable={true}
                 defaultEdgeOptions={defaultEdgeOptions}
-                // NEW: This prop makes sure that deleting a node also deletes its connected edges
                 deleteKeyCode={['Backspace', 'Delete']}
                 nodesFocusable={true}
                 edgesFocusable={true}
             >
-                <Background variant={BackgroundVariant.Lines} gap={24} lineWidth={0.5} />
+                {/* REWORK: Use a much subtler background */}
+                <Background
+                    variant={BackgroundVariant.Lines}
+                    gap={48}
+                    lineWidth={0.25}
+                    color="var(--color-border)"
+                />
                 <svg>
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
@@ -180,11 +171,13 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                                 className="tier-line"
                             />
                             <text
-                                x={40}
+                                // REWORK: Position the label on the far right of the viewport
+                                x="98%"
                                 y={TIER_HEIGHT * tierNum - TIER_HEIGHT / 2}
                                 className="tier-label"
+                                textAnchor="end" // Anchor the text to the right
                             >
-                                T{tierNum}
+                                Tier {tierNum}
                             </text>
                         </g>
                     ))}
