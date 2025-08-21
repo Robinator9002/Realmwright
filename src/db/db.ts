@@ -29,8 +29,12 @@ export class RealmwrightDB extends Dexie {
     public constructor() {
         super('RealmwrightDB');
 
-        // --- Schema Definition ---
+        // --- Schema Definition & Migrations ---
         // This is a versioned schema. Dexie handles migrations automatically.
+        // NOTE: Dexie schema definitions are not additive. The LATEST version
+        // must declare the full, consolidated schema of all tables and their indexes.
+        // Previous version declarations are kept for their `upgrade()` functions,
+        // which handle data migration from one version to the next.
 
         this.version(1).stores({
             worlds: '++id, name, createdAt',
@@ -39,50 +43,111 @@ export class RealmwrightDB extends Dexie {
         });
 
         this.version(2).stores({
+            // This version added the lore table
+            worlds: '++id, name, createdAt',
+            campaigns: '++id, worldId, name',
+            characters: '++id, worldId, *campaignIds, name',
             lore: '++id, worldId, category, name',
         });
 
         this.version(3).stores({
+            // This version added the statDefinitions table
+            worlds: '++id, name, createdAt',
+            campaigns: '++id, worldId, name',
+            characters: '++id, worldId, *campaignIds, name',
+            lore: '++id, worldId, category, name',
             statDefinitions: '++id, worldId, name',
         });
 
-        this.version(4).stores({
-            characters: '++id, worldId, *campaignIds, name, stats',
+        this.version(4).upgrade((tx) => {
+            // This version added a non-indexed 'stats' property to characters.
+            // No schema change needed, but the version bump is important.
         });
 
         this.version(5).stores({
+            // This version added ability tables
+            worlds: '++id, name, createdAt',
+            campaigns: '++id, worldId, name',
+            characters: '++id, worldId, *campaignIds, name',
+            lore: '++id, worldId, category, name',
+            statDefinitions: '++id, worldId, name',
             abilityTrees: '++id, worldId, name',
             abilities: '++id, worldId, abilityTreeId, name',
         });
 
         this.version(6).stores({
+            // This version added x,y coordinates to abilities
+            worlds: '++id, name, createdAt',
+            campaigns: '++id, worldId, name',
+            characters: '++id, worldId, *campaignIds, name',
+            lore: '++id, worldId, category, name',
+            statDefinitions: '++id, worldId, name',
+            abilityTrees: '++id, worldId, name',
             abilities: '++id, worldId, abilityTreeId, name, x, y',
         });
 
         this.version(7).stores({
+            // This version added tier to abilities
+            worlds: '++id, name, createdAt',
+            campaigns: '++id, worldId, name',
+            characters: '++id, worldId, *campaignIds, name',
+            lore: '++id, worldId, category, name',
+            statDefinitions: '++id, worldId, name',
+            abilityTrees: '++id, worldId, name',
             abilities: '++id, worldId, abilityTreeId, name, x, y, tier',
         });
 
-        this.version(8).stores({
-            characters: '++id, worldId, *campaignIds, name, stats, *learnedAbilities',
+        this.version(8).upgrade(() => {
+            // Added non-indexed 'learnedAbilities' to characters
         });
 
         this.version(9).stores({
+            // Added characterClasses table
+            worlds: '++id, name, createdAt',
+            campaigns: '++id, worldId, name',
+            characters: '++id, worldId, *campaignIds, name',
+            lore: '++id, worldId, category, name',
+            statDefinitions: '++id, worldId, name',
+            abilityTrees: '++id, worldId, name',
+            abilities: '++id, worldId, abilityTreeId, name, x, y, tier',
             characterClasses: '++id, worldId, name',
         });
 
         this.version(10).stores({
+            // Added classId to characters
+            worlds: '++id, name, createdAt',
+            campaigns: '++id, worldId, name',
             characters: '++id, worldId, classId, *campaignIds, name',
+            lore: '++id, worldId, category, name',
+            statDefinitions: '++id, worldId, name',
+            abilityTrees: '++id, worldId, name',
+            abilities: '++id, worldId, abilityTreeId, name, x, y, tier',
+            characterClasses: '++id, worldId, name',
         });
 
         this.version(11).stores({
-            characterClasses: '++id, worldId, name',
+            // No change, likely a bugfix version
+            worlds: '++id, name, createdAt',
+            campaigns: '++id, worldId, name',
             characters: '++id, worldId, classId, *campaignIds, name',
+            lore: '++id, worldId, category, name',
+            statDefinitions: '++id, worldId, name',
+            abilityTrees: '++id, worldId, name',
+            abilities: '++id, worldId, abilityTreeId, name, x, y, tier',
+            characterClasses: '++id, worldId, name',
         });
 
         this.version(12)
             .stores({
+                // Added 'type' index to statDefinitions
+                worlds: '++id, name, createdAt',
+                campaigns: '++id, worldId, name',
+                characters: '++id, worldId, classId, *campaignIds, name',
+                lore: '++id, worldId, category, name',
                 statDefinitions: '++id, worldId, name, type',
+                abilityTrees: '++id, worldId, name',
+                abilities: '++id, worldId, abilityTreeId, name, x, y, tier',
+                characterClasses: '++id, worldId, name',
             })
             .upgrade((tx) => {
                 return tx
@@ -95,50 +160,41 @@ export class RealmwrightDB extends Dexie {
                     });
             });
 
-        // NEW: Version 13 Upgrade
-        // Overhauls the ability system to support new features.
-        this.version(13)
-            .stores({
-                // No index changes needed, just adding non-indexed properties.
-            })
-            .upgrade((tx) => {
-                // Upgrade Ability Trees with a default tier count
-                tx.table('abilityTrees')
-                    .toCollection()
-                    .modify((tree: AbilityTree) => {
-                        if (typeof tree.tierCount === 'undefined') {
-                            tree.tierCount = 5; // Default to 5 tiers
-                        }
-                    });
+        this.version(13).upgrade((tx) => {
+            // This version added several non-indexed properties and migrated prerequisites
+            tx.table('abilityTrees')
+                .toCollection()
+                .modify((tree: AbilityTree) => {
+                    if (typeof tree.tierCount === 'undefined') {
+                        tree.tierCount = 5;
+                    }
+                });
 
-                // Upgrade Abilities with new properties and prerequisite structure
-                return tx
-                    .table('abilities')
-                    .toCollection()
-                    .modify((ability: Ability & { prerequisites: any }) => {
-                        if (typeof ability.iconUrl === 'undefined') {
-                            ability.iconUrl = ''; // Default to empty string
+            return tx
+                .table('abilities')
+                .toCollection()
+                .modify((ability: Ability & { prerequisites: any }) => {
+                    if (typeof ability.iconUrl === 'undefined') {
+                        ability.iconUrl = '';
+                    }
+                    if (ability.prerequisites && !Array.isArray(ability.prerequisites)) {
+                        const oldPrereqIds = ability.prerequisites.abilityIds || [];
+                        if (oldPrereqIds.length > 0) {
+                            ability.prerequisites = [{ type: 'AND', abilityIds: oldPrereqIds }];
+                        } else {
+                            ability.prerequisites = [];
                         }
+                    } else if (!ability.prerequisites) {
+                        ability.prerequisites = [];
+                    }
+                });
+        });
 
-                        // Check if the old prerequisite structure exists and convert it
-                        if (ability.prerequisites && !Array.isArray(ability.prerequisites)) {
-                            const oldPrereqIds = ability.prerequisites.abilityIds || [];
-                            if (oldPrereqIds.length > 0) {
-                                // Convert to the new structure
-                                ability.prerequisites = [
-                                    {
-                                        type: 'AND',
-                                        abilityIds: oldPrereqIds,
-                                    },
-                                ];
-                            } else {
-                                ability.prerequisites = []; // If no old IDs, make it an empty array
-                            }
-                        } else if (!ability.prerequisites) {
-                            ability.prerequisites = []; // Ensure it's always an array
-                        }
-                    });
-            });
+        // NEW: Version 14 Upgrade
+        // This version acknowledges the addition of the optional `attachmentPoint`
+        // property to the Ability interface. No data migration is needed since the
+        // property is optional and not indexed.
+        this.version(14).upgrade(() => {});
     }
 }
 
