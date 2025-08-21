@@ -1,0 +1,41 @@
+/* src/styles/components/_sidebar-panels.css */
+
+/* Styles for the display of a currently attached tree */
+.attachment-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-2) var(--spacing-4);
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+}
+
+.attachment-display__name {
+    font-weight: 600;
+    color: var(--color-success);
+}
+
+/* A new, smaller button variant for UI actions like 'Detach' */
+.button--sm {
+    padding: var(--spacing-1) var(--spacing-2);
+    font-size: 0.75rem; /* 12px */
+}
+
+/* Styles for the checkbox group to ensure proper alignment */
+.form__group--checkbox {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    margin-bottom: var(--spacing-4);
+}
+
+.form__checkbox {
+    width: 16px;
+    height: 16px;
+}
+
+.form__label--checkbox {
+    margin-bottom: 0; /* Override default label margin */
+    cursor: pointer;
+}
