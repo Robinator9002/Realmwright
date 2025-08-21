@@ -20,9 +20,13 @@ import 'reactflow/dist/style.css';
 import type { Ability } from '../../../db/types';
 import { AbilityNode } from './AbilityNode';
 import { LogicEdge } from './LogicEdge';
+// NEW: Import the AttachmentNode component
+import { AttachmentNode } from './AttachmentNode';
 
+// REWORK: Add the new AttachmentNode to our list of custom node types.
 const nodeTypes = {
     abilityNode: AbilityNode,
+    attachmentNode: AttachmentNode,
 };
 const edgeTypes = {
     logicEdge: LogicEdge,
@@ -44,8 +48,8 @@ interface AbilityTreeCanvasProps {
 }
 
 /**
- * REWORKED: Final polish. Tier labels are now on the right, and the
- * background grid is much more subtle.
+ * REWORKED: The canvas now intelligently renders either an AbilityNode or
+ * an AttachmentNode based on the ability's data.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
@@ -64,8 +68,13 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
             return {
                 id: String(ability.id!),
                 position: { x: xPos, y: yPos },
-                data: { label: ability.name, iconUrl: ability.iconUrl },
-                type: 'abilityNode',
+                // REWORK: Pass the attachmentPoint data to the node and set the node type conditionally.
+                data: {
+                    label: ability.name,
+                    iconUrl: ability.iconUrl,
+                    attachmentPoint: ability.attachmentPoint,
+                },
+                type: ability.attachmentPoint ? 'attachmentNode' : 'abilityNode',
             };
         });
 
@@ -153,7 +162,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 nodesFocusable={true}
                 edgesFocusable={true}
             >
-                {/* REWORK: Use a much subtler background */}
                 <Background
                     variant={BackgroundVariant.Lines}
                     gap={48}
@@ -171,11 +179,10 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                                 className="tier-line"
                             />
                             <text
-                                // REWORK: Position the label on the far right of the viewport
                                 x="98%"
                                 y={TIER_HEIGHT * tierNum - TIER_HEIGHT / 2}
                                 className="tier-label"
-                                textAnchor="end" // Anchor the text to the right
+                                textAnchor="end"
                             >
                                 Tier {tierNum}
                             </text>
