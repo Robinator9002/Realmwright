@@ -1,7 +1,6 @@
 // src/components/specific/AbilityTree/AbilityTreeSidebar.tsx
 import type { FC } from 'react';
 import type { AbilityTree } from '../../../db/types';
-// NEW: Import the tier controls component
 import { AbilityTreeTierControls } from './AbilityTreeTierControls';
 
 interface AbilityTreeSidebarProps {
@@ -15,14 +14,17 @@ interface AbilityTreeSidebarProps {
     iconUrl: string;
     onIconUrlChange: (value: string) => void;
     onSubmit: (e: React.FormEvent) => void;
-    // NEW: Add props for managing the tier count
     tierCount: number;
     onAddTier: () => void;
     onRemoveTier: () => void;
+    // NEW: Add props for the attachment point toggle
+    isAttachmentPoint: boolean;
+    onIsAttachmentPointChange: (value: boolean) => void;
 }
 
 /**
- * REWORKED: The sidebar now includes controls for managing the tree's tiers.
+ * REWORKED: The sidebar now includes a checkbox to create an ability
+ * as an Attachment Point.
  */
 export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = ({
     tree,
@@ -35,16 +37,19 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = ({
     iconUrl,
     onIconUrlChange,
     onSubmit,
-    // NEW: Destructure the new props
     tierCount,
     onAddTier,
     onRemoveTier,
+    // NEW: Destructure the new props
+    isAttachmentPoint,
+    onIsAttachmentPointChange,
 }) => {
     return (
         <aside className="ability-editor-page__sidebar">
             <div>
                 <h3 className="sidebar__title">Create New Ability</h3>
                 <form onSubmit={onSubmit} className="form">
+                    {/* Form groups for name, description, icon, tier... */}
                     <div className="form__group">
                         <label htmlFor="abilityName" className="form__label">
                             Ability Name
@@ -53,7 +58,7 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = ({
                             id="abilityName"
                             value={name}
                             onChange={(e) => onNameChange(e.target.value)}
-                            placeholder="e.g., Fireball"
+                            placeholder="e.g., Fireball or Weapon Socket"
                             className="form__input"
                             required
                         />
@@ -66,7 +71,7 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = ({
                             id="abilityDesc"
                             value={description}
                             onChange={(e) => onDescriptionChange(e.target.value)}
-                            placeholder="A short description of the ability."
+                            placeholder="A short description of the ability or socket."
                             className="form__textarea"
                             rows={3}
                         />
@@ -93,7 +98,6 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = ({
                             onChange={(e) => onTierChange(parseInt(e.target.value, 10))}
                             className="form__select"
                         >
-                            {/* The dropdown now uses the dynamic tierCount prop */}
                             {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                                 <option key={tierNum} value={tierNum}>
                                     Tier {tierNum}
@@ -101,13 +105,27 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = ({
                             ))}
                         </select>
                     </div>
+
+                    {/* NEW: Checkbox to designate as an attachment point */}
+                    <div className="form__group form__group--checkbox">
+                        <input
+                            id="isAttachmentPoint"
+                            type="checkbox"
+                            checked={isAttachmentPoint}
+                            onChange={(e) => onIsAttachmentPointChange(e.target.checked)}
+                            className="form__checkbox"
+                        />
+                        <label htmlFor="isAttachmentPoint" className="form__label--checkbox">
+                            Is Attachment Point (Socket)
+                        </label>
+                    </div>
+
                     <button type="submit" className="button button--primary button--full-width">
-                        Create Ability
+                        Create
                     </button>
                 </form>
             </div>
 
-            {/* NEW: Render the tier controls at the bottom of the sidebar */}
             <AbilityTreeTierControls
                 tierCount={tierCount}
                 onAddTier={onAddTier}
