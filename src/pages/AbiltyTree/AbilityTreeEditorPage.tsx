@@ -1,8 +1,7 @@
 // src/pages/AbiltyTree/AbilityTreeEditorPage.tsx
 import { useState, useEffect, type FC } from 'react';
-import { ArrowLeft, X } from 'lucide-react';
 import type { AbilityTree } from '../../db/types';
-import type { Connection } from 'reactflow';
+import type { Connection, Node } from 'reactflow';
 import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
 import { updateAbilityTree } from '../../db/queries/ability.queries';
 import { AbilityTreeSidebar } from '../../components/specific/AbilityTree/AbilityTreeSidebar';
@@ -18,8 +17,7 @@ interface AbilityTreeEditorPageProps {
 }
 
 /**
- * REWORKED: The editor page now passes the `isAttachmentPoint` state
- * to the data hook when creating a new ability.
+ * REWORKED: The editor page now tracks the currently selected node on the canvas.
  */
 export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, onClose }) => {
     const [currentTree, setCurrentTree] = useState<AbilityTree>(tree);
@@ -46,21 +44,22 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
 
+    // State to hold the currently selected node
+    const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+
     useEffect(() => {
         refreshAbilities();
     }, [refreshAbilities]);
 
     const handleCreateAbility = async (e: React.FormEvent) => {
         e.preventDefault();
-        // REWORK: Pass the `isAttachmentPoint` state to the handler.
         await handleAddAbility(
             newAbilityName,
             newAbilityDesc,
             newAbilityTier,
             newAbilityIconUrl,
-            isAttachmentPoint, // This is the new connection
+            isAttachmentPoint,
         );
-        // Reset the form
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityTier(1);
@@ -94,18 +93,22 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
     };
 
+    const handleNodeClick = (node: Node | null) => {
+        setSelectedNode(node);
+    };
+
     return (
         <>
             <div className="ability-editor-page">
                 <header className="ability-editor-page__header">
                     <div className="ability-editor-page__header-info">
                         <button onClick={onClose} className="button">
-                            <ArrowLeft size={16} /> Back to List
+                            &larr; Back to List
                         </button>
                         <h2 className="ability-editor-page__title">Editing: {currentTree.name}</h2>
                     </div>
                     <button onClick={onClose} className="ability-editor-page__close-button">
-                        <X size={24} />
+                        &times;
                     </button>
                 </header>
                 <main className="ability-editor-page__main">
@@ -125,6 +128,7 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         onRemoveTier={handleRemoveTier}
                         isAttachmentPoint={isAttachmentPoint}
                         onIsAttachmentPointChange={setIsAttachmentPoint}
+                        selectedNode={selectedNode}
                     />
                     <div className="ability-editor-page__canvas">
                         {isLoading && <p>Loading abilities...</p>}
@@ -136,6 +140,7 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                                 onNodeDragStop={handleNodeDragStop}
                                 onConnect={onConnectStart}
                                 onDelete={handleDelete}
+                                onNodeClick={handleNodeClick}
                             />
                         )}
                     </div>
