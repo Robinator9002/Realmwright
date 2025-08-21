@@ -1,0 +1,38 @@
+/* src/styles/components/_attachment-node.css */
+
+/* Base styling for the attachment node, building on .ability-node */
+.attachment-node {
+    /* Use a different border style to make it stand out */
+    border-style: dashed;
+    border-color: var(--color-muted-foreground);
+}
+
+/* When a tree is attached, make the node look more "active" */
+.attachment-node.attached {
+    border-style: solid;
+    border-color: var(--color-success);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 25%, transparent);
+}
+
+/* Style for the status text below the title */
+.attachment-node__status {
+    font-size: 0.625rem; /* 10px */
+    font-style: italic;
+    color: var(--color-muted-foreground);
+    margin: 0;
+    line-height: 1;
+}
+
+.attachment-node.attached .attachment-node__status {
+    color: var(--color-success);
+    font-weight: 600;
+}
+
+/* Icon styling */
+.attachment-node__icon--empty {
+    color: var(--color-muted-foreground);
+}
+
+.attachment-node__icon--attached {
+    color: var(--color-success);
+}
