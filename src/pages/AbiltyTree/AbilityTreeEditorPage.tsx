@@ -18,8 +18,8 @@ interface AbilityTreeEditorPageProps {
 }
 
 /**
- * REWORKED: The editor page now wires up the deletion handler from the
- * data hook to the canvas component.
+ * REWORKED: The editor page now manages the state for the
+ * "Is Attachment Point" checkbox in the sidebar.
  */
 export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, onClose }) => {
     const [currentTree, setCurrentTree] = useState<AbilityTree>(tree);
@@ -32,7 +32,7 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         handleAddAbility,
         handleNodeDragStop,
         handleConnect,
-        handleDelete, // NEW: Get the delete handler from the hook
+        handleDelete,
     } = useAbilityTreeData(currentTree);
 
     // Form state for the sidebar
@@ -40,6 +40,8 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityTier, setNewAbilityTier] = useState(1);
     const [newAbilityIconUrl, setNewAbilityIconUrl] = useState('');
+    // NEW: State for the attachment point checkbox
+    const [isAttachmentPoint, setIsAttachmentPoint] = useState(false);
 
     // State to manage the prerequisite modal
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,11 +53,14 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
 
     const handleCreateAbility = async (e: React.FormEvent) => {
         e.preventDefault();
+        // We will pass `isAttachmentPoint` to the handler in the next step
         await handleAddAbility(newAbilityName, newAbilityDesc, newAbilityTier, newAbilityIconUrl);
+        // Reset the form
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityTier(1);
         setNewAbilityIconUrl('');
+        setIsAttachmentPoint(false); // Reset the checkbox
     };
 
     const onConnectStart = (connection: Connection) => {
@@ -113,6 +118,9 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         tierCount={currentTree.tierCount}
                         onAddTier={handleAddTier}
                         onRemoveTier={handleRemoveTier}
+                        // NEW: Pass the state and setter to the sidebar
+                        isAttachmentPoint={isAttachmentPoint}
+                        onIsAttachmentPointChange={setIsAttachmentPoint}
                     />
                     <div className="ability-editor-page__canvas">
                         {isLoading && <p>Loading abilities...</p>}
@@ -123,7 +131,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                                 tierCount={currentTree.tierCount}
                                 onNodeDragStop={handleNodeDragStop}
                                 onConnect={onConnectStart}
-                                // NEW: Pass the handler to the canvas's onDelete prop
                                 onDelete={handleDelete}
                             />
                         )}
