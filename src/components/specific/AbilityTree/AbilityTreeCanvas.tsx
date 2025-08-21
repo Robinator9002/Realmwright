@@ -4,31 +4,33 @@ import ReactFlow, {
     Background,
     Controls,
     MiniMap,
+    // REWORK: We now import the hooks directly from reactflow
     useNodesState,
     useEdgesState,
     addEdge,
     BackgroundVariant,
     type Edge,
+    // NEW: Import the change handlers for deletion logic
+    type OnNodesChange,
+    type OnEdgesChange,
+    type OnConnect,
+    type Node,
+    type NodeDragHandler,
+    type Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Ability } from '../../../db/types';
-import type { Node, OnConnect, NodeDragHandler, Connection } from 'reactflow';
 import { AbilityNode } from './AbilityNode';
-// NEW: Import our custom edge component
 import { LogicEdge } from './LogicEdge';
 
-// BUGFIX #1: Define node and edge types OUTSIDE the component.
-// This prevents them from being recreated on every render, fixing the
-// React Flow performance warning and associated visual glitches.
 const nodeTypes = {
     abilityNode: AbilityNode,
 };
 const edgeTypes = {
     logicEdge: LogicEdge,
 };
-
 const defaultEdgeOptions = {
-    type: 'logicEdge', // Use our new custom edge by default
+    type: 'logicEdge',
     style: { strokeWidth: 2 },
 };
 
@@ -40,23 +42,25 @@ interface AbilityTreeCanvasProps {
     tierCount: number;
     onNodeDragStop: (node: Node, closestTier: number) => void;
     onConnect: (connection: Connection) => void;
+    // NEW: Add a prop for handling deletions
+    onDelete: (deletedNodes: Node[], deletedEdges: Edge[]) => void;
 }
 
 /**
- * REWORKED: This component is now stabilized with performance and key fixes.
- * It properly uses custom nodes and edges.
+ * REWORKED: This component now correctly handles node and edge deletions
+ * by using the state management hooks provided by React Flow.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
     tierCount,
     onNodeDragStop,
     onConnect,
+    onDelete,
 }) => {
+    // We get the handlers directly from the hooks
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-    // useMemo is used here as a good practice to avoid re-calculating nodes/edges
-    // if the underlying abilities data hasn't changed.
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
             const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
@@ -72,19 +76,14 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         const edges: Edge[] = [];
         for (const ability of abilities) {
             if (ability.prerequisites) {
-                // Iterate through each prerequisite group for the ability
                 ability.prerequisites.forEach((group, groupIndex) => {
-                    // Iterate through each prerequisite ID within the group
                     group.abilityIds.forEach((prereqId, prereqIndex) => {
-                        // BUGFIX #2: Generate a TRULY unique key for each edge.
                         const id = `e-${prereqId}-${ability.id}-${groupIndex}-${prereqIndex}`;
                         edges.push({
                             id,
                             source: String(prereqId),
                             target: String(ability.id!),
-                            data: {
-                                label: group.type, // Pass the logic type as a label
-                            },
+                            data: { label: group.type },
                         });
                     });
                 });
@@ -97,6 +96,34 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         setNodes(initialNodes);
         setEdges(initialEdges);
     }, [initialNodes, initialEdges, setNodes, setEdges]);
+
+    /**
+     * NEW: A wrapper for the onNodesChange handler. It calls the default
+     * handler to update the UI, then calls our onDelete prop to notify
+     * the parent of any deletions so they can be persisted.
+     */
+    const handleNodesChange: OnNodesChange = (changes) => {
+        const deletedNodeChanges = changes.filter((change) => change.type === 'remove');
+        if (deletedNodeChanges.length > 0) {
+            const deletedNodeIds = new Set(deletedNodeChanges.map((change) => change.id));
+            const deletedNodes = nodes.filter((node) => deletedNodeIds.has(node.id));
+            onDelete(deletedNodes, []);
+        }
+        onNodesChange(changes);
+    };
+
+    /**
+     * NEW: A wrapper for the onEdgesChange handler, with the same logic as above.
+     */
+    const handleEdgesChange: OnEdgesChange = (changes) => {
+        const deletedEdgeChanges = changes.filter((change) => change.type === 'remove');
+        if (deletedEdgeChanges.length > 0) {
+            const deletedEdgeIds = new Set(deletedEdgeChanges.map((change) => change.id));
+            const deletedEdges = edges.filter((edge) => deletedEdgeIds.has(edge.id));
+            onDelete([], deletedEdges);
+        }
+        onEdgesChange(changes);
+    };
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
@@ -114,10 +141,10 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleConnect: OnConnect = useCallback(
         (connection) => {
-            setEdges((eds) => addEdge(connection, eds));
+            // We don't add the edge here anymore, because the parent will trigger a refresh
             onConnect(connection);
         },
-        [setEdges, onConnect],
+        [onConnect],
     );
 
     return (
@@ -126,15 +153,20 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes} // NEW: Tell React Flow about our custom edge
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
+                edgeTypes={edgeTypes}
+                // REWORK: We now pass our new wrapped handlers
+                onNodesChange={handleNodesChange}
+                onEdgesChange={handleEdgesChange}
                 onNodeDragStop={handleNodeDragStop}
                 onConnect={handleConnect}
                 fitView
                 nodesDraggable={true}
                 nodesConnectable={true}
                 defaultEdgeOptions={defaultEdgeOptions}
+                // NEW: This prop makes sure that deleting a node also deletes its connected edges
+                deleteKeyCode={['Backspace', 'Delete']}
+                nodesFocusable={true}
+                edgesFocusable={true}
             >
                 <Background variant={BackgroundVariant.Lines} gap={24} lineWidth={0.5} />
                 <svg>
