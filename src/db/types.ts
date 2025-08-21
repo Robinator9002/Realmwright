@@ -67,14 +67,19 @@ export interface StatDefinition extends BaseManageable {
 
 // --- Ability System Interfaces ---
 
-/**
- * REWORK: Defines a group of prerequisites with a specific logical operator.
- * This allows for creating complex requirements like (AbilityA AND AbilityB) OR (AbilityC).
- */
 export type PrerequisiteGroup = {
-    type: 'AND' | 'OR'; // The logic gate for this group.
+    type: 'AND' | 'OR';
     abilityIds: number[];
-    // In the future, we could even nest groups: nestedGroups?: PrerequisiteGroup[];
+};
+
+/**
+ * NEW: Defines the structure for a "socket" on an ability node
+ * where another ability tree can be attached.
+ */
+export type AttachmentPoint = {
+    id: string; // A unique ID for this specific socket
+    acceptedTreeType?: string; // An optional tag to filter what can be attached
+    attachedTreeId?: number; // The ID of the AbilityTree currently attached
 };
 
 /**
@@ -83,14 +88,14 @@ export type PrerequisiteGroup = {
 export interface Ability extends BaseManageable {
     worldId: number;
     abilityTreeId: number;
-    // REWORK: Prerequisites are now an array of logical groups.
     prerequisites: PrerequisiteGroup[];
     createdAt: Date;
     x?: number;
     y?: number;
     tier: number;
-    // NEW: An optional URL for a custom icon image.
     iconUrl?: string;
+    // NEW: An ability can optionally serve as an attachment point.
+    attachmentPoint?: AttachmentPoint;
 }
 
 /**
@@ -99,6 +104,5 @@ export interface Ability extends BaseManageable {
 export interface AbilityTree extends BaseManageable {
     worldId: number;
     createdAt: Date;
-    // NEW: The number of tiers this specific tree has.
     tierCount: number;
 }
