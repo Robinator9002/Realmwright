@@ -25,11 +25,13 @@ const nodeTypes = {
     abilityNode: AbilityNode,
 };
 
-const TIER_WIDTH = 250; // The horizontal space allocated for each tier
+// REWORK: We now define layout constants for a horizontal (row-based) tier system.
+const TIER_HEIGHT = 150; // The vertical space for each tier row.
+const NODE_X_SPACING = 200; // The horizontal space between nodes in a progression.
 
 /**
- * A dedicated component for rendering the React Flow canvas for the ability tree.
- * It is responsible for converting ability data into nodes and edges.
+ * REWORKED: The canvas now implements a horizontal tier system. Tiers are rows,
+ * and abilities flow from left to right. Snapping is now on the Y-axis.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
@@ -40,12 +42,12 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-    // This effect transforms the raw ability data into nodes and edges for React Flow.
     useEffect(() => {
         const initialNodes: Node[] = abilities.map((ability) => {
-            // Default positioning logic if x/y are not set in the DB
-            const xPos = ability.x ?? TIER_WIDTH * ability.tier - TIER_WIDTH / 2;
-            const yPos = ability.y ?? 100;
+            // REWORK: Default positioning logic is now based on horizontal progression.
+            // Y position is determined by tier, X position is free or based on DB value.
+            const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
+            const xPos = ability.x ?? NODE_X_SPACING * ability.tier; // A sensible default
 
             return {
                 id: String(ability.id!),
@@ -81,19 +83,17 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            // Calculate the center of the tier the node is being dragged over
-            const closestTier = Math.max(1, Math.round(node.position.x / TIER_WIDTH) + 1);
-            const snappedX = TIER_WIDTH * closestTier - TIER_WIDTH / 2;
+            // REWORK: Snapping logic is now based on the Y-axis to lock nodes into tier rows.
+            const closestTier = Math.max(1, Math.round(node.position.y / TIER_HEIGHT) + 1);
+            const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2;
 
-            // Optimistically snap the node in the UI for immediate feedback
             setNodes((nds) =>
                 nds.map((n) =>
-                    n.id === node.id ? { ...n, position: { ...n.position, x: snappedX } } : n,
+                    n.id === node.id ? { ...n, position: { ...n.position, y: snappedY } } : n,
                 ),
             );
 
-            // Call the prop function to persist the change
-            onNodeDragStop({ ...node, position: { ...node.position, x: snappedX } }, closestTier);
+            onNodeDragStop({ ...node, position: { ...node.position, y: snappedY } }, closestTier);
         },
         [onNodeDragStop, setNodes],
     );
@@ -122,22 +122,22 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
             >
                 <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
                 <svg>
-                    {/* Render tier dividers and labels dynamically */}
+                    {/* REWORK: Render horizontal tier dividers and labels on the left. */}
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
                             <line
-                                x1={TIER_WIDTH * tierNum}
-                                y1={0}
-                                x2={TIER_WIDTH * tierNum}
-                                y2="100%"
+                                x1={0}
+                                y1={TIER_HEIGHT * tierNum}
+                                x2="100%"
+                                y2={TIER_HEIGHT * tierNum}
                                 className="tier-line"
                             />
                             <text
-                                x={TIER_WIDTH * tierNum - TIER_WIDTH / 2}
-                                y={30}
+                                x={40} /* Position label on the left */
+                                y={TIER_HEIGHT * tierNum - TIER_HEIGHT / 2}
                                 className="tier-label"
                             >
-                                Tier {tierNum}
+                                T{tierNum}
                             </text>
                         </g>
                     ))}
