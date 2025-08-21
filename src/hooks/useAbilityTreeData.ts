@@ -4,6 +4,7 @@ import type { Node, Connection } from 'reactflow';
 import { useWorld } from '../context/WorldContext';
 import { addAbility, getAbilitiesForTree, updateAbility } from '../db/queries/ability.queries';
 import type { Ability, AbilityTree, PrerequisiteGroup } from '../db/types';
+import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/PrerequisiteModal';
 
 /**
  * A custom hook to manage the data and logic for a single ability tree.
@@ -18,10 +19,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    /**
-     * Fetches all abilities for the current tree from the database
-     * and updates the component's state.
-     */
     const refreshAbilities = useCallback(async () => {
         try {
             setIsLoading(true);
@@ -36,13 +33,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     }, [tree.id]);
 
-    /**
-     * Handles the creation of a new ability.
-     * @param name - The name of the new ability.
-     * @param description - The description of the new ability.
-     * @param tier - The tier of the new ability.
-     * @param iconUrl - The optional icon URL for the new ability.
-     */
     const handleAddAbility = async (
         name: string,
         description: string,
@@ -50,7 +40,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         iconUrl: string,
     ) => {
         if (!name.trim() || !selectedWorld?.id) return;
-
         try {
             await addAbility({
                 name,
@@ -60,19 +49,13 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
                 tier,
                 iconUrl,
             });
-            await refreshAbilities(); // Refresh the list to show the new ability
+            await refreshAbilities();
         } catch (err) {
             console.error('Failed to add ability:', err);
             setError('There was an issue creating the new ability.');
-            // Optionally, re-throw or handle the error in the UI
         }
     };
 
-    /**
-     * Handles updating an ability's position and tier after it has been dragged.
-     * @param node - The React Flow node that was dragged.
-     * @param closestTier - The calculated tier the node was dropped in.
-     */
     const handleNodeDragStop = async (node: Node, closestTier: number) => {
         const abilityId = parseInt(node.id, 10);
         try {
@@ -81,7 +64,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
                 y: node.position.y,
                 tier: closestTier,
             });
-            // Optimistically update the local state for a smoother UX
             setAbilities((prev) =>
                 prev.map((a) =>
                     a.id === abilityId
@@ -96,20 +78,20 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
     };
 
     /**
-     * Handles creating a prerequisite link between two abilities.
+     * REWORKED: Handles creating a prerequisite link between two abilities,
+     * now accepting a logic type from the UI.
      * @param connection - The connection object from React Flow.
+     * @param logicType - The selected logic ('AND', 'OR', etc.).
      */
-    const handleConnect = async (connection: Connection) => {
+    const handleConnect = async (connection: Connection, logicType: PrerequisiteLogicType) => {
         const sourceId = parseInt(connection.source!, 10);
         const targetId = parseInt(connection.target!, 10);
         const targetAbility = abilities.find((a) => a.id === targetId);
 
         if (targetAbility) {
-            // NOTE: This is where we will later insert the logic for the prerequisite type modal (AND, OR, etc.).
-            // For now, we default to the existing 'AND' logic.
-            const newPrereqGroup: PrerequisiteGroup = { type: 'AND', abilityIds: [sourceId] };
+            // The logic type from the modal is now used to create the group.
+            const newPrereqGroup: PrerequisiteGroup = { type: logicType, abilityIds: [sourceId] };
 
-            // Create a new array for prerequisites, ensuring we don't add duplicates.
             const existingPrereqs = targetAbility.prerequisites || [];
             const updatedPrerequisites = [...existingPrereqs, newPrereqGroup];
 
