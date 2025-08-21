@@ -1,17 +1,18 @@
 // src/hooks/useAbilityTreeData.ts
 import { useState, useCallback } from 'react';
-import type { Node, Connection } from 'reactflow';
+import { type Node, type Edge, type Connection } from 'reactflow';
 import { useWorld } from '../context/WorldContext';
-import { addAbility, getAbilitiesForTree, updateAbility } from '../db/queries/ability.queries';
+import {
+    addAbility,
+    getAbilitiesForTree,
+    updateAbility,
+    deleteAbility, // NEW: Import the deleteAbility query
+} from '../db/queries/ability.queries';
 import type { Ability, AbilityTree, PrerequisiteGroup } from '../db/types';
 import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/PrerequisiteModal';
 
 /**
- * A custom hook to manage the data and logic for a single ability tree.
- * It encapsulates fetching, creating, and updating abilities.
- *
- * @param tree The AbilityTree for which to manage data.
- * @returns An object containing the abilities state and handler functions.
+ * REWORKED: The hook now manages the full lifecycle of abilities, including deletion.
  */
 export const useAbilityTreeData = (tree: AbilityTree) => {
     const { selectedWorld } = useWorld();
@@ -77,31 +78,58 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     };
 
-    /**
-     * REWORKED: Handles creating a prerequisite link between two abilities,
-     * now accepting a logic type from the UI.
-     * @param connection - The connection object from React Flow.
-     * @param logicType - The selected logic ('AND', 'OR', etc.).
-     */
     const handleConnect = async (connection: Connection, logicType: PrerequisiteLogicType) => {
         const sourceId = parseInt(connection.source!, 10);
         const targetId = parseInt(connection.target!, 10);
         const targetAbility = abilities.find((a) => a.id === targetId);
 
         if (targetAbility) {
-            // The logic type from the modal is now used to create the group.
             const newPrereqGroup: PrerequisiteGroup = { type: logicType, abilityIds: [sourceId] };
-
-            const existingPrereqs = targetAbility.prerequisites || [];
-            const updatedPrerequisites = [...existingPrereqs, newPrereqGroup];
-
+            const updatedPrerequisites = [...(targetAbility.prerequisites || []), newPrereqGroup];
             try {
                 await updateAbility(targetId, { prerequisites: updatedPrerequisites });
-                await refreshAbilities(); // Refresh to show the new connection
+                await refreshAbilities();
             } catch (err) {
                 console.error('Failed to create prerequisite connection:', err);
                 setError('Could not save the new prerequisite link.');
             }
+        }
+    };
+
+    /**
+     * NEW: Handles the deletion of nodes (abilities) and edges (prerequisites).
+     */
+    const handleDelete = async (deletedNodes: Node[], deletedEdges: Edge[]) => {
+        try {
+            // Handle node deletions
+            for (const node of deletedNodes) {
+                await deleteAbility(parseInt(node.id, 10));
+            }
+
+            // Handle edge deletions
+            for (const edge of deletedEdges) {
+                const targetId = parseInt(edge.target, 10);
+                const sourceId = parseInt(edge.source, 10);
+                const targetAbility = abilities.find((a) => a.id === targetId);
+
+                if (targetAbility) {
+                    // Filter out the prerequisite group that corresponds to the deleted edge
+                    const updatedPrerequisites = targetAbility.prerequisites.filter((group) => {
+                        // This logic is simple for now. If a group has the sourceId, we remove it.
+                        // A more complex system might only remove the sourceId from the group's array.
+                        return !group.abilityIds.includes(sourceId);
+                    });
+                    await updateAbility(targetId, { prerequisites: updatedPrerequisites });
+                }
+            }
+
+            // If anything was deleted, refresh the data from the DB
+            if (deletedNodes.length > 0 || deletedEdges.length > 0) {
+                await refreshAbilities();
+            }
+        } catch (err) {
+            console.error('Failed to delete elements:', err);
+            setError('Could not save the deletions.');
         }
     };
 
@@ -113,5 +141,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         handleAddAbility,
         handleNodeDragStop,
         handleConnect,
+        handleDelete, // Expose the new handler
     };
 };
