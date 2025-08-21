@@ -96,7 +96,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 ),
             );
 
-            onNodeDragStop({ ...node, position: { ...n.position, y: snappedY } }, closestTier);
+            // FIX: Used the correct 'node' variable instead of the out-of-scope 'n'.
+            onNodeDragStop({ ...node, position: { ...node.position, y: snappedY } }, closestTier);
         },
         [onNodeDragStop, setNodes],
     );
