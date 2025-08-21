@@ -8,10 +8,12 @@ import ReactFlow, {
     useEdgesState,
     addEdge,
     BackgroundVariant,
+    // NEW: Import the Edge type for our default options
+    type Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Ability } from '../../../db/types';
-import type { Node, Edge, OnConnect, NodeDragHandler, Connection } from 'reactflow';
+import type { Node, OnConnect, NodeDragHandler, Connection } from 'reactflow';
 import { AbilityNode } from './AbilityNode';
 
 interface AbilityTreeCanvasProps {
@@ -25,13 +27,17 @@ const nodeTypes = {
     abilityNode: AbilityNode,
 };
 
-// REWORK: We now define layout constants for a horizontal (row-based) tier system.
-const TIER_HEIGHT = 150; // The vertical space for each tier row.
-const NODE_X_SPACING = 200; // The horizontal space between nodes in a progression.
+// NEW: Define default options for our edges to make them cleaner.
+const defaultEdgeOptions = {
+    type: 'straight', // Use straight lines instead of bezier curves
+    style: { strokeWidth: 2 },
+};
+
+const TIER_HEIGHT = 150;
+const NODE_X_SPACING = 200;
 
 /**
- * REWORKED: The canvas now implements a horizontal tier system. Tiers are rows,
- * and abilities flow from left to right. Snapping is now on the Y-axis.
+ * REWORKED: The canvas now uses cleaner edges and a subtler background.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
@@ -44,10 +50,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     useEffect(() => {
         const initialNodes: Node[] = abilities.map((ability) => {
-            // REWORK: Default positioning logic is now based on horizontal progression.
-            // Y position is determined by tier, X position is free or based on DB value.
             const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
-            const xPos = ability.x ?? NODE_X_SPACING * ability.tier; // A sensible default
+            const xPos = ability.x ?? NODE_X_SPACING * ability.tier;
 
             return {
                 id: String(ability.id!),
@@ -70,7 +74,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                             id: `e-${prereqId}-${ability.id}`,
                             source: String(prereqId),
                             target: String(ability.id!),
-                            animated: true,
+                            // REMOVED: No longer animated by default for a cleaner look
                         });
                     }
                 }
@@ -83,7 +87,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            // REWORK: Snapping logic is now based on the Y-axis to lock nodes into tier rows.
             const closestTier = Math.max(1, Math.round(node.position.y / TIER_HEIGHT) + 1);
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2;
 
@@ -93,7 +96,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 ),
             );
 
-            onNodeDragStop({ ...node, position: { ...node.position, y: snappedY } }, closestTier);
+            onNodeDragStop({ ...node, position: { ...n.position, y: snappedY } }, closestTier);
         },
         [onNodeDragStop, setNodes],
     );
@@ -119,10 +122,11 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 fitView
                 nodesDraggable={true}
                 nodesConnectable={true}
+                defaultEdgeOptions={defaultEdgeOptions} // NEW: Apply the clean edge style
             >
-                <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
+                {/* REWORK: Use a subtler line background */}
+                <Background variant={BackgroundVariant.Lines} gap={24} lineWidth={0.5} />
                 <svg>
-                    {/* REWORK: Render horizontal tier dividers and labels on the left. */}
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
                             <line
@@ -133,7 +137,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                                 className="tier-line"
                             />
                             <text
-                                x={40} /* Position label on the left */
+                                x={40}
                                 y={TIER_HEIGHT * tierNum - TIER_HEIGHT / 2}
                                 className="tier-label"
                             >
