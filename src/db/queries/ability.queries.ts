@@ -8,14 +8,14 @@ type CreateAbilityTreeData = {
     name: string;
     description: string;
     worldId: number;
-    tierCount?: number; // tierCount is optional at creation, will get a default
+    tierCount?: number;
 };
 
 export async function addAbilityTree(treeData: CreateAbilityTreeData): Promise<number> {
     try {
         const newAbilityTree: AbilityTree = {
             ...treeData,
-            tierCount: treeData.tierCount || 5, // Default to 5 tiers if not provided
+            tierCount: treeData.tierCount || 5,
             createdAt: new Date(),
         };
         const id = await db.abilityTrees.add(newAbilityTree);
@@ -36,7 +36,20 @@ export async function getAbilityTreesForWorld(worldId: number): Promise<AbilityT
     }
 }
 
-// NEW: A dedicated payload type for updates
+/**
+ * NEW: A query to retrieve a single ability tree by its primary key.
+ * This is essential for loading the specific tree into the editor page.
+ */
+export async function getAbilityTreeById(treeId: number): Promise<AbilityTree | undefined> {
+    try {
+        const tree = await db.abilityTrees.get(treeId);
+        return tree;
+    } catch (error) {
+        console.error(`Failed to get ability tree ${treeId}:`, error);
+        throw new Error('Could not retrieve the ability tree from the database.');
+    }
+}
+
 export type UpdateAbilityTreePayload = {
     name: string;
     description: string;
