@@ -1,7 +1,7 @@
-// src/components/specific/Rules/ManageStatModal.tsx
+// src/components/specific/Stats/ManageStatModal.tsx
 import { useState, useEffect, type FC } from 'react';
 import type { StatDefinition } from '../../../db/types';
-import type { UpdateStatPayload } from '../../../db/queries/rule.queries';
+import type { UpdateStatPayload } from '../../../db/queries/stat.queries';
 
 /**
  * The shape of the data that this modal will save.

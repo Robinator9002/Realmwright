@@ -4,7 +4,7 @@ import { useView } from '../../context/ViewContext';
 import { CampaignManager } from '../../components/specific/Campaign/CampaignManager';
 import { CharacterManager } from '../../components/specific/Character/CharacterManager';
 import { LoreManager } from '../../components/specific/Lore/LoreManager';
-import { RuleManager } from '../../components/specific/Rules/RuleManager';
+import { StatManager } from '../../components/specific/Stats/StatManager';
 import { AbilityManager } from '../../components/specific/AbilityTree/AbilityManager';
 // NEW: Import the ClassManager component.
 import { ClassManager } from '../../components/specific/Class/ClassManager';
@@ -28,8 +28,8 @@ export const WorldDashboardPage: FC = () => {
                 return <ClassManager />;
             case 'lore':
                 return <LoreManager />;
-            case 'rules':
-                return <RuleManager />;
+            case 'stats':
+                return <StatManager />;
             case 'abilities':
                 return <AbilityManager />;
             default:

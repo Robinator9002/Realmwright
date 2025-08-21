@@ -1,4 +1,4 @@
-// src/components/specific/Rules/RuleManager.tsx
+// src/components/specific/Stats/StatManager.tsx
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { Settings, Trash2 } from 'lucide-react';
@@ -10,7 +10,7 @@ import {
     updateStatDefinition,
     deleteStatDefinition,
     type UpdateStatPayload,
-} from '../../../db/queries/rule.queries';
+} from '../../../db/queries/stat.queries';
 import type { StatDefinition } from '../../../db/types';
 // NEW: Import the specialized modal
 import { ManageStatModal } from './ManageStatModal';
@@ -18,7 +18,7 @@ import { ManageStatModal } from './ManageStatModal';
 /**
  * A component for defining and managing game statistics for the active world.
  */
-export const RuleManager: FC = () => {
+export const StatManager: FC = () => {
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
 
@@ -118,7 +118,7 @@ export const RuleManager: FC = () => {
     return (
         <>
             <div className="panel">
-                <h2 className="panel__title">Rules: Stat Definitions</h2>
+                <h2 className="panel__title">Stat Definitions</h2>
 
                 <div className="panel__form-section">
                     <h3 className="panel__form-title">Create New Stat</h3>

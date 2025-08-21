@@ -1,7 +1,7 @@
 // src/components/specific/Class/ManageClassModal.tsx
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
-import { getStatDefinitionsForWorld } from '../../../db/queries/rule.queries';
+import { getStatDefinitionsForWorld } from '../../../db/queries/stat.queries';
 import type { CharacterClass, StatDefinition } from '../../../db/types';
 
 /**

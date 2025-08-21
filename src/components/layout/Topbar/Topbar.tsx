@@ -74,10 +74,10 @@ export const Topbar: FC = () => {
                         Lore
                     </TabButton>
                     <TabButton
-                        isActive={activeWorldTab === 'rules'}
-                        onClick={() => setActiveWorldTab('rules')}
+                        isActive={activeWorldTab === 'stats'}
+                        onClick={() => setActiveWorldTab('stats')}
                     >
-                        Rules
+                        Stats
                     </TabButton>
                     <TabButton
                         isActive={activeWorldTab === 'abilities'}

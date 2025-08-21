@@ -10,7 +10,7 @@ export type WorldTab =
     | 'campaigns'
     | 'characters'
     | 'lore'
-    | 'rules'
+    | 'stats'
     | 'abilities'
     | 'classes'
     | 'maps';
