@@ -1,7 +1,7 @@
-// src/components/specific/AbilityManager/AbilityManager.tsx
+// src/components/specific/AbilityTree/AbilityManager.tsx
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
-import { Settings, ArrowLeft } from 'lucide-react';
+import { Settings, ArrowLeft, X } from 'lucide-react';
 import type { Node, Connection } from 'reactflow';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
@@ -19,8 +19,152 @@ import type { Ability, AbilityTree, Prerequisite } from '../../../db/types';
 import { ManageModal } from '../../common/Modal/ManageModal';
 import { AbilityTreeEditor } from '../AbilityTree/AbilityTreeEditor';
 
+// NEW: A dedicated component for the full-screen editor overlay.
+const AbilityTreeEditorOverlay: FC<{
+    tree: AbilityTree;
+    onClose: () => void;
+}> = ({ tree, onClose }) => {
+    // All the state and logic for managing the *contents* of the editor now live here.
+    const { selectedWorld } = useWorld();
+    const [abilities, setAbilities] = useState<Ability[]>([]);
+    const [isLoadingAbilities, setIsLoadingAbilities] = useState(true);
+    const [tierCount, setTierCount] = useState(5); // This will be dynamic later
+    const [newAbilityName, setNewAbilityName] = useState('');
+    const [newAbilityDesc, setNewAbilityDesc] = useState('');
+    const [newAbilityTier, setNewAbilityTier] = useState(1);
+
+    const refreshAbilities = useCallback(async () => {
+        setIsLoadingAbilities(true);
+        const treeAbilities = await getAbilitiesForTree(tree.id!);
+        setAbilities(treeAbilities);
+        setIsLoadingAbilities(false);
+    }, [tree.id]);
+
+    useEffect(() => {
+        refreshAbilities();
+    }, [refreshAbilities]);
+
+    const handleAddAbility = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newAbilityName.trim() || !selectedWorld?.id) return;
+
+        await addAbility({
+            name: newAbilityName,
+            description: newAbilityDesc,
+            prerequisites: { abilityIds: [] }, // Simplified for now
+            worldId: selectedWorld.id,
+            abilityTreeId: tree.id!,
+            tier: newAbilityTier,
+        });
+        setNewAbilityName('');
+        setNewAbilityDesc('');
+        setNewAbilityTier(1);
+        await refreshAbilities();
+    };
+
+    const handleNodeDragStop = async (node: Node, closestTier: number) => {
+        const abilityId = parseInt(node.id, 10);
+        await updateAbility(abilityId, {
+            x: node.position.x,
+            y: node.position.y,
+            tier: closestTier,
+        });
+        // Optimistically update local state
+        setAbilities((prev) =>
+            prev.map((a) =>
+                a.id === abilityId
+                    ? { ...a, x: node.position.x, y: node.position.y, tier: closestTier }
+                    : a,
+            ),
+        );
+    };
+
+    const handleConnect = async (connection: Connection) => {
+        const sourceId = parseInt(connection.source!, 10);
+        const targetId = parseInt(connection.target!, 10);
+        const targetAbility = abilities.find((a) => a.id === targetId);
+
+        if (targetAbility) {
+            const newPrereqIds = new Set([...targetAbility.prerequisites.abilityIds, sourceId]);
+            const updatedPrerequisites: Prerequisite = { abilityIds: Array.from(newPrereqIds) };
+            await updateAbility(targetId, { prerequisites: updatedPrerequisites });
+            await refreshAbilities();
+        }
+    };
+
+    return (
+        <div className="ability-editor-overlay">
+            <div className="ability-editor-overlay__header">
+                <div className="ability-editor-overlay__header-info">
+                    <button onClick={onClose} className="button">
+                        <ArrowLeft size={16} /> Back to List
+                    </button>
+                    <h2 className="ability-editor-overlay__title">Editing: {tree.name}</h2>
+                </div>
+                <button onClick={onClose} className="ability-editor-overlay__close-button">
+                    <X size={24} />
+                </button>
+            </div>
+            <div className="ability-editor-overlay__content">
+                <div className="ability-editor-overlay__sidebar">
+                    <h3 className="sidebar__title">Create New Ability</h3>
+                    <form onSubmit={handleAddAbility} className="form">
+                        <input
+                            value={newAbilityName}
+                            onChange={(e) => setNewAbilityName(e.target.value)}
+                            placeholder="Ability Name (e.g., Fireball)"
+                            className="form__input"
+                        />
+                        <input
+                            value={newAbilityDesc}
+                            onChange={(e) => setNewAbilityDesc(e.target.value)}
+                            placeholder="Description"
+                            className="form__input"
+                        />
+                        <div className="form__group">
+                            <label htmlFor="abilityTier" className="form__label">
+                                Tier
+                            </label>
+                            <select
+                                id="abilityTier"
+                                value={newAbilityTier}
+                                onChange={(e) => setNewAbilityTier(parseInt(e.target.value, 10))}
+                                className="form__select"
+                            >
+                                {Array.from({ length: tierCount }, (_, i) => i + 1).map(
+                                    (tierNum) => (
+                                        <option key={tierNum} value={tierNum}>
+                                            Tier {tierNum}
+                                        </option>
+                                    ),
+                                )}
+                            </select>
+                        </div>
+                        <button type="submit" className="button button--primary">
+                            Create Ability
+                        </button>
+                    </form>
+                </div>
+                <div className="ability-editor-overlay__canvas">
+                    {isLoadingAbilities ? (
+                        <p>Loading...</p>
+                    ) : (
+                        <AbilityTreeEditor
+                            abilities={abilities}
+                            tierCount={tierCount}
+                            onNodeDragStop={handleNodeDragStop}
+                            onConnect={handleConnect}
+                        />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 /**
- * A component for managing Ability Trees and the Abilities within them.
+ * The main manager component for listing and creating Ability Trees.
+ * It now delegates the editing experience to the AbilityTreeEditorOverlay.
  */
 export const AbilityManager: FC = () => {
     const { selectedWorld } = useWorld();
@@ -28,22 +172,10 @@ export const AbilityManager: FC = () => {
 
     const [abilityTrees, setAbilityTrees] = useState<AbilityTree[]>([]);
     const [selectedTree, setSelectedTree] = useState<AbilityTree | null>(null);
-    const [abilities, setAbilities] = useState<Ability[]>([]);
-
-    const [tierCount, setTierCount] = useState(5);
-
     const [newTreeName, setNewTreeName] = useState('');
     const [newTreeDesc, setNewTreeDesc] = useState('');
-    const [newAbilityName, setNewAbilityName] = useState('');
-    const [newAbilityDesc, setNewAbilityDesc] = useState('');
-    const [newAbilityPrereqs, setNewAbilityPrereqs] = useState('');
-    const [newAbilityTier, setNewAbilityTier] = useState(1);
-
     const [managingTree, setManagingTree] = useState<AbilityTree | null>(null);
-    const [managingAbility, setManagingAbility] = useState<Ability | null>(null);
-
     const [isLoadingTrees, setIsLoadingTrees] = useState(true);
-    const [isLoadingAbilities, setIsLoadingAbilities] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchTrees = useCallback(async () => {
@@ -64,31 +196,6 @@ export const AbilityManager: FC = () => {
         fetchTrees();
     }, [fetchTrees]);
 
-    const refreshAbilities = useCallback(async () => {
-        if (!selectedTree?.id) {
-            setAbilities([]);
-            return;
-        }
-        try {
-            setError(null);
-            setIsLoadingAbilities(true);
-            const treeAbilities = await getAbilitiesForTree(selectedTree.id);
-            setAbilities(treeAbilities);
-        } catch (err) {
-            setError('Failed to load abilities for the selected tree.');
-        } finally {
-            setIsLoadingAbilities(false);
-        }
-    }, [selectedTree]);
-
-    useEffect(() => {
-        refreshAbilities();
-    }, [selectedTree]);
-
-    const handleSelectTree = (tree: AbilityTree) => {
-        setSelectedTree(tree);
-    };
-
     const handleAddTree = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTreeName.trim() || !selectedWorld?.id) return;
@@ -108,9 +215,6 @@ export const AbilityManager: FC = () => {
             description: updatedTree.description,
         });
         await fetchTrees();
-        if (selectedTree?.id === updatedTree.id) {
-            setSelectedTree(updatedTree);
-        }
     };
 
     const handleDeleteTree = (treeId: number) => {
@@ -121,224 +225,70 @@ export const AbilityManager: FC = () => {
             onConfirm: async () => {
                 await deleteAbilityTree(treeId);
                 await fetchTrees();
-                if (selectedTree?.id === treeId) {
-                    setSelectedTree(null);
-                }
             },
         });
     };
-
-    const handleAddAbility = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newAbilityName.trim() || !selectedWorld?.id || !selectedTree?.id) return;
-
-        const prereqIds = newAbilityPrereqs
-            .split(',')
-            .map((id) => parseInt(id.trim(), 10))
-            .filter((id) => !isNaN(id));
-        const prerequisites: Prerequisite = { abilityIds: prereqIds };
-
-        await addAbility({
-            name: newAbilityName,
-            description: newAbilityDesc,
-            prerequisites,
-            worldId: selectedWorld.id,
-            abilityTreeId: selectedTree.id,
-            tier: newAbilityTier,
-        });
-        setNewAbilityName('');
-        setNewAbilityDesc('');
-        setNewAbilityPrereqs('');
-        setNewAbilityTier(1);
-        await refreshAbilities();
-    };
-
-    const handleSaveAbility = async (updatedAbility: Ability) => {
-        await updateAbility(updatedAbility.id!, {
-            name: updatedAbility.name,
-            description: updatedAbility.description,
-        });
-        await refreshAbilities();
-    };
-
-    const handleDeleteAbility = (abilityId: number) => {
-        setManagingAbility(null);
-        showModal('confirmation', {
-            title: 'Delete Ability?',
-            message: 'Are you sure you want to delete this ability?',
-            onConfirm: async () => {
-                await deleteAbility(abilityId);
-                await refreshAbilities();
-            },
-        });
-    };
-
-    // REFACTOR: The handler now receives the new tier from the editor.
-    const handleNodeDragStop = async (node: Node, closestTier: number) => {
-        const abilityId = parseInt(node.id, 10);
-        // Save the new position AND the new tier.
-        await updateAbility(abilityId, {
-            x: node.position.x,
-            y: node.position.y,
-            tier: closestTier,
-        });
-        // Optimistically update local state for a snappy UI response.
-        setAbilities((prev) =>
-            prev.map((a) =>
-                a.id === abilityId
-                    ? { ...a, x: node.position.x, y: node.position.y, tier: closestTier }
-                    : a,
-            ),
-        );
-    };
-
-    const handleConnect = async (connection: Connection) => {
-        const sourceId = parseInt(connection.source!, 10);
-        const targetId = parseInt(connection.target!, 10);
-        const targetAbility = abilities.find((a) => a.id === targetId);
-
-        if (targetAbility) {
-            const newPrereqIds = new Set([...targetAbility.prerequisites.abilityIds, sourceId]);
-            const updatedPrerequisites: Prerequisite = { abilityIds: Array.from(newPrereqIds) };
-            await updateAbility(targetId, {
-                prerequisites: updatedPrerequisites,
-            });
-            await refreshAbilities();
-        }
-    };
-
-    const renderTreeView = () => (
-        <div className="panel">
-            <h2 className="panel__title">Ability Trees</h2>
-            <div className="panel__form-section">
-                <h3 className="panel__form-title">Create New Tree</h3>
-                <form onSubmit={handleAddTree} className="form">
-                    <input
-                        value={newTreeName}
-                        onChange={(e) => setNewTreeName(e.target.value)}
-                        placeholder="Tree Name (e.g., Sorcery)"
-                        className="form__input"
-                    />
-                    <input
-                        value={newTreeDesc}
-                        onChange={(e) => setNewTreeDesc(e.target.value)}
-                        placeholder="Description"
-                        className="form__input"
-                    />
-                    <button type="submit" className="button button--primary">
-                        Create Tree
-                    </button>
-                </form>
-            </div>
-            <div className="panel__list-section">
-                <h3 className="panel__list-title">Existing Trees</h3>
-                {isLoadingTrees ? (
-                    <p>Loading...</p>
-                ) : (
-                    <ul className="panel__list">
-                        {abilityTrees.map((tree) => (
-                            <li key={tree.id} className="panel__list-item">
-                                <div className="panel__item-details">
-                                    <h4 className="panel__item-title">{tree.name}</h4>
-                                    <p className="panel__item-description">{tree.description}</p>
-                                </div>
-                                <div className="panel__item-actions">
-                                    <button
-                                        onClick={() => setManagingTree(tree)}
-                                        className="button"
-                                    >
-                                        <Settings size={16} /> Manage
-                                    </button>
-                                    <button
-                                        onClick={() => handleSelectTree(tree)}
-                                        className="button button--primary"
-                                    >
-                                        Open Editor &rarr;
-                                    </button>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-        </div>
-    );
-
-    const renderEditorView = () => (
-        <div className="panel ability-editor-panel">
-            <div className="panel__header-actions">
-                <button onClick={() => setSelectedTree(null)} className="button">
-                    <ArrowLeft size={16} /> Back to Tree List
-                </button>
-                <h2 className="panel__title">Editing: {selectedTree?.name}</h2>
-            </div>
-
-            <div className="panel__form-section">
-                <h3 className="panel__form-title">Create New Ability</h3>
-                <form onSubmit={handleAddAbility} className="form">
-                    <input
-                        value={newAbilityName}
-                        onChange={(e) => setNewAbilityName(e.target.value)}
-                        placeholder="Ability Name (e.g., Fireball)"
-                        className="form__input"
-                    />
-                    <input
-                        value={newAbilityDesc}
-                        onChange={(e) => setNewAbilityDesc(e.target.value)}
-                        placeholder="Description"
-                        className="form__input"
-                    />
-                    <div className="form__group">
-                        <label htmlFor="abilityTier" className="form__label">
-                            Tier
-                        </label>
-                        <select
-                            id="abilityTier"
-                            value={newAbilityTier}
-                            onChange={(e) => setNewAbilityTier(parseInt(e.target.value, 10))}
-                            className="form__select"
-                        >
-                            {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
-                                <option key={tierNum} value={tierNum}>
-                                    Tier {tierNum}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <input
-                        value={newAbilityPrereqs}
-                        onChange={(e) => setNewAbilityPrereqs(e.target.value)}
-                        placeholder="Prerequisite IDs (e.g., 1, 5, 12)"
-                        className="form__input"
-                    />
-                    <button type="submit" className="button button--primary">
-                        Create Ability
-                    </button>
-                </form>
-            </div>
-
-            <div className="panel__list-section flex-grow">
-                <h3 className="panel__list-title">Ability Tree Editor</h3>
-                {isLoadingAbilities ? (
-                    <p>Loading...</p>
-                ) : (
-                    <AbilityTreeEditor
-                        abilities={abilities}
-                        tierCount={tierCount}
-                        onNodeDragStop={handleNodeDragStop}
-                        onConnect={handleConnect}
-                    />
-                )}
-            </div>
-        </div>
-    );
 
     return (
         <>
-            {error && <p className="error-message mb-4">{error}</p>}
+            <div className="panel">
+                <h2 className="panel__title">Ability Trees</h2>
+                <div className="panel__form-section">
+                    <h3 className="panel__form-title">Create New Tree</h3>
+                    <form onSubmit={handleAddTree} className="form">
+                        <input
+                            value={newTreeName}
+                            onChange={(e) => setNewTreeName(e.target.value)}
+                            placeholder="Tree Name (e.g., Sorcery)"
+                            className="form__input"
+                        />
+                        <input
+                            value={newTreeDesc}
+                            onChange={(e) => setNewTreeDesc(e.target.value)}
+                            placeholder="Description"
+                            className="form__input"
+                        />
+                        <button type="submit" className="button button--primary">
+                            Create Tree
+                        </button>
+                    </form>
+                </div>
+                <div className="panel__list-section">
+                    <h3 className="panel__list-title">Existing Trees</h3>
+                    {isLoadingTrees ? (
+                        <p>Loading...</p>
+                    ) : (
+                        <ul className="panel__list">
+                            {abilityTrees.map((tree) => (
+                                <li key={tree.id} className="panel__list-item">
+                                    <div className="panel__item-details">
+                                        <h4 className="panel__item-title">{tree.name}</h4>
+                                        <p className="panel__item-description">
+                                            {tree.description}
+                                        </p>
+                                    </div>
+                                    <div className="panel__item-actions">
+                                        <button
+                                            onClick={() => setManagingTree(tree)}
+                                            className="button"
+                                        >
+                                            <Settings size={16} /> Manage
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedTree(tree)}
+                                            className="button button--primary"
+                                        >
+                                            Open Editor &rarr;
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </div>
 
-            {selectedTree ? renderEditorView() : renderTreeView()}
-
+            {/* The ManageModal for editing tree name/description remains unchanged */}
             <ManageModal<AbilityTree>
                 isOpen={!!managingTree}
                 onClose={() => setManagingTree(null)}
@@ -347,14 +297,14 @@ export const AbilityManager: FC = () => {
                 onDelete={handleDeleteTree}
                 itemType="Ability Tree"
             />
-            <ManageModal<Ability>
-                isOpen={!!managingAbility}
-                onClose={() => setManagingAbility(null)}
-                item={managingAbility}
-                onSave={handleSaveAbility}
-                onDelete={handleDeleteAbility}
-                itemType="Ability"
-            />
+
+            {/* The editor is now rendered here when a tree is selected */}
+            {selectedTree && (
+                <AbilityTreeEditorOverlay
+                    tree={selectedTree}
+                    onClose={() => setSelectedTree(null)}
+                />
+            )}
         </>
     );
 };
