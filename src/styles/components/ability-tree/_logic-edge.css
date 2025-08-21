@@ -1,0 +1,19 @@
+/* src/styles/components/_logic-edge.css */
+
+.logic-edge__label {
+    background-color: var(--color-background);
+    color: var(--color-muted-foreground);
+    padding: var(--spacing-1) var(--spacing-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    font-size: 0.75rem; /* 12px */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.logic-edge__label:hover {
+    background-color: var(--color-panel-bg);
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}

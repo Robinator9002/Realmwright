@@ -21,6 +21,7 @@
 @import url('./components/ability-tree/_ability-manager.css');
 @import url('./components/ability-tree/_ability-node.css');
 @import url('./components/ability-tree/_tier-controls.css');
+@import url('./components/ability-tree/_logic-edge.css');
 @import url('./components/class-sheet/_sheet-editor.css');
 @import url('./components/class-sheet/_sheet-blocks.css');
 
