@@ -1,8 +1,6 @@
 // src/components/specific/AbilityTree/AbilityManager.tsx
-import { useState, useEffect, useCallback } from 'react';
-import type { FC } from 'react';
-import { Settings, ArrowLeft, X } from 'lucide-react';
-import type { Node, Connection } from 'reactflow';
+import { useState, useEffect, useCallback, type FC } from 'react';
+import { Settings } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
 import {
@@ -10,16 +8,16 @@ import {
     getAbilityTreesForWorld,
     updateAbilityTree,
     deleteAbilityTree,
-    addAbility,
-    getAbilitiesForTree,
-    updateAbility,
-    deleteAbility,
     type UpdateAbilityTreePayload,
 } from '../../../db/queries/ability.queries';
-import type { Ability, AbilityTree, PrerequisiteGroup } from '../../../db/types';
-import { AbilityTreeEditor } from '../AbilityTree/AbilityTreeEditor';
+import type { AbilityTree } from '../../../db/types';
+// NEW: Import the full-page editor we created.
+import { AbilityTreeEditorPage } from '../../../pages/AbiltyTree/AbilityTreeEditorPage';
 
-// A specialized modal for managing Ability Tree details.
+/**
+ * A specialized modal for managing the core details of an Ability Tree,
+ * such as its name, description, and the number of tiers it has.
+ */
 const ManageAbilityTreeModal: FC<{
     isOpen: boolean;
     onClose: () => void;
@@ -117,167 +115,23 @@ const ManageAbilityTreeModal: FC<{
     );
 };
 
-// The overlay component now handles the icon URL for new abilities.
-const AbilityTreeEditorOverlay: FC<{
-    tree: AbilityTree;
-    onClose: () => void;
-}> = ({ tree, onClose }) => {
-    const { selectedWorld } = useWorld();
-    const [abilities, setAbilities] = useState<Ability[]>([]);
-    const [isLoadingAbilities, setIsLoadingAbilities] = useState(true);
-    const [newAbilityName, setNewAbilityName] = useState('');
-    const [newAbilityDesc, setNewAbilityDesc] = useState('');
-    const [newAbilityTier, setNewAbilityTier] = useState(1);
-    // NEW: State for the icon URL input
-    const [newAbilityIconUrl, setNewAbilityIconUrl] = useState('');
-
-    const refreshAbilities = useCallback(async () => {
-        setIsLoadingAbilities(true);
-        const treeAbilities = await getAbilitiesForTree(tree.id!);
-        setAbilities(treeAbilities);
-        setIsLoadingAbilities(false);
-    }, [tree.id]);
-
-    useEffect(() => {
-        refreshAbilities();
-    }, [refreshAbilities]);
-
-    const handleAddAbility = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newAbilityName.trim() || !selectedWorld?.id) return;
-
-        await addAbility({
-            name: newAbilityName,
-            description: newAbilityDesc,
-            worldId: selectedWorld.id,
-            abilityTreeId: tree.id!,
-            tier: newAbilityTier,
-            iconUrl: newAbilityIconUrl, // NEW: Pass the icon URL
-        });
-        setNewAbilityName('');
-        setNewAbilityDesc('');
-        setNewAbilityTier(1);
-        setNewAbilityIconUrl(''); // NEW: Reset the icon URL field
-        await refreshAbilities();
-    };
-
-    const handleNodeDragStop = async (node: Node, closestTier: number) => {
-        const abilityId = parseInt(node.id, 10);
-        await updateAbility(abilityId, {
-            x: node.position.x,
-            y: node.position.y,
-            tier: closestTier,
-        });
-        setAbilities((prev) =>
-            prev.map((a) =>
-                a.id === abilityId
-                    ? { ...a, x: node.position.x, y: node.position.y, tier: closestTier }
-                    : a,
-            ),
-        );
-    };
-
-    const handleConnect = async (connection: Connection) => {
-        const sourceId = parseInt(connection.source!, 10);
-        const targetId = parseInt(connection.target!, 10);
-        const targetAbility = abilities.find((a) => a.id === targetId);
-
-        if (targetAbility) {
-            const newPrereqGroup: PrerequisiteGroup = { type: 'AND', abilityIds: [sourceId] };
-            const updatedPrerequisites = [...targetAbility.prerequisites, newPrereqGroup];
-            await updateAbility(targetId, { prerequisites: updatedPrerequisites });
-            await refreshAbilities();
-        }
-    };
-
-    return (
-        <div className="ability-editor-overlay">
-            <div className="ability-editor-overlay__header">
-                <div className="ability-editor-overlay__header-info">
-                    <button onClick={onClose} className="button">
-                        <ArrowLeft size={16} /> Back to List
-                    </button>
-                    <h2 className="ability-editor-overlay__title">Editing: {tree.name}</h2>
-                </div>
-                <button onClick={onClose} className="ability-editor-overlay__close-button">
-                    <X size={24} />
-                </button>
-            </div>
-            <div className="ability-editor-overlay__content">
-                <div className="ability-editor-overlay__sidebar">
-                    <h3 className="sidebar__title">Create New Ability</h3>
-                    <form onSubmit={handleAddAbility} className="form">
-                        <input
-                            value={newAbilityName}
-                            onChange={(e) => setNewAbilityName(e.target.value)}
-                            placeholder="Ability Name"
-                            className="form__input"
-                        />
-                        <input
-                            value={newAbilityDesc}
-                            onChange={(e) => setNewAbilityDesc(e.target.value)}
-                            placeholder="Description"
-                            className="form__input"
-                        />
-                        {/* NEW: Input for the icon URL */}
-                        <input
-                            value={newAbilityIconUrl}
-                            onChange={(e) => setNewAbilityIconUrl(e.target.value)}
-                            placeholder="Icon Image URL (optional)"
-                            className="form__input"
-                        />
-                        <div className="form__group">
-                            <label htmlFor="abilityTier" className="form__label">
-                                Tier
-                            </label>
-                            <select
-                                id="abilityTier"
-                                value={newAbilityTier}
-                                onChange={(e) => setNewAbilityTier(parseInt(e.target.value, 10))}
-                                className="form__select"
-                            >
-                                {Array.from({ length: tree.tierCount }, (_, i) => i + 1).map(
-                                    (tierNum) => (
-                                        <option key={tierNum} value={tierNum}>
-                                            Tier {tierNum}
-                                        </option>
-                                    ),
-                                )}
-                            </select>
-                        </div>
-                        <button type="submit" className="button button--primary">
-                            Create Ability
-                        </button>
-                    </form>
-                </div>
-                <div className="ability-editor-overlay__canvas">
-                    {isLoadingAbilities ? (
-                        <p>Loading...</p>
-                    ) : (
-                        <AbilityTreeEditor
-                            abilities={abilities}
-                            tierCount={tree.tierCount}
-                            onNodeDragStop={handleNodeDragStop}
-                            onConnect={handleConnect}
-                        />
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
+/**
+ * REFACTORED: This component now serves as the main panel for managing the list of
+ * ability trees. It can launch the full-screen editor for a selected tree.
+ */
 export const AbilityManager: FC = () => {
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
 
     const [abilityTrees, setAbilityTrees] = useState<AbilityTree[]>([]);
-    const [selectedTree, setSelectedTree] = useState<AbilityTree | null>(null);
     const [newTreeName, setNewTreeName] = useState('');
     const [newTreeDesc, setNewTreeDesc] = useState('');
     const [managingTree, setManagingTree] = useState<AbilityTree | null>(null);
     const [isLoadingTrees, setIsLoadingTrees] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // NEW: State to control which tree is being edited in the full-screen page.
+    const [editingTree, setEditingTree] = useState<AbilityTree | null>(null);
 
     const fetchTrees = useCallback(async () => {
         if (!selectedWorld?.id) return;
@@ -313,14 +167,10 @@ export const AbilityManager: FC = () => {
     const handleSaveTree = async (updates: Partial<UpdateAbilityTreePayload>, treeId: number) => {
         await updateAbilityTree(treeId, updates);
         await fetchTrees();
-        // Also update the selectedTree in state if it's the one being edited
-        if (selectedTree?.id === treeId) {
-            setSelectedTree((prev) => (prev ? { ...prev, ...updates } : null));
-        }
     };
 
     const handleDeleteTree = (treeId: number) => {
-        setManagingTree(null);
+        setManagingTree(null); // Close the details modal first
         showModal('confirmation', {
             title: 'Delete Ability Tree?',
             message: 'This will delete the tree and ALL abilities within it. This is permanent.',
@@ -330,6 +180,12 @@ export const AbilityManager: FC = () => {
             },
         });
     };
+
+    // NEW: Conditional rendering. If a tree is being edited, show the editor page.
+    // Otherwise, show the list manager panel.
+    if (editingTree) {
+        return <AbilityTreeEditorPage tree={editingTree} onClose={() => setEditingTree(null)} />;
+    }
 
     return (
         <>
@@ -377,7 +233,7 @@ export const AbilityManager: FC = () => {
                                             <Settings size={16} /> Manage
                                         </button>
                                         <button
-                                            onClick={() => setSelectedTree(tree)}
+                                            onClick={() => setEditingTree(tree)}
                                             className="button button--primary"
                                         >
                                             Open Editor &rarr;
@@ -397,13 +253,6 @@ export const AbilityManager: FC = () => {
                 onSave={handleSaveTree}
                 onDelete={handleDeleteTree}
             />
-
-            {selectedTree && (
-                <AbilityTreeEditorOverlay
-                    tree={selectedTree}
-                    onClose={() => setSelectedTree(null)}
-                />
-            )}
         </>
     );
 };
