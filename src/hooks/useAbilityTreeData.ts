@@ -12,8 +12,7 @@ import type { Ability, AbilityTree, PrerequisiteGroup, AttachmentPoint } from '.
 import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/PrerequisiteModal';
 
 /**
- * REWORKED: The hook now handles the creation of abilities that are
- * designated as Attachment Points.
+ * REWORKED: The hook now includes logic for attaching and detaching ability trees.
  */
 export const useAbilityTreeData = (tree: AbilityTree) => {
     const { selectedWorld } = useWorld();
@@ -35,28 +34,19 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     }, [tree.id]);
 
-    /**
-     * REWORKED: This function now accepts an `isAttachmentPoint` flag to
-     * determine what kind of ability to create.
-     */
     const handleAddAbility = async (
         name: string,
         description: string,
         tier: number,
         iconUrl: string,
-        isAttachmentPoint: boolean, // NEW parameter
+        isAttachmentPoint: boolean,
     ) => {
         if (!name.trim() || !selectedWorld?.id) return;
         try {
             let attachmentPoint: AttachmentPoint | undefined = undefined;
-
-            // If the checkbox was checked, create the attachment point object
             if (isAttachmentPoint) {
-                attachmentPoint = {
-                    id: crypto.randomUUID(), // Generate a unique ID for the socket
-                };
+                attachmentPoint = { id: crypto.randomUUID() };
             }
-
             await addAbility({
                 name,
                 description,
@@ -64,7 +54,7 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
                 abilityTreeId: tree.id!,
                 tier,
                 iconUrl,
-                attachmentPoint, // Pass the new object to the query
+                attachmentPoint,
             });
             await refreshAbilities();
         } catch (err) {
@@ -114,26 +104,73 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
 
     const handleDelete = async (deletedNodes: Node[], deletedEdges: Edge[]) => {
         try {
+            // Handle node deletions
             for (const node of deletedNodes) {
                 await deleteAbility(parseInt(node.id, 10));
             }
+
+            // Handle edge deletions
             for (const edge of deletedEdges) {
                 const targetId = parseInt(edge.target, 10);
                 const sourceId = parseInt(edge.source, 10);
                 const targetAbility = abilities.find((a) => a.id === targetId);
+
                 if (targetAbility) {
-                    const updatedPrerequisites = targetAbility.prerequisites.filter(
-                        (group) => !group.abilityIds.includes(sourceId),
-                    );
+                    // Filter out the prerequisite group that corresponds to the deleted edge
+                    const updatedPrerequisites = targetAbility.prerequisites.filter((group) => {
+                        return !group.abilityIds.includes(sourceId);
+                    });
                     await updateAbility(targetId, { prerequisites: updatedPrerequisites });
                 }
             }
+
+            // If anything was deleted, refresh the data from the DB
             if (deletedNodes.length > 0 || deletedEdges.length > 0) {
                 await refreshAbilities();
             }
         } catch (err) {
             console.error('Failed to delete elements:', err);
             setError('Could not save the deletions.');
+        }
+    };
+
+    /**
+     * NEW: Attaches a specified tree to an attachment point.
+     */
+    const handleAttachTree = async (abilityId: number, treeToAttachId: number) => {
+        const targetAbility = abilities.find((a) => a.id === abilityId);
+        if (targetAbility?.attachmentPoint) {
+            const updatedAttachmentPoint: AttachmentPoint = {
+                ...targetAbility.attachmentPoint,
+                attachedTreeId: treeToAttachId,
+            };
+            try {
+                await updateAbility(abilityId, { attachmentPoint: updatedAttachmentPoint });
+                await refreshAbilities();
+            } catch (err) {
+                console.error('Failed to attach tree:', err);
+                setError('Could not attach the selected tree.');
+            }
+        }
+    };
+
+    /**
+     * NEW: Detaches a tree from an attachment point.
+     */
+    const handleDetachTree = async (abilityId: number) => {
+        const targetAbility = abilities.find((a) => a.id === abilityId);
+        if (targetAbility?.attachmentPoint) {
+            const updatedAttachmentPoint: AttachmentPoint = {
+                ...targetAbility.attachmentPoint,
+                attachedTreeId: undefined,
+            };
+            try {
+                await updateAbility(abilityId, { attachmentPoint: updatedAttachmentPoint });
+                await refreshAbilities();
+            } catch (err) {
+                console.error('Failed to detach tree:', err);
+                setError('Could not detach the tree.');
+            }
         }
     };
 
@@ -146,5 +183,7 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         handleNodeDragStop,
         handleConnect,
         handleDelete,
+        handleAttachTree,
+        handleDetachTree,
     };
 };
