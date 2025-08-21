@@ -4,9 +4,9 @@ import { ArrowLeft, X } from 'lucide-react';
 import type { AbilityTree } from '../../db/types';
 import type { Connection } from 'reactflow';
 import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
+import { updateAbilityTree } from '../../db/queries/ability.queries';
 import { AbilityTreeSidebar } from '../../components/specific/AbilityTree/AbilityTreeSidebar';
 import { AbilityTreeCanvas } from '../../components/specific/AbilityTree/AbilityTreeCanvas';
-// NEW: Import the modal and its logic type
 import {
     PrerequisiteModal,
     type PrerequisiteLogicType,
@@ -18,9 +18,14 @@ interface AbilityTreeEditorPageProps {
 }
 
 /**
- * REWORKED: The full-screen editor page now manages the prerequisite selection modal.
+ * REWORKED: The editor page now manages the state of the tree itself,
+ * including the tier count, and passes the necessary handlers to the sidebar.
  */
 export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, onClose }) => {
+    // NEW: The tree passed via props is the initial state. We hold the mutable,
+    // "live" version of the tree in this component's state.
+    const [currentTree, setCurrentTree] = useState<AbilityTree>(tree);
+
     const {
         abilities,
         isLoading,
@@ -28,8 +33,8 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         refreshAbilities,
         handleAddAbility,
         handleNodeDragStop,
-        handleConnect, // We will call this from our new handler
-    } = useAbilityTreeData(tree);
+        handleConnect,
+    } = useAbilityTreeData(currentTree); // Pass the state version to the hook
 
     // Form state for the sidebar
     const [newAbilityName, setNewAbilityName] = useState('');
@@ -37,7 +42,7 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
     const [newAbilityTier, setNewAbilityTier] = useState(1);
     const [newAbilityIconUrl, setNewAbilityIconUrl] = useState('');
 
-    // NEW: State to manage the prerequisite modal
+    // State to manage the prerequisite modal
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
 
@@ -54,27 +59,40 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         setNewAbilityIconUrl('');
     };
 
-    /**
-     * NEW: This function is called when the user completes a connection on the canvas.
-     * It captures the connection details and opens the modal for the user to select the logic.
-     */
     const onConnectStart = (connection: Connection) => {
         setPendingConnection(connection);
         setIsModalOpen(true);
     };
 
-    /**
-     * NEW: This function is called when the user selects a logic type from the modal.
-     * It then calls the final `handleConnect` function from our hook with all the necessary data.
-     */
     const handlePrerequisiteSelect = (type: PrerequisiteLogicType) => {
         if (pendingConnection) {
-            // We pass the connection and the selected logic type to the hook
             handleConnect(pendingConnection, type);
         }
-        // Clean up state
         setPendingConnection(null);
         setIsModalOpen(false);
+    };
+
+    /**
+     * NEW: Handles the logic for adding a new tier to the tree.
+     */
+    const handleAddTier = async () => {
+        const newTierCount = currentTree.tierCount + 1;
+        // Optimistically update the UI
+        setCurrentTree({ ...currentTree, tierCount: newTierCount });
+        // Persist the change to the database
+        await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
+    };
+
+    /**
+     * NEW: Handles the logic for removing the last tier from the tree.
+     */
+    const handleRemoveTier = async () => {
+        if (currentTree.tierCount <= 1) return; // Safety check
+        const newTierCount = currentTree.tierCount - 1;
+        setCurrentTree({ ...currentTree, tierCount: newTierCount });
+        await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
+        // Note: We might want to add logic here to handle abilities in the removed tier.
+        // For now, they will remain but may be inaccessible in the UI.
     };
 
     return (
@@ -85,7 +103,7 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         <button onClick={onClose} className="button">
                             <ArrowLeft size={16} /> Back to List
                         </button>
-                        <h2 className="ability-editor-page__title">Editing: {tree.name}</h2>
+                        <h2 className="ability-editor-page__title">Editing: {currentTree.name}</h2>
                     </div>
                     <button onClick={onClose} className="ability-editor-page__close-button">
                         <X size={24} />
@@ -93,7 +111,7 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                 </header>
                 <main className="ability-editor-page__main">
                     <AbilityTreeSidebar
-                        tree={tree}
+                        tree={currentTree}
                         name={newAbilityName}
                         onNameChange={setNewAbilityName}
                         description={newAbilityDesc}
@@ -103,6 +121,10 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         iconUrl={newAbilityIconUrl}
                         onIconUrlChange={setNewAbilityIconUrl}
                         onSubmit={handleCreateAbility}
+                        // NEW: Pass the state and handlers to the sidebar
+                        tierCount={currentTree.tierCount}
+                        onAddTier={handleAddTier}
+                        onRemoveTier={handleRemoveTier}
                     />
                     <div className="ability-editor-page__canvas">
                         {isLoading && <p>Loading abilities...</p>}
@@ -110,16 +132,15 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         {!isLoading && !error && (
                             <AbilityTreeCanvas
                                 abilities={abilities}
-                                tierCount={tree.tierCount}
+                                tierCount={currentTree.tierCount}
                                 onNodeDragStop={handleNodeDragStop}
-                                onConnect={onConnectStart} // REWORK: Pass the new handler
+                                onConnect={onConnectStart}
                             />
                         )}
                     </div>
                 </main>
             </div>
 
-            {/* NEW: Render the modal conditionally */}
             <PrerequisiteModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
