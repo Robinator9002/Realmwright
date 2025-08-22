@@ -15,7 +15,6 @@ import ReactFlow, {
     type Node,
     type NodeDragHandler,
     type Connection,
-    // NEW: Import the node click handler type
     type NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -45,13 +44,12 @@ interface AbilityTreeCanvasProps {
     onNodeDragStop: (node: Node, closestTier: number) => void;
     onConnect: (connection: Connection) => void;
     onDelete: (deletedNodes: Node[], deletedEdges: Edge[]) => void;
-    // NEW: Define the onNodeClick prop in the interface
     onNodeClick: (node: Node | null) => void;
 }
 
 /**
- * REWORKED: The canvas now accepts an onNodeClick prop and reports
- * when a node has been clicked.
+ * REWORKED: The canvas no longer renders tier labels. That is now the
+ * sole responsibility of the TierBar component. It only draws the guide lines.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
@@ -59,12 +57,11 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     onNodeDragStop,
     onConnect,
     onDelete,
-    onNodeClick, // Destructure the new prop
+    onNodeClick,
 }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-    // ... (useMemo for initialNodes and initialEdges remains the same)
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
             const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
@@ -146,7 +143,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         [onConnect],
     );
 
-    // NEW: The actual handler that gets called by React Flow
     const handleNodeClick: NodeMouseHandler = useCallback(
         (_, node) => {
             onNodeClick(node);
@@ -154,9 +150,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         [onNodeClick],
     );
 
-    // NEW: Handler for when the user clicks on the canvas pane itself
     const handlePaneClick = useCallback(() => {
-        onNodeClick(null); // Deselect any node
+        onNodeClick(null);
     }, [onNodeClick]);
 
     return (
@@ -170,7 +165,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 onEdgesChange={handleEdgesChange}
                 onNodeDragStop={handleNodeDragStop}
                 onConnect={handleConnect}
-                // NEW: Wire up the click handlers
                 onNodeClick={handleNodeClick}
                 onPaneClick={handlePaneClick}
                 fitView
@@ -181,7 +175,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 nodesFocusable={true}
                 edgesFocusable={true}
             >
-                {/* ... (Background and SVG content remains the same) */}
                 <Background
                     variant={BackgroundVariant.Lines}
                     gap={48}
@@ -189,6 +182,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     color="var(--color-border)"
                 />
                 <svg>
+                    {/* The canvas now ONLY draws the horizontal dividing lines. */}
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
                             <line
@@ -198,14 +192,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                                 y2={TIER_HEIGHT * tierNum}
                                 className="tier-line"
                             />
-                            <text
-                                x="98%"
-                                y={TIER_HEIGHT * tierNum - TIER_HEIGHT / 2}
-                                className="tier-label"
-                                textAnchor="end"
-                            >
-                                Tier {tierNum}
-                            </text>
                         </g>
                     ))}
                 </svg>
