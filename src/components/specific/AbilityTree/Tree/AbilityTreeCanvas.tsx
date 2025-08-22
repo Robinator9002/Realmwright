@@ -22,7 +22,6 @@ import { AbilityNode } from '../Node/AbilityNode';
 import { LogicEdge } from '../Sidebar/LogicEdge';
 import { AttachmentNode } from '../Node/AttachmentNode';
 
-// These objects are defined once, outside the component, to prevent re-renders.
 const nodeTypes = {
     abilityNode: AbilityNode,
     attachmentNode: AttachmentNode,
@@ -36,8 +35,7 @@ const defaultEdgeOptions = {
     style: { strokeWidth: 2 },
 };
 
-// REWORKED: Constants are now for a horizontal, row-based layout.
-const TIER_HEIGHT = 180; // Increased spacing for better readability
+const TIER_HEIGHT = 180;
 const NODE_START_X = 200;
 
 interface AbilityTreeCanvasProps {
@@ -64,7 +62,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
-            // REWORKED: Y position is now based on tier, X is free.
             const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
             const xPos = ability.x ?? NODE_START_X;
 
@@ -137,7 +134,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            // REWORKED: Snapping logic is now based on the Y-axis.
             const closestTier = Math.max(1, Math.round(node.position.y / TIER_HEIGHT) + 1);
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2;
 
@@ -190,6 +186,10 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 deleteKeyCode={['Backspace', 'Delete']}
                 nodesFocusable={true}
                 edgesFocusable={true}
+                // NEW: Navigation rules to prevent disorientation
+                panOnDrag={false} // Disables free-form click-and-drag
+                panOnScroll={true} // Enables navigation with the mouse scroll wheel
+                panOnScrollMode={'vertical'} // Locks scroll wheel navigation to the Y-axis
             >
                 <Background
                     variant={BackgroundVariant.Lines}
@@ -197,7 +197,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     lineWidth={0.25}
                     color="var(--color-border)"
                 />
-                {/* REWORKED: Render horizontal tier lines. */}
                 <svg>
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
