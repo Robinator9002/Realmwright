@@ -3,7 +3,6 @@ import { useEffect, useCallback, useMemo, type FC } from 'react';
 import ReactFlow, {
     Background,
     Controls,
-    MiniMap,
     useNodesState,
     useEdgesState,
     BackgroundVariant,

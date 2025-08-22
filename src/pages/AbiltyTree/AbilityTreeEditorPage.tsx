@@ -1,7 +1,7 @@
 // src/pages/AbiltyTree/AbilityTreeEditorPage.tsx
 import { useState, useEffect, type FC, useCallback } from 'react'; // Import useCallback
 import { useWorld } from '../../context/WorldContext';
-import type { Ability, AbilityTree } from '../../db/types';
+import type { AbilityTree } from '../../db/types';
 import type { Connection, Node } from 'reactflow';
 import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
 import { updateAbilityTree, getAbilityTreesForWorld } from '../../db/queries/ability.queries';
@@ -169,7 +169,7 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                                 onDelete={handleDelete}
                                 onNodeClick={handleNodeClick}
                                 availableTrees={availableTrees}
-                                onViewportChange={handleCanvasViewportChange} {/* NEW: Pass the handler */}
+                                onViewportChange={handleCanvasViewportChange}
                             />
                         )}
                     </div>
