@@ -7,7 +7,6 @@ import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
 import { updateAbilityTree, getAbilityTreesForWorld } from '../../db/queries/ability.queries';
 import { AbilityTreeSidebar } from '../../components/specific/AbilityTree/AbilityTreeSidebar';
 import { AbilityTreeCanvas } from '../../components/specific/AbilityTree/AbilityTreeCanvas';
-// NEW: Import the TierBar component
 import { TierBar } from '../../components/specific/AbilityTree/TierBar';
 import {
     PrerequisiteModal,
@@ -20,8 +19,8 @@ interface AbilityTreeEditorPageProps {
 }
 
 /**
- * REWORKED: The editor page now renders a three-column layout,
- * including the new dedicated TierBar.
+ * REWORKED: The editor page now passes the list of available trees
+ * down to the canvas so it can display the names of attached trees.
  */
 export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, onClose }) => {
     const { selectedWorld } = useWorld();
@@ -54,8 +53,10 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         refreshAbilities();
         const fetchAvailableTrees = async () => {
             if (selectedWorld?.id) {
+                // NOTE: For the canvas, we need ALL trees including the current one,
+                // because an attached tree might BE the current tree in another context.
                 const allTrees = await getAbilityTreesForWorld(selectedWorld.id);
-                setAvailableTrees(allTrees.filter((t) => t.id !== currentTree.id));
+                setAvailableTrees(allTrees);
             }
         };
         fetchAvailableTrees();
@@ -139,7 +140,8 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         isAttachmentPoint={isAttachmentPoint}
                         onIsAttachmentPointChange={setIsAttachmentPoint}
                         selectedNode={selectedNode}
-                        availableTrees={availableTrees}
+                        // The sidebar needs the list *excluding* the current tree
+                        availableTrees={availableTrees.filter((t) => t.id !== currentTree.id)}
                         onAttachTree={handleAttachTree}
                         onDetachTree={handleDetachTree}
                     />
@@ -154,10 +156,11 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                                 onConnect={onConnectStart}
                                 onDelete={handleDelete}
                                 onNodeClick={handleNodeClick}
+                                // NEW: Pass the full list of trees to the canvas
+                                availableTrees={availableTrees}
                             />
                         )}
                     </div>
-                    {/* NEW: Render the TierBar as the third column */}
                     <TierBar tierCount={currentTree.tierCount} />
                 </main>
             </div>

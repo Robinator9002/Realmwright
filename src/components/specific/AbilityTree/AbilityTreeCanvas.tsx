@@ -18,7 +18,7 @@ import ReactFlow, {
     type NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import type { Ability } from '../../../db/types';
+import type { Ability, AbilityTree } from '../../../db/types';
 import { AbilityNode } from './AbilityNode';
 import { LogicEdge } from './LogicEdge';
 import { AttachmentNode } from './AttachmentNode';
@@ -45,11 +45,13 @@ interface AbilityTreeCanvasProps {
     onConnect: (connection: Connection) => void;
     onDelete: (deletedNodes: Node[], deletedEdges: Edge[]) => void;
     onNodeClick: (node: Node | null) => void;
+    // NEW: Add availableTrees to the props interface
+    availableTrees: AbilityTree[];
 }
 
 /**
- * REWORKED: The canvas no longer renders tier labels. That is now the
- * sole responsibility of the TierBar component. It only draws the guide lines.
+ * REWORKED: The canvas now uses the availableTrees prop to find and
+ * display the names of attached trees on AttachmentNodes.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
@@ -58,6 +60,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     onConnect,
     onDelete,
     onNodeClick,
+    availableTrees, // Destructure the new prop
 }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -66,6 +69,16 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         const nodes: Node[] = abilities.map((ability) => {
             const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
             const xPos = ability.x ?? NODE_X_SPACING * ability.tier;
+
+            // NEW: Logic to find the name of the attached tree
+            let attachedTreeName: string | undefined = undefined;
+            if (ability.attachmentPoint?.attachedTreeId) {
+                const foundTree = availableTrees.find(
+                    (t) => t.id === ability.attachmentPoint!.attachedTreeId,
+                );
+                attachedTreeName = foundTree?.name;
+            }
+
             return {
                 id: String(ability.id!),
                 position: { x: xPos, y: yPos },
@@ -73,6 +86,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     label: ability.name,
                     iconUrl: ability.iconUrl,
                     attachmentPoint: ability.attachmentPoint,
+                    attachedTreeName: attachedTreeName, // Pass the name to the node
                 },
                 type: ability.attachmentPoint ? 'attachmentNode' : 'abilityNode',
             };
@@ -95,7 +109,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
             }
         }
         return { initialNodes: nodes, initialEdges: edges };
-    }, [abilities]);
+    }, [abilities, availableTrees]); // Add availableTrees to dependency array
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -131,7 +145,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     n.id === node.id ? { ...n, position: { ...n.position, y: snappedY } } : n,
                 ),
             );
-            onNodeDragStop({ ...node, position: { ...node.position, y: snappedY } }, closestTier);
+            onNodeDragStop({ ...node, position: { ...n.position, y: snappedY } }, closestTier);
         },
         [onNodeDragStop, setNodes],
     );
@@ -182,7 +196,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     color="var(--color-border)"
                 />
                 <svg>
-                    {/* The canvas now ONLY draws the horizontal dividing lines. */}
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
                             <line
