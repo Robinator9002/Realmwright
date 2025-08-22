@@ -1,7 +1,7 @@
 // src/pages/AbiltyTree/AbilityTreeEditorPage.tsx
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, type FC, useCallback } from 'react'; // Import useCallback
 import { useWorld } from '../../context/WorldContext';
-import type { AbilityTree } from '../../db/types';
+import type { Ability, AbilityTree } from '../../db/types';
 import type { Connection, Node } from 'reactflow';
 import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
 import { updateAbilityTree, getAbilityTreesForWorld } from '../../db/queries/ability.queries';
@@ -48,6 +48,8 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    // NEW: State to store the canvas viewport's Y position
+    const [canvasViewportY, setCanvasViewportY] = useState(0);
 
     useEffect(() => {
         refreshAbilities();
@@ -113,6 +115,11 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         setSelectedNode(null);
     };
 
+    // NEW: Callback to update the canvasViewportY state
+    const handleCanvasViewportChange = useCallback((viewportY: number) => {
+        setCanvasViewportY(viewportY);
+    }, []);
+
     return (
         <>
             <div className="ability-editor-page">
@@ -162,11 +169,12 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                                 onDelete={handleDelete}
                                 onNodeClick={handleNodeClick}
                                 availableTrees={availableTrees}
+                                onViewportChange={handleCanvasViewportChange} {/* NEW: Pass the handler */}
                             />
                         )}
                     </div>
                     {/* RE-ADDED: The TierBar is now rendered alongside the canvas. */}
-                    <TierBar tierCount={currentTree.tierCount} />
+                    <TierBar tierCount={currentTree.tierCount} viewportYOffset={canvasViewportY} /> {/* NEW: Pass viewport Y offset */}
                 </main>
             </div>
 
