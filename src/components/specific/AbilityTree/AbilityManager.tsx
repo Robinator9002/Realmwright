@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, type FC } from 'react';
 import { Settings } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
-// NEW: Import the useView hook to control the main application view
 import { useView } from '../../../context/ViewContext';
 import {
     addAbilityTree,
@@ -15,9 +14,8 @@ import {
 import type { AbilityTree } from '../../../db/types';
 
 /**
- * A specialized modal for managing the core details of an Ability Tree,
- * such as its name, description, and the number of tiers it has.
- * This component remains unchanged.
+ * REWORKED: The modal for managing an Ability Tree now includes a field
+ * for setting the tree's `attachmentType`.
  */
 const ManageAbilityTreeModal: FC<{
     isOpen: boolean;
@@ -29,19 +27,29 @@ const ManageAbilityTreeModal: FC<{
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [tierCount, setTierCount] = useState(5);
+    // NEW: State for the new attachmentType field.
+    const [attachmentType, setAttachmentType] = useState('');
 
     useEffect(() => {
         if (item) {
             setName(item.name);
             setDescription(item.description);
             setTierCount(item.tierCount);
+            // NEW: Populate the attachmentType from the item, defaulting to an empty string.
+            setAttachmentType(item.attachmentType || '');
         }
     }, [item]);
 
     if (!isOpen || !item) return null;
 
     const handleSave = async () => {
-        const updates: Partial<UpdateAbilityTreePayload> = { name, description, tierCount };
+        // NEW: Include the attachmentType in the updates payload.
+        const updates: Partial<UpdateAbilityTreePayload> = {
+            name,
+            description,
+            tierCount,
+            attachmentType,
+        };
         await onSave(updates, item.id!);
         onClose();
     };
@@ -60,7 +68,6 @@ const ManageAbilityTreeModal: FC<{
                     </button>
                 </div>
                 <div className="modal__content">
-                    {/* Form content remains the same... */}
                     <form className="form">
                         <div className="form__group">
                             <label htmlFor="treeName" className="form__label">
@@ -99,6 +106,23 @@ const ManageAbilityTreeModal: FC<{
                                 min="1"
                             />
                         </div>
+                        {/* NEW: Form group for the Attachment Type */}
+                        <div className="form__group">
+                            <label htmlFor="treeAttachmentType" className="form__label">
+                                Attachment Type (Optional)
+                            </label>
+                            <input
+                                id="treeAttachmentType"
+                                type="text"
+                                value={attachmentType}
+                                onChange={(e) => setAttachmentType(e.target.value)}
+                                className="form__input"
+                                placeholder="e.g., Weapon Mod, Class Feat"
+                            />
+                            <small className="form__help-text">
+                                A category for this tree, used to restrict where it can be socketed.
+                            </small>
+                        </div>
                     </form>
                 </div>
                 <div className="modal__footer">
@@ -118,14 +142,12 @@ const ManageAbilityTreeModal: FC<{
 };
 
 /**
- * REFACTORED: This component is now only responsible for listing and creating
- * ability trees. It delegates the responsibility of showing the editor to the
- * main App component via the ViewContext.
+ * The main AbilityManager component. No changes are needed here as the
+ * logic is entirely contained within the modal it uses.
  */
 export const AbilityManager: FC = () => {
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
-    // NEW: Get the view setters from the context.
     const { setCurrentView, setEditingAbilityTreeId } = useView();
 
     const [abilityTrees, setAbilityTrees] = useState<AbilityTree[]>([]);
@@ -134,8 +156,6 @@ export const AbilityManager: FC = () => {
     const [managingTree, setManagingTree] = useState<AbilityTree | null>(null);
     const [isLoadingTrees, setIsLoadingTrees] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    // REMOVED: The `editingTree` state is no longer needed here.
 
     const fetchTrees = useCallback(async () => {
         if (!selectedWorld?.id) return;
@@ -185,17 +205,10 @@ export const AbilityManager: FC = () => {
         });
     };
 
-    /**
-     * NEW: This handler is called when the user clicks "Open Editor".
-     * It updates the global context to trigger a view change in the main App.
-     */
     const handleOpenEditor = (tree: AbilityTree) => {
         setEditingAbilityTreeId(tree.id!);
         setCurrentView('ability_tree_editor');
     };
-
-    // REMOVED: The conditional rendering logic for the editor page is gone.
-    // This component now *only* renders the panel.
 
     return (
         <>
@@ -204,7 +217,36 @@ export const AbilityManager: FC = () => {
                 <div className="panel__form-section">
                     <h3 className="panel__form-title">Create New Tree</h3>
                     <form onSubmit={handleAddTree} className="form">
-                        {/* ... */}
+                        <div className="form__group">
+                            <label htmlFor="newTreeName" className="form__label">
+                                New Tree Name
+                            </label>
+                            <input
+                                id="newTreeName"
+                                type="text"
+                                value={newTreeName}
+                                onChange={(e) => setNewTreeName(e.target.value)}
+                                className="form__input"
+                                placeholder="e.g., Warrior Skills"
+                                required
+                            />
+                        </div>
+                        <div className="form__group">
+                            <label htmlFor="newTreeDesc" className="form__label">
+                                Description
+                            </label>
+                            <textarea
+                                id="newTreeDesc"
+                                value={newTreeDesc}
+                                onChange={(e) => setNewTreeDesc(e.target.value)}
+                                className="form__textarea"
+                                placeholder="A brief overview of this skill tree."
+                                rows={2}
+                            />
+                        </div>
+                        <button type="submit" className="button button--primary">
+                            Create Tree
+                        </button>
                     </form>
                 </div>
                 <div className="panel__list-section">
@@ -229,7 +271,7 @@ export const AbilityManager: FC = () => {
                                             <Settings size={16} /> Manage
                                         </button>
                                         <button
-                                            onClick={() => handleOpenEditor(tree)} // REWORK
+                                            onClick={() => handleOpenEditor(tree)}
                                             className="button button--primary"
                                         >
                                             Open Editor &rarr;
