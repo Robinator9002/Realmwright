@@ -12,7 +12,8 @@ import type { Ability, AbilityTree, PrerequisiteGroup, AttachmentPoint } from '.
 import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
 
 /**
- * REWORKED: The hook now includes logic for attaching and detaching ability trees.
+ * REWORKED: The hook now includes handlers for updating and deleting a single ability,
+ * which will be used by the sidebar's edit panel.
  */
 export const useAbilityTreeData = (tree: AbilityTree) => {
     const { selectedWorld } = useWorld();
@@ -135,8 +136,33 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
     };
 
     /**
-     * NEW: Attaches a specified tree to an attachment point.
+     * NEW: Updates a single ability with a given payload.
+     * This will be called from the sidebar's "Save Changes" button.
      */
+    const handleUpdateAbility = async (abilityId: number, updates: Partial<Ability>) => {
+        try {
+            await updateAbility(abilityId, updates);
+            await refreshAbilities();
+        } catch (err) {
+            console.error('Failed to update ability:', err);
+            setError('There was an issue saving your changes.');
+        }
+    };
+
+    /**
+     * NEW: Deletes a single ability by its ID.
+     * This will be called from the sidebar's "Delete" button.
+     */
+    const handleDeleteAbility = async (abilityId: number) => {
+        try {
+            await deleteAbility(abilityId);
+            await refreshAbilities();
+        } catch (err) {
+            console.error('Failed to delete ability:', err);
+            setError('Could not delete the ability.');
+        }
+    };
+
     const handleAttachTree = async (abilityId: number, treeToAttachId: number) => {
         const targetAbility = abilities.find((a) => a.id === abilityId);
         if (targetAbility?.attachmentPoint) {
@@ -154,9 +180,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     };
 
-    /**
-     * NEW: Detaches a tree from an attachment point.
-     */
     const handleDetachTree = async (abilityId: number) => {
         const targetAbility = abilities.find((a) => a.id === abilityId);
         if (targetAbility?.attachmentPoint) {
@@ -185,5 +208,8 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         handleDelete,
         handleAttachTree,
         handleDetachTree,
+        // NEW: Export the new handlers so the page component can use them.
+        handleUpdateAbility,
+        handleDeleteAbility,
     };
 };
