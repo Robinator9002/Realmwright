@@ -1,5 +1,4 @@
 /* src/styles/pages/_ability-editor-page.css */
-/* This file contains styles for the new full-screen ability editor page layout. */
 
 .ability-editor-page {
     position: fixed;
@@ -46,19 +45,21 @@
     color: var(--color-foreground);
 }
 
+/**
+ * REWORK: This is the definitive three-column layout.
+ * It forces the sidebar, canvas, and tier bar into their correct places.
+ */
 .ability-editor-page__main {
     display: flex;
     flex-grow: 1;
     overflow: hidden;
-    /* REWORK: Revert to the original flex-direction to move the sidebar to the left. */
-    flex-direction: row;
+    flex-direction: row; /* Explicitly set the direction */
 }
 
 .ability-editor-page__sidebar {
     width: 320px;
-    flex-shrink: 0;
+    flex-shrink: 0; /* Prevent from shrinking */
     padding: var(--spacing-6);
-    /* REWORK: The border is now on the right side again. */
     border-right: 1px solid var(--color-border);
     background-color: var(--color-panel-bg);
     overflow-y: auto;
@@ -67,24 +68,17 @@
     justify-content: space-between;
 }
 
-.sidebar__title {
-    margin-bottom: var(--spacing-6);
-}
-
 .ability-editor-page__canvas {
-    flex-grow: 1;
-    position: relative;
+    flex-grow: 1; /* This is the key: it takes up the remaining space */
+    position: relative; /* Acts as the anchor for the absolute-positioned wrapper inside */
 }
 
-.button--full-width {
+/* This existing wrapper class is what holds the React Flow component.
+   It MUST be absolutely positioned to fill its parent, the canvas container. */
+.ability-editor-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    justify-content: center;
-}
-
-.tier-label {
-    fill: var(--color-muted-foreground);
-    font-size: 1.5rem;
-    font-weight: 700;
-    text-anchor: middle;
-    user-select: none;
+    height: 100%;
 }
