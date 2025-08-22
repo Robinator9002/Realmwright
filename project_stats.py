@@ -2,13 +2,13 @@ import os
 import re
 import subprocess
 from collections import Counter
-from datetime import datetime
 
 # ========== CONFIG ==========
-INCLUDE_EXTS = {".tsx", ".css", ".py"}
-EXCLUDE_DIRS = {".venv", "node_modules", "__pycache__", ".git"}
-EXCLUDE_FILES = {"pyproject.toml", "__init__.py"}
+INCLUDE_EXTS = {".tsx", ".ts", ".css", ".py"}
+EXCLUDE_DIRS = {".venv", "node_modules", "__pycache__", ".git", "dist", "build"}
+EXCLUDE_FILES = {"pyproject.toml", "__init__.py", "index.tsx", "index.ts"}
 # ============================
+
 
 def is_code_file(path):
     return (
@@ -16,17 +16,31 @@ def is_code_file(path):
         and os.path.basename(path) not in EXCLUDE_FILES
     )
 
+
 def count_file_stats(filepath):
     stats = {
         "lines": 0,
         "tokens": 0,
         "letters": 0,
         "functions": 0,
-        "classes": 0
+        "classes": 0,
+        "components": 0,
     }
+
     token_pattern = re.compile(r"\w+")
-    func_pattern = re.compile(r"^\s*(?:def|function)\s+\w+", re.IGNORECASE)
-    class_pattern = re.compile(r"^\s*class\s+\w+")
+
+    # Detect normal/arrow/React function components
+    func_pattern = re.compile(
+        r"""
+        ^\s*function\s+(?P<funcname>\w+)\s*\(          # function MyFunc()
+        |^\s*(?:export\s+)?(?:const|let|var)\s+(?P<varname>\w+)\s*  # const/let/var MyFunc or export const MyFunc
+            (?::[^={]+)?=\s*\(.*\)\s*=>               # arrow function = (...) =>
+        """,
+        re.VERBOSE,
+    )
+
+    # Detect classes
+    class_pattern = re.compile(r"^\s*(?:export\s+)?class\s+(?P<classname>\w+)")
 
     try:
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
@@ -35,13 +49,24 @@ def count_file_stats(filepath):
                 tokens = token_pattern.findall(line)
                 stats["tokens"] += len(tokens)
                 stats["letters"] += sum(len(t) for t in tokens)
-                if func_pattern.search(line):
+
+                func_match = func_pattern.search(line)
+                if func_match:
                     stats["functions"] += 1
-                if class_pattern.search(line):
+                    name = func_match.group("funcname") or func_match.group("varname")
+                    if name and name[0].isupper():
+                        stats["components"] += 1
+
+                class_match = class_pattern.search(line)
+                if class_match:
                     stats["classes"] += 1
+                    name = class_match.group("classname")
+                    if name and name[0].isupper():
+                        stats["components"] += 1
     except Exception as e:
         print(f"⚠️ Could not read {filepath}: {e}")
     return stats
+
 
 def walk_project():
     total_stats = Counter()
@@ -58,6 +83,7 @@ def walk_project():
     total_stats["files"] = file_count
     return total_stats
 
+
 def get_git_info():
     def run_git(cmd):
         try:
@@ -73,14 +99,23 @@ def get_git_info():
         "current_branch": run_git("git rev-parse --abbrev-ref HEAD"),
         "top_contributor": run_git(
             "git shortlog -sn --all | head -n 1 | awk '{print $2, $3}'"
-        )
+        ),
     }
     return git_info
+
 
 def print_report(stats, git_info):
     print("\n📊 PROJECT CODE STATS")
     print("=" * 40)
-    for key in ["files", "lines", "tokens", "letters", "functions", "classes"]:
+    for key in [
+        "files",
+        "lines",
+        "tokens",
+        "letters",
+        "functions",
+        "classes",
+        "components",
+    ]:
         print(f"{key.capitalize():<12}: {stats[key]:>10}")
 
     print("\n📂 GIT REPOSITORY INFO")
@@ -94,6 +129,7 @@ def print_report(stats, git_info):
     avg_letters_per_token = stats["letters"] / stats["tokens"] if stats["tokens"] else 0
     print(f"Average tokens per line   : {avg_tokens_per_line:.2f}")
     print(f"Average letters per token : {avg_letters_per_token:.2f}")
+
 
 if __name__ == "__main__":
     stats = walk_project()
