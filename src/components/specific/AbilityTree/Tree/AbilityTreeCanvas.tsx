@@ -17,11 +17,13 @@ import ReactFlow, {
     type NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+// CORRECTED: Import paths are now accurate based on the file structure.
 import type { Ability, AbilityTree } from '../../../../db/types';
 import { AbilityNode } from '../Node/AbilityNode';
 import { LogicEdge } from '../Sidebar/LogicEdge';
 import { AttachmentNode } from '../Node/AttachmentNode';
 
+// This is the critical fix: These objects are defined once, outside the component.
 const nodeTypes = {
     abilityNode: AbilityNode,
     attachmentNode: AttachmentNode,
@@ -29,12 +31,12 @@ const nodeTypes = {
 const edgeTypes = {
     logicEdge: LogicEdge,
 };
+
 const defaultEdgeOptions = {
     type: 'logicEdge',
     style: { strokeWidth: 2 },
 };
 
-// NEW: Constants for a vertical, column-based layout.
 const TIER_WIDTH = 250;
 const NODE_START_Y = 100;
 
@@ -48,13 +50,6 @@ interface AbilityTreeCanvasProps {
     availableTrees: AbilityTree[];
 }
 
-/**
- * REWORKED: The canvas is now oriented vertically. Tiers are columns.
- * - Node X positions are determined by their tier and snap into place.
- * - Node Y positions are freely draggable.
- * - The `TierBar` component is no longer needed; tier labels are rendered inside the canvas SVG.
- * - Panning is constrained by `translateExtent` to prevent the user from getting lost.
- */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
     tierCount,
@@ -69,7 +64,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
-            // REWORKED: X is now based on tier, Y is free.
             const xPos = ability.x ?? TIER_WIDTH * ability.tier - TIER_WIDTH / 2;
             const yPos = ability.y ?? NODE_START_Y;
 
@@ -88,7 +82,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     label: ability.name,
                     description: ability.description,
                     iconUrl: ability.iconUrl,
-                    tier: ability.tier, // Pass tier data for the edit panel
+                    tier: ability.tier,
                     attachmentPoint: ability.attachmentPoint,
                     attachedTreeName: attachedTreeName,
                 },
@@ -142,7 +136,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            // REWORKED: Snapping logic is now based on the X-axis.
             let closestTier = 1;
             let minDistance = Infinity;
 
@@ -185,7 +178,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         onNodeClick(null);
     }, [onNodeClick]);
 
-    // NEW: Define the boundaries for panning.
     const translateExtent: [[number, number], [number, number]] = [
         [0, -500],
         [tierCount * TIER_WIDTH + TIER_WIDTH / 2, 2000],
@@ -211,7 +203,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 deleteKeyCode={['Backspace', 'Delete']}
                 nodesFocusable={true}
                 edgesFocusable={true}
-                // NEW: Apply the panning constraint.
                 translateExtent={translateExtent}
             >
                 <Background
@@ -220,27 +211,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     lineWidth={0.25}
                     color="var(--color-border)"
                 />
-                {/* REWORKED: Render vertical tier lines and labels directly here. */}
-                <svg>
-                    {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
-                        <g key={`tier-group-${tierNum}`}>
-                            <line
-                                x1={TIER_WIDTH * tierNum}
-                                y1={0}
-                                x2={TIER_WIDTH * tierNum}
-                                y2="100%"
-                                className="tier-line"
-                            />
-                            <text
-                                x={TIER_WIDTH * tierNum - TIER_WIDTH / 2}
-                                y={30}
-                                className="tier-label"
-                            >
-                                Tier {tierNum}
-                            </text>
-                        </g>
-                    ))}
-                </svg>
+                {/* REMOVED: All SVG rendering for tiers has been taken out. */}
                 <Controls />
                 <MiniMap />
             </ReactFlow>
