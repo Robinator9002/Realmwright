@@ -2,32 +2,31 @@
 import { useState, useEffect, type FC, useMemo } from 'react';
 import type { Ability, AbilityTree } from '../../../../db/types';
 import type { Node } from 'reactflow';
+import { Trash2 } from 'lucide-react'; // Import an icon for the delete button
 import { AbilityTreeTierControls } from './AbilityTreeTierControls';
 
 /**
- * REWORKED: The panel now filters the list of available trees based on the
- * `allowedAttachmentType` defined on the selected socket.
+ * REWORKED: The panel has been completely redesigned for clarity and
+ * now includes a "Danger Zone" with a button to delete the socket.
  */
 const ManageAttachmentPanel: FC<{
     node: Node;
     availableTrees: AbilityTree[];
     onAttachTree: (abilityId: number, treeToAttachId: number) => void;
     onDetachTree: (abilityId: number) => void;
-}> = ({ node, availableTrees, onAttachTree, onDetachTree }) => {
+    onDeleteAbility: (abilityId: number) => void; // NEW: Prop for deletion
+}> = ({ node, availableTrees, onAttachTree, onDetachTree, onDeleteAbility }) => {
     const [selectedTreeId, setSelectedTreeId] = useState<string>('');
     const attachedTreeId = node.data.attachmentPoint?.attachedTreeId;
     const attachedTree = attachedTreeId
         ? availableTrees.find((t) => t.id === attachedTreeId)
         : null;
 
-    // NEW: Memoize the filtered list of compatible trees.
     const compatibleTrees = useMemo(() => {
         const requiredType = node.data.attachmentPoint?.allowedAttachmentType;
-        // If the socket doesn't require a specific type, show all available trees.
         if (!requiredType) {
             return availableTrees;
         }
-        // Otherwise, only show trees that have a matching attachmentType.
         return availableTrees.filter((tree) => tree.attachmentType === requiredType);
     }, [availableTrees, node.data.attachmentPoint]);
 
@@ -45,71 +44,88 @@ const ManageAttachmentPanel: FC<{
         onDetachTree(parseInt(node.id, 10));
     };
 
+    // NEW: Handler for the delete button.
+    const handleDelete = () => {
+        onDeleteAbility(parseInt(node.id, 10));
+    };
+
     return (
-        <div>
+        <div className="sidebar-panel">
             <h3 className="sidebar__title">Manage Socket</h3>
-            <div className="panel__item-details">
-                <h4 className="panel__item-title">{node.data.label}</h4>
-                <p className="panel__item-description">
-                    Attach an existing Ability Tree to this socket.
-                </p>
-                {/* NEW: Display the socket's required type if it has one. */}
-                {node.data.attachmentPoint?.allowedAttachmentType && (
-                    <p className="panel__item-meta">
-                        Requires Type:{' '}
-                        <strong>{node.data.attachmentPoint.allowedAttachmentType}</strong>
-                    </p>
+            <div className="sidebar-panel__section">
+                <div className="panel__item-details">
+                    <h4 className="panel__item-title">{node.data.label}</h4>
+                    {node.data.attachmentPoint?.allowedAttachmentType && (
+                        <p className="panel__item-meta">
+                            Requires Type:{' '}
+                            <strong>{node.data.attachmentPoint.allowedAttachmentType}</strong>
+                        </p>
+                    )}
+                </div>
+            </div>
+
+            <div className="sidebar-panel__section">
+                {attachedTree ? (
+                    <div className="form__group">
+                        <p className="form__label">Currently Attached</p>
+                        <div className="attachment-display">
+                            <span className="attachment-display__name">{attachedTree.name}</span>
+                            <button
+                                onClick={handleDetach}
+                                className="button button--danger button--sm"
+                            >
+                                Detach
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="form__group">
+                            <label htmlFor="attach-tree-select" className="form__label">
+                                Attach a Tree
+                            </label>
+                            <select
+                                id="attach-tree-select"
+                                value={selectedTreeId}
+                                onChange={(e) => setSelectedTreeId(e.target.value)}
+                                className="form__select"
+                                disabled={compatibleTrees.length === 0}
+                            >
+                                <option value="" disabled>
+                                    {compatibleTrees.length > 0
+                                        ? 'Select a compatible tree...'
+                                        : 'No compatible trees found.'}
+                                </option>
+                                {compatibleTrees.map((tree) => (
+                                    <option key={tree.id} value={tree.id}>
+                                        {tree.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <button
+                            onClick={handleAttach}
+                            disabled={!selectedTreeId}
+                            className="button button--primary button--full-width"
+                        >
+                            Attach Selected Tree
+                        </button>
+                    </>
                 )}
             </div>
 
-            {attachedTree ? (
-                <div className="form__group">
-                    <p className="form__label">Currently Attached:</p>
-                    <div className="attachment-display">
-                        <span className="attachment-display__name">{attachedTree.name}</span>
-                        <button onClick={handleDetach} className="button button--danger button--sm">
-                            Detach
-                        </button>
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <div className="form__group">
-                        <label htmlFor="attach-tree-select" className="form__label">
-                            Available Trees
-                        </label>
-                        <select
-                            id="attach-tree-select"
-                            value={selectedTreeId}
-                            onChange={(e) => setSelectedTreeId(e.target.value)}
-                            className="form__select"
-                            disabled={compatibleTrees.length === 0} // Disable if no options
-                        >
-                            <option value="" disabled>
-                                {compatibleTrees.length > 0
-                                    ? 'Select a compatible tree...'
-                                    : 'No compatible trees found.'}
-                            </option>
-                            {/* REWORKED: Map over the filtered list of compatible trees. */}
-                            {compatibleTrees.map((tree) => (
-                                <option key={tree.id} value={tree.id}>
-                                    {tree.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <button
-                        onClick={handleAttach}
-                        disabled={!selectedTreeId}
-                        className="button button--primary button--full-width"
-                    >
-                        Attach Selected Tree
-                    </button>
-                </>
-            )}
+            {/* NEW: Danger Zone for deleting the socket itself */}
+            <div className="sidebar-panel__section danger-zone">
+                <h4 className="danger-zone__title">Danger Zone</h4>
+                <button onClick={handleDelete} className="button button--danger button--full-width">
+                    <Trash2 size={16} /> Delete Socket
+                </button>
+            </div>
         </div>
     );
 };
+
+// --- EditAbilityPanel and CreateAbilityPanel remain unchanged from the previous step ---
 
 const EditAbilityPanel: FC<{
     node: Node;
@@ -369,7 +385,7 @@ interface AbilityTreeSidebarProps {
 }
 
 export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
-    const { selectedNode, availableTrees, onAttachTree, onDetachTree } = props;
+    const { selectedNode, availableTrees, onAttachTree, onDetachTree, onDeleteAbility } = props;
 
     const renderPanel = () => {
         if (!selectedNode) {
@@ -382,6 +398,7 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
                     availableTrees={availableTrees}
                     onAttachTree={onAttachTree}
                     onDetachTree={onDetachTree}
+                    onDeleteAbility={onDeleteAbility} // Pass the handler down
                 />
             );
         }
@@ -400,7 +417,7 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
 
     return (
         <aside className="ability-editor-page__sidebar">
-            {renderPanel()}
+            <div className="sidebar__main-content">{renderPanel()}</div>
             <AbilityTreeTierControls
                 tierCount={props.tierCount}
                 onAddTier={props.onAddTier}
