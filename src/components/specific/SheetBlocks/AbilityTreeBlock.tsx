@@ -13,7 +13,7 @@ import { useWorld } from '../../../context/WorldContext';
 import { getAbilityTreesForWorld, getAbilitiesForTree } from '../../../db/queries/ability.queries';
 import type { AbilityTree, Ability } from '../../../db/types';
 import { Settings } from 'lucide-react';
-import { AbilityNode } from '../AbilityTree/AbilityNode';
+import { AbilityNode } from '../AbilityTree/Node/AbilityNode';
 
 // Define the custom node types for React Flow
 const nodeTypes = {

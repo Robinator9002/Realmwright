@@ -9,7 +9,7 @@ import {
     deleteAbility,
 } from '../db/queries/ability.queries';
 import type { Ability, AbilityTree, PrerequisiteGroup, AttachmentPoint } from '../db/types';
-import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/PrerequisiteModal';
+import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
 
 /**
  * REWORKED: The hook now includes logic for attaching and detaching ability trees.

@@ -5,13 +5,13 @@ import type { AbilityTree } from '../../db/types';
 import type { Connection, Node } from 'reactflow';
 import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
 import { updateAbilityTree, getAbilityTreesForWorld } from '../../db/queries/ability.queries';
-import { AbilityTreeSidebar } from '../../components/specific/AbilityTree/AbilityTreeSidebar';
-import { AbilityTreeCanvas } from '../../components/specific/AbilityTree/AbilityTreeCanvas';
-import { TierBar } from '../../components/specific/AbilityTree/TierBar';
+import { AbilityTreeSidebar } from '../../components/specific/AbilityTree/Tree/AbilityTreeSidebar';
+import { AbilityTreeCanvas } from '../../components/specific/AbilityTree/Tree/AbilityTreeCanvas';
+import { TierBar } from '../../components/specific/AbilityTree/Sidebar/TierBar';
 import {
     PrerequisiteModal,
     type PrerequisiteLogicType,
-} from '../../components/specific/AbilityTree/PrerequisiteModal';
+} from '../../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
 
 interface AbilityTreeEditorPageProps {
     tree: AbilityTree;

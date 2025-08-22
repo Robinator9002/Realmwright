@@ -1,6 +1,6 @@
 // src/components/specific/AbilityTree/AbilityTreeSidebar.tsx
 import { useState, useEffect, type FC } from 'react';
-import type { AbilityTree } from '../../../db/types';
+import type { AbilityTree } from '../../../../db/types';
 import type { Node } from 'reactflow';
 import { AbilityTreeTierControls } from './AbilityTreeTierControls';
 

@@ -1,6 +1,6 @@
 // src/components/specific/AbilityTree/PrerequisiteModal.tsx
 import type { FC } from 'react';
-import type { PrerequisiteGroup } from '../../../db/types';
+import type { PrerequisiteGroup } from '../../../../db/types';
 
 // Define the logical types for prerequisites that the user can choose from.
 export type PrerequisiteLogicType = 'AND' | 'OR'; // Add 'XOR', 'NOR' etc. here in the future

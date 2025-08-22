@@ -12,9 +12,9 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import type { Ability } from '../../../db/types';
+import type { Ability } from '../../../../db/types';
 import type { Node, Edge, OnConnect, NodeDragHandler, Connection } from 'reactflow';
-import { AbilityNode } from './AbilityNode';
+import { AbilityNode } from '../Node/AbilityNode';
 
 interface AbilityTreeEditorProps {
     abilities: Ability[];

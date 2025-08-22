@@ -18,10 +18,10 @@ import ReactFlow, {
     type NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import type { Ability, AbilityTree } from '../../../db/types';
-import { AbilityNode } from './AbilityNode';
-import { LogicEdge } from './LogicEdge';
-import { AttachmentNode } from './AttachmentNode';
+import type { Ability, AbilityTree } from '../../../../db/types';
+import { AbilityNode } from '../Node/AbilityNode';
+import { LogicEdge } from '../Sidebar/LogicEdge';
+import { AttachmentNode } from '../Node/AttachmentNode';
 
 const nodeTypes = {
     abilityNode: AbilityNode,
