@@ -1,14 +1,9 @@
 // src/components/specific/AbilityTree/Tree/AbilityTreeSidebar.tsx
 import { useState, useEffect, type FC } from 'react';
-// NEW: Import the Ability type, as it's now used in the onUpdateAbility prop.
 import type { Ability, AbilityTree } from '../../../../db/types';
 import type { Node } from 'reactflow';
 import { AbilityTreeTierControls } from './AbilityTreeTierControls';
 
-/**
- * The fully functional panel for managing an attachment point.
- * This component remains unchanged.
- */
 const ManageAttachmentPanel: FC<{
     node: Node;
     availableTrees: AbilityTree[];
@@ -90,10 +85,6 @@ const ManageAttachmentPanel: FC<{
     );
 };
 
-/**
- * REWORKED: This panel is now a fully functional form for editing the
- * properties of a selected ability.
- */
 const EditAbilityPanel: FC<{
     node: Node;
     tierCount: number;
@@ -103,15 +94,19 @@ const EditAbilityPanel: FC<{
     const [name, setName] = useState(node.data.label || '');
     const [description, setDescription] = useState(node.data.description || '');
     const [iconUrl, setIconUrl] = useState(node.data.iconUrl || '');
-    // BUGFIX: Ensure tier is correctly sourced from the ability data, not the node itself.
     const [tier, setTier] = useState(node.data.tier || 1);
+    // NEW: State for the allowed type when editing a socket.
+    const [allowedAttachmentType, setAllowedAttachmentType] = useState(
+        node.data.attachmentPoint?.allowedAttachmentType || '',
+    );
 
-    // Repopulate form when a different node is selected.
     useEffect(() => {
         setName(node.data.label || '');
         setDescription(node.data.description || '');
         setIconUrl(node.data.iconUrl || '');
         setTier(node.data.tier || 1);
+        // NEW: Repopulate the allowed type when the node changes.
+        setAllowedAttachmentType(node.data.attachmentPoint?.allowedAttachmentType || '');
     }, [node]);
 
     const handleSaveChanges = (e: React.FormEvent) => {
@@ -123,6 +118,15 @@ const EditAbilityPanel: FC<{
             iconUrl,
             tier,
         };
+
+        // NEW: If the node is a socket, update its attachmentPoint object.
+        if (node.data.attachmentPoint) {
+            updates.attachmentPoint = {
+                ...node.data.attachmentPoint,
+                allowedAttachmentType: allowedAttachmentType.trim() || undefined,
+            };
+        }
+
         onUpdateAbility(abilityId, updates);
     };
 
@@ -134,6 +138,7 @@ const EditAbilityPanel: FC<{
         <div>
             <h3 className="sidebar__title">Edit Ability</h3>
             <form onSubmit={handleSaveChanges} className="form">
+                {/* Standard ability fields... */}
                 <div className="form__group">
                     <label htmlFor="abilityNameEdit" className="form__label">
                         Ability Name
@@ -186,9 +191,23 @@ const EditAbilityPanel: FC<{
                         ))}
                     </select>
                 </div>
-                {/* NOTE: The ability to change an ability TO a socket is removed from the edit panel
-                    for simplicity. This should be a creation-time decision. Sockets can be edited
-                    in their own dedicated 'ManageAttachmentPanel'. */}
+
+                {/* NEW: Conditionally show the allowed type input if the node is a socket */}
+                {node.data.attachmentPoint && (
+                    <div className="form__group">
+                        <label htmlFor="allowedTypeEdit" className="form__label">
+                            Allowed Attachment Type
+                        </label>
+                        <input
+                            id="allowedTypeEdit"
+                            value={allowedAttachmentType}
+                            onChange={(e) => setAllowedAttachmentType(e.target.value)}
+                            className="form__input"
+                            placeholder="e.g., Weapon Mod (leave blank for any)"
+                        />
+                    </div>
+                )}
+
                 <div className="form__footer">
                     <button
                         type="button"
@@ -206,11 +225,16 @@ const EditAbilityPanel: FC<{
     );
 };
 
+/**
+ * REWORKED: The Create panel now includes a conditional input for the
+ * `allowedAttachmentType`.
+ */
 const CreateAbilityPanel: FC<any> = (props) => {
     return (
         <div>
             <h3 className="sidebar__title">Create New Ability</h3>
             <form onSubmit={props.onSubmit} className="form">
+                {/* Standard creation fields... */}
                 <div className="form__group">
                     <label htmlFor="abilityName" className="form__label">
                         Ability Name
@@ -278,6 +302,23 @@ const CreateAbilityPanel: FC<any> = (props) => {
                         Is Attachment Point (Socket)
                     </label>
                 </div>
+
+                {/* NEW: Conditionally render the input for allowed attachment type */}
+                {props.isAttachmentPoint && (
+                    <div className="form__group">
+                        <label htmlFor="allowedType" className="form__label">
+                            Allowed Attachment Type
+                        </label>
+                        <input
+                            id="allowedType"
+                            value={props.allowedAttachmentType}
+                            onChange={(e) => props.onAllowedAttachmentTypeChange(e.target.value)}
+                            className="form__input"
+                            placeholder="e.g., Weapon Mod (leave blank for any)"
+                        />
+                    </div>
+                )}
+
                 <button type="submit" className="button button--primary button--full-width">
                     Create
                 </button>
@@ -302,6 +343,9 @@ interface AbilityTreeSidebarProps {
     onRemoveTier: () => void;
     isAttachmentPoint: boolean;
     onIsAttachmentPointChange: (value: boolean) => void;
+    // NEW: Add props for the allowed attachment type field.
+    allowedAttachmentType: string;
+    onAllowedAttachmentTypeChange: (value: string) => void;
     selectedNode: Node | null;
     availableTrees: AbilityTree[];
     onAttachTree: (abilityId: number, treeToAttachId: number) => void;
@@ -310,10 +354,6 @@ interface AbilityTreeSidebarProps {
     onDeleteAbility: (abilityId: number) => void;
 }
 
-/**
- * REWORKED: The sidebar now passes the necessary props for updating and deleting
- * abilities down to the newly implemented EditAbilityPanel.
- */
 export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
     const { selectedNode, availableTrees, onAttachTree, onDetachTree } = props;
 
@@ -321,8 +361,6 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
         if (!selectedNode) {
             return <CreateAbilityPanel {...props} />;
         }
-        // NOTE: The order here is important. Attachment nodes are a special type of ability node.
-        // We check for the more specific 'attachmentNode' type first.
         if (selectedNode.type === 'attachmentNode') {
             return (
                 <ManageAttachmentPanel
@@ -343,7 +381,7 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
                 />
             );
         }
-        return null; // Should not happen if nodes have types
+        return null;
     };
 
     return (
