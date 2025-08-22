@@ -1,4 +1,4 @@
-// src/components/specific/AbilityTree/AbilityTreeCanvas.tsx
+// src/components/specific/AbilityTree/Tree/AbilityTreeCanvas.tsx
 import { useEffect, useCallback, useMemo, type FC } from 'react';
 import ReactFlow, {
     Background,
@@ -6,7 +6,6 @@ import ReactFlow, {
     MiniMap,
     useNodesState,
     useEdgesState,
-    addEdge,
     BackgroundVariant,
     type Edge,
     type OnNodesChange,
@@ -49,8 +48,8 @@ interface AbilityTreeCanvasProps {
 }
 
 /**
- * REWORKED: The canvas now uses the availableTrees prop to find and
- * display the names of attached trees on AttachmentNodes.
+ * REWORKED: The canvas now passes the full `description` of an ability
+ * into the node's data payload, making it available for tooltips.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
@@ -82,6 +81,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 position: { x: xPos, y: yPos },
                 data: {
                     label: ability.name,
+                    // NEW: Pass the description through to the node component.
+                    description: ability.description,
                     iconUrl: ability.iconUrl,
                     attachmentPoint: ability.attachmentPoint,
                     attachedTreeName: attachedTreeName,
@@ -143,7 +144,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     n.id === node.id ? { ...n, position: { ...n.position, y: snappedY } } : n,
                 ),
             );
-            // BUGFIX: Use the correct 'node' variable from the function scope.
             onNodeDragStop({ ...node, position: { ...node.position, y: snappedY } }, closestTier);
         },
         [onNodeDragStop, setNodes],
