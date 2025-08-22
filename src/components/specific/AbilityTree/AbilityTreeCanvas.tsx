@@ -45,7 +45,6 @@ interface AbilityTreeCanvasProps {
     onConnect: (connection: Connection) => void;
     onDelete: (deletedNodes: Node[], deletedEdges: Edge[]) => void;
     onNodeClick: (node: Node | null) => void;
-    // NEW: Add availableTrees to the props interface
     availableTrees: AbilityTree[];
 }
 
@@ -60,7 +59,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     onConnect,
     onDelete,
     onNodeClick,
-    availableTrees, // Destructure the new prop
+    availableTrees,
 }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -70,7 +69,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
             const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
             const xPos = ability.x ?? NODE_X_SPACING * ability.tier;
 
-            // NEW: Logic to find the name of the attached tree
             let attachedTreeName: string | undefined = undefined;
             if (ability.attachmentPoint?.attachedTreeId) {
                 const foundTree = availableTrees.find(
@@ -86,7 +84,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     label: ability.name,
                     iconUrl: ability.iconUrl,
                     attachmentPoint: ability.attachmentPoint,
-                    attachedTreeName: attachedTreeName, // Pass the name to the node
+                    attachedTreeName: attachedTreeName,
                 },
                 type: ability.attachmentPoint ? 'attachmentNode' : 'abilityNode',
             };
@@ -109,7 +107,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
             }
         }
         return { initialNodes: nodes, initialEdges: edges };
-    }, [abilities, availableTrees]); // Add availableTrees to dependency array
+    }, [abilities, availableTrees]);
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -145,7 +143,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     n.id === node.id ? { ...n, position: { ...n.position, y: snappedY } } : n,
                 ),
             );
-            onNodeDragStop({ ...node, position: { ...n.position, y: snappedY } }, closestTier);
+            // BUGFIX: Use the correct 'node' variable from the function scope.
+            onNodeDragStop({ ...node, position: { ...node.position, y: snappedY } }, closestTier);
         },
         [onNodeDragStop, setNodes],
     );
