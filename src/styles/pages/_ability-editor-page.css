@@ -59,22 +59,9 @@
     height: 100%;
 }
 
+/* REWORKED: Styles for the horizontal tier lines inside the canvas */
 .tier-line {
     stroke: var(--color-border);
-    stroke-width: 2;
-    /* REWORK: Make the line slightly less prominent to complement the new background bands */
-    stroke-dasharray: 2 4;
-}
-
-.tier-label {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    fill: var(--color-muted-foreground);
-    text-anchor: middle;
-    user-select: none;
-}
-
-/* NEW: Add a background rectangle for every other tier column */
-.tier-background {
-    fill: color-mix(in srgb, var(--color-border) 20%, transparent);
+    stroke-width: 1px;
+    stroke-dasharray: 4 4; /* A clear but not overpowering dashed line */
 }
