@@ -18,13 +18,20 @@
 @import url('./components/_panel.css');
 @import url('./components/modal/_modal.css');
 @import url('./components/badges/_status-badge.css');
+
+/* 3.1 Ability Tree */
+/* Manager */
 @import url('./components/ability-tree/_ability-manager.css');
+/* Nodes */
 @import url('./components/ability-tree/_ability-node.css');
+@import url('./components/ability-tree/_attachment-node.css');
+/* Sidebar */
 @import url('./components/ability-tree/_tier-controls.css');
 @import url('./components/ability-tree/_tier-bar.css');
 @import url('./components/ability-tree/_logic-edge.css');
-@import url('./components/ability-tree/_attachment-node.css');
 @import url('./components/ability-tree/_sidebar-panels.css');
+
+/* 3.2 Class Sheets */
 @import url('./components/class-sheet/_sheet-editor.css');
 @import url('./components/class-sheet/_sheet-blocks.css');
 
