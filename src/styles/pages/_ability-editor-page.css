@@ -19,9 +19,10 @@
     padding: var(--spacing-2) var(--spacing-4);
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
-    /* NEW: Ensure header is on top */
+    background-color: var(--color-panel-bg); /* Add bg to prevent transparency issues */
+    /* REWORK: Use a higher z-index than the sidebar to ensure it's on top. */
     position: relative;
-    z-index: 20;
+    z-index: 30;
 }
 
 .ability-editor-page__main {
@@ -41,24 +42,37 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    /* LAYOUT FIX: Establish a stacking context above the canvas */
     position: relative;
-    z-index: 10;
+    /* REWORK: Sidebar is above the canvas but below the header. */
+    z-index: 20;
 }
 
 .ability-editor-page__canvas {
     flex-grow: 1;
     position: relative;
-    /* LAYOUT FIX: Ensure canvas container itself is at the lowest stacking level */
-    z-index: 1;
+    /* Canvas is at the bottom of the stacking order. */
+    z-index: 10;
 }
 
-/* This wrapper is what holds the React Flow component.
-   It MUST be absolutely positioned to fill its parent, the canvas container. */
 .ability-editor-wrapper {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+}
+
+/* NEW: Styles for the in-canvas tier labels and lines */
+.tier-line {
+    stroke: var(--color-border);
+    stroke-width: 2;
+    stroke-dasharray: 5 5;
+}
+
+.tier-label {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    fill: var(--color-muted-foreground);
+    text-anchor: middle; /* Center the text on its x coordinate */
+    user-select: none;
 }

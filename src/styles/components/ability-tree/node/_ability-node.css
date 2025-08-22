@@ -1,9 +1,9 @@
-/* src/styles/components/_ability-node.css */
+/* src/styles/components/ability-tree/node/_ability-node.css */
 
-/* REWORK: The node is now a square, designed to showcase an icon. */
 .ability-node {
     background-color: var(--color-panel-bg);
-    border: 2px solid var(--color-border);
+    /* REWORK: Use a transparent border by default to reserve space. */
+    border: 2px solid transparent;
     border-radius: var(--border-radius);
     width: 80px;
     height: 80px;
@@ -18,13 +18,14 @@
     cursor: pointer;
 }
 
-/* The selected state is automatically applied by React Flow */
+/* REWORK: On selection, we now change the color of the pre-existing border
+   and add a more prominent box-shadow. This prevents any layout shift. */
 .react-flow__node.selected .ability-node {
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 25%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 30%, transparent),
+        0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* NEW: Container for the icon, handles showing/hiding the placeholder. */
 .ability-node__icon-container {
     width: 40px;
     height: 40px;
@@ -32,7 +33,7 @@
     align-items: center;
     justify-content: center;
     margin-bottom: var(--spacing-1);
-    position: relative; /* For positioning the placeholder */
+    position: relative;
 }
 
 .ability-node__icon {
@@ -42,7 +43,6 @@
     border-radius: calc(var(--border-radius) / 2);
 }
 
-/* The placeholder is always present but hidden by default */
 .ability-node__icon-placeholder {
     color: var(--color-muted-foreground);
     position: absolute;
@@ -50,34 +50,25 @@
     transition: opacity 0.2s ease;
 }
 
-/* Hide the placeholder if a custom icon exists and has loaded successfully */
 .ability-node__icon-container:not(.error) .ability-node__icon + .ability-node__icon-placeholder {
     opacity: 0;
 }
 
-/* Hide the broken image icon if the image fails to load */
 .ability-node__icon-container.error .ability-node__icon {
     display: none;
 }
 
-/* REWORK: Title is smaller to fit in the new compact node design. */
 .ability-node__title {
     font-size: 0.75rem; /* 12px */
     font-weight: 600;
     color: var(--color-foreground);
     margin: 0;
     line-height: 1.2;
-    /* Prevent long names from breaking the layout */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    width: 70px; /* Ensure it doesn't overflow the node padding */
+    width: 70px;
 }
-
-/* REWORK: The description is no longer displayed directly in the node.
-   It will be shown in a tooltip or the sidebar when a node is selected.
-   We can remove the old .ability-node__description and .ability-node__content rules.
-*/
 
 .ability-node__handle {
     width: 8px !important;
