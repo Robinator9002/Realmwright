@@ -73,12 +73,13 @@ export type PrerequisiteGroup = {
 };
 
 /**
- * NEW: Defines the structure for a "socket" on an ability node
- * where another ability tree can be attached.
+ * REWORKED: The AttachmentPoint now includes an optional property
+ * to specify what kind of tree it is allowed to accept.
  */
 export type AttachmentPoint = {
     id: string; // A unique ID for this specific socket
-    acceptedTreeType?: string; // An optional tag to filter what can be attached
+    // RENAMED for clarity from acceptedTreeType to allowedAttachmentType
+    allowedAttachmentType?: string; // An optional tag to filter what can be attached
     attachedTreeId?: number; // The ID of the AbilityTree currently attached
 };
 
@@ -94,15 +95,17 @@ export interface Ability extends BaseManageable {
     y?: number;
     tier: number;
     iconUrl?: string;
-    // NEW: An ability can optionally serve as an attachment point.
     attachmentPoint?: AttachmentPoint;
 }
 
 /**
- * Represents a container for a set of related abilities (a "tree").
+ * REWORKED: An AbilityTree can now be categorized with an attachmentType,
+ * defining what kind of "thing" it is (e.g., "Weapon Mod", "Class Feat").
  */
 export interface AbilityTree extends BaseManageable {
     worldId: number;
     createdAt: Date;
     tierCount: number;
+    // NEW: An optional type for categorization.
+    attachmentType?: string;
 }
