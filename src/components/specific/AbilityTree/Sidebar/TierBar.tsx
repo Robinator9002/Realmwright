@@ -1,8 +1,7 @@
 // src/components/specific/AbilityTree/Sidebar/TierBar.tsx
 import type { FC } from 'react';
-
-// This constant MUST match the TIER_HEIGHT in AbilityTreeCanvas.tsx
-const TIER_HEIGHT = 180;
+// Import centralized constants
+import { TIER_HEIGHT } from '../../../../constants/abilityTree.constants';
 
 interface TierBarProps {
     tierCount: number;
