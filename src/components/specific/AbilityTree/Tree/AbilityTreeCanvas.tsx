@@ -34,8 +34,9 @@ const defaultEdgeOptions = {
     style: { strokeWidth: 2 },
 };
 
-const TIER_HEIGHT = 150;
-const NODE_X_SPACING = 200;
+// NEW: Constants for a vertical, column-based layout.
+const TIER_WIDTH = 250;
+const NODE_START_Y = 100;
 
 interface AbilityTreeCanvasProps {
     abilities: Ability[];
@@ -48,8 +49,11 @@ interface AbilityTreeCanvasProps {
 }
 
 /**
- * REWORKED: The canvas now passes the full `description` of an ability
- * into the node's data payload, making it available for tooltips.
+ * REWORKED: The canvas is now oriented vertically. Tiers are columns.
+ * - Node X positions are determined by their tier and snap into place.
+ * - Node Y positions are freely draggable.
+ * - The `TierBar` component is no longer needed; tier labels are rendered inside the canvas SVG.
+ * - Panning is constrained by `translateExtent` to prevent the user from getting lost.
  */
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     abilities,
@@ -65,8 +69,9 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
-            const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
-            const xPos = ability.x ?? NODE_X_SPACING * ability.tier;
+            // REWORKED: X is now based on tier, Y is free.
+            const xPos = ability.x ?? TIER_WIDTH * ability.tier - TIER_WIDTH / 2;
+            const yPos = ability.y ?? NODE_START_Y;
 
             let attachedTreeName: string | undefined = undefined;
             if (ability.attachmentPoint?.attachedTreeId) {
@@ -81,9 +86,9 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 position: { x: xPos, y: yPos },
                 data: {
                     label: ability.name,
-                    // NEW: Pass the description through to the node component.
                     description: ability.description,
                     iconUrl: ability.iconUrl,
+                    tier: ability.tier, // Pass tier data for the edit panel
                     attachmentPoint: ability.attachmentPoint,
                     attachedTreeName: attachedTreeName,
                 },
@@ -137,16 +142,29 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            const closestTier = Math.max(1, Math.round(node.position.y / TIER_HEIGHT) + 1);
-            const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2;
+            // REWORKED: Snapping logic is now based on the X-axis.
+            let closestTier = 1;
+            let minDistance = Infinity;
+
+            for (let i = 1; i <= tierCount; i++) {
+                const tierX = TIER_WIDTH * i - TIER_WIDTH / 2;
+                const distance = Math.abs(node.position.x - tierX);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestTier = i;
+                }
+            }
+
+            const snappedX = TIER_WIDTH * closestTier - TIER_WIDTH / 2;
             setNodes((nds) =>
                 nds.map((n) =>
-                    n.id === node.id ? { ...n, position: { ...n.position, y: snappedY } } : n,
+                    n.id === node.id ? { ...n, position: { ...n.position, x: snappedX } } : n,
                 ),
             );
-            onNodeDragStop({ ...node, position: { ...node.position, y: snappedY } }, closestTier);
+
+            onNodeDragStop({ ...node, position: { ...node.position, x: snappedX } }, closestTier);
         },
-        [onNodeDragStop, setNodes],
+        [onNodeDragStop, tierCount, setNodes],
     );
 
     const handleConnect: OnConnect = useCallback(
@@ -166,6 +184,12 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     const handlePaneClick = useCallback(() => {
         onNodeClick(null);
     }, [onNodeClick]);
+
+    // NEW: Define the boundaries for panning.
+    const translateExtent: [[number, number], [number, number]] = [
+        [0, -500],
+        [tierCount * TIER_WIDTH + TIER_WIDTH / 2, 2000],
+    ];
 
     return (
         <div className="ability-editor-wrapper">
@@ -187,6 +211,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 deleteKeyCode={['Backspace', 'Delete']}
                 nodesFocusable={true}
                 edgesFocusable={true}
+                // NEW: Apply the panning constraint.
+                translateExtent={translateExtent}
             >
                 <Background
                     variant={BackgroundVariant.Lines}
@@ -194,16 +220,24 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     lineWidth={0.25}
                     color="var(--color-border)"
                 />
+                {/* REWORKED: Render vertical tier lines and labels directly here. */}
                 <svg>
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
                             <line
-                                x1={0}
-                                y1={TIER_HEIGHT * tierNum}
-                                x2="100%"
-                                y2={TIER_HEIGHT * tierNum}
+                                x1={TIER_WIDTH * tierNum}
+                                y1={0}
+                                x2={TIER_WIDTH * tierNum}
+                                y2="100%"
                                 className="tier-line"
                             />
+                            <text
+                                x={TIER_WIDTH * tierNum - TIER_WIDTH / 2}
+                                y={30}
+                                className="tier-label"
+                            >
+                                Tier {tierNum}
+                            </text>
                         </g>
                     ))}
                 </svg>
