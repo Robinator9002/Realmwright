@@ -1,7 +1,7 @@
 // src/pages/AbiltyTree/AbilityTreeEditorPage.tsx
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../context/WorldContext';
-import type { AbilityTree } from '../../db/types';
+import type { Ability, AbilityTree } from '../../db/types';
 import type { Connection, Node } from 'reactflow';
 import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
 import { updateAbilityTree, getAbilityTreesForWorld } from '../../db/queries/ability.queries';
@@ -19,8 +19,8 @@ interface AbilityTreeEditorPageProps {
 }
 
 /**
- * REWORKED: The editor page now passes the list of available trees
- * down to the canvas so it can display the names of attached trees.
+ * REWORKED: The page now gets the update and delete handlers from the
+ * useAbilityTreeData hook and passes them down into the sidebar component.
  */
 export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, onClose }) => {
     const { selectedWorld } = useWorld();
@@ -37,6 +37,9 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         handleDelete,
         handleAttachTree,
         handleDetachTree,
+        // NEW: Destructure the new handlers from the hook.
+        handleUpdateAbility,
+        handleDeleteAbility,
     } = useAbilityTreeData(currentTree);
 
     const [availableTrees, setAvailableTrees] = useState<AbilityTree[]>([]);
@@ -53,8 +56,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         refreshAbilities();
         const fetchAvailableTrees = async () => {
             if (selectedWorld?.id) {
-                // NOTE: For the canvas, we need ALL trees including the current one,
-                // because an attached tree might BE the current tree in another context.
                 const allTrees = await getAbilityTreesForWorld(selectedWorld.id);
                 setAvailableTrees(allTrees);
             }
@@ -108,6 +109,16 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         setSelectedNode(node);
     };
 
+    /**
+     * NEW: A wrapper around the delete handler that also clears the
+     * selected node from state, preventing the UI from trying to render
+     * an edit panel for a node that no longer exists.
+     */
+    const handleDeleteAbilityFromSidebar = async (abilityId: number) => {
+        await handleDeleteAbility(abilityId);
+        setSelectedNode(null); // Deselect the node after deletion
+    };
+
     return (
         <>
             <div className="ability-editor-page">
@@ -118,9 +129,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         </button>
                         <h2 className="ability-editor-page__title">Editing: {currentTree.name}</h2>
                     </div>
-                    <button onClick={onClose} className="ability-editor-page__close-button">
-                        &times;
-                    </button>
                 </header>
                 <main className="ability-editor-page__main">
                     <AbilityTreeSidebar
@@ -140,10 +148,12 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         isAttachmentPoint={isAttachmentPoint}
                         onIsAttachmentPointChange={setIsAttachmentPoint}
                         selectedNode={selectedNode}
-                        // The sidebar needs the list *excluding* the current tree
                         availableTrees={availableTrees.filter((t) => t.id !== currentTree.id)}
                         onAttachTree={handleAttachTree}
                         onDetachTree={handleDetachTree}
+                        // NEW: Pass the handlers down to the sidebar as props.
+                        onUpdateAbility={handleUpdateAbility}
+                        onDeleteAbility={handleDeleteAbilityFromSidebar}
                     />
                     <div className="ability-editor-page__canvas">
                         {isLoading && <p>Loading abilities...</p>}
@@ -156,7 +166,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                                 onConnect={onConnectStart}
                                 onDelete={handleDelete}
                                 onNodeClick={handleNodeClick}
-                                // NEW: Pass the full list of trees to the canvas
                                 availableTrees={availableTrees}
                             />
                         )}
