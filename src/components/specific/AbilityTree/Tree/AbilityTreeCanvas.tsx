@@ -15,6 +15,7 @@ import ReactFlow, {
     type NodeDragHandler,
     type Connection,
     type NodeMouseHandler,
+    type PanOnScrollMode, // Import PanOnScrollMode here
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Ability, AbilityTree } from '../../../../db/types';
@@ -189,7 +190,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 // REWORKED: Navigation rules to prevent disorientation
                 panOnDrag={false} // Disables free-form click-and-drag
                 panOnScroll={true} // Enables navigation with the mouse scroll wheel
-                panOnScrollMode={'vertical'} // Locks scroll wheel navigation to the Y-axis
+                panOnScrollMode={'vertical' as PanOnScrollMode} // Locks scroll wheel navigation to the Y-axis
             >
                 <Background
                     variant={BackgroundVariant.Lines}
