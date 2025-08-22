@@ -1,7 +1,8 @@
-// src/components/specific/AbilityTree/TierBar.tsx
+// src/components/specific/AbilityTree/Sidebar/TierBar.tsx
 import type { FC } from 'react';
 
-const TIER_HEIGHT = 150; // This should match the constant in the canvas
+// This constant MUST match the TIER_HEIGHT in AbilityTreeCanvas.tsx
+const TIER_HEIGHT = 180;
 
 interface TierBarProps {
     tierCount: number;
@@ -9,7 +10,7 @@ interface TierBarProps {
 
 /**
  * A dedicated component that displays the tier labels for the ability tree editor.
- * It sits alongside the canvas as its own column.
+ * It sits alongside the canvas as its own column, providing a vertical guide.
  */
 export const TierBar: FC<TierBarProps> = ({ tierCount }) => {
     return (
