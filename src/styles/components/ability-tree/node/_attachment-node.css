@@ -1,8 +1,7 @@
-/* src/styles/components/_attachment-node.css */
+/* src/styles/components/ability-tree/node/_attachment-node.css */
 
 /* Base styling for the attachment node, building on .ability-node */
 .attachment-node {
-    /* Use a different border style to make it stand out */
     border-style: dashed;
     border-color: var(--color-muted-foreground);
 }
@@ -11,7 +10,16 @@
 .attachment-node.attached {
     border-style: solid;
     border-color: var(--color-success);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 25%, transparent);
+}
+
+/*
+ * NEW: A much more prominent selection style specifically for attachment nodes.
+ * We override the default .ability-node selection style.
+ */
+.react-flow__node.selected .attachment-node {
+    border-color: var(--color-warning); /* Use a distinct color */
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-warning) 30%, transparent),
+        0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Style for the status text below the title */

@@ -1,6 +1,37 @@
-/* src/styles/components/_sidebar-panels.css */
+/* src/styles/components/ability-tree/sidebar/_sidebar-panels.css */
 
-/* Styles for the display of a currently attached tree */
+/* --- General Sidebar Panel Structure --- */
+
+.sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6); /* Add space between sections */
+}
+
+.sidebar-panel__section {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-6);
+}
+
+.sidebar-panel__section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* Meta-data for an item, like the "Requires Type" text */
+.panel__item-meta {
+    font-size: var(--font-size-sm);
+    color: var(--color-muted-foreground);
+    margin-top: var(--spacing-2);
+}
+
+.panel__item-meta strong {
+    color: var(--color-accent);
+    font-weight: 600;
+}
+
+/* --- Attachment Display --- */
+
 .attachment-display {
     display: flex;
     align-items: center;
@@ -16,13 +47,26 @@
     color: var(--color-success);
 }
 
-/* A new, smaller button variant for UI actions like 'Detach' */
+/* --- Danger Zone --- */
+.danger-zone {
+    background-color: color-mix(in srgb, var(--color-danger) 10%, transparent);
+    border: 1px solid var(--color-danger);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+}
+
+.danger-zone__title {
+    color: var(--color-danger);
+    font-weight: 700;
+    margin-bottom: var(--spacing-2);
+}
+
+/* --- Form Styles (already exist but listed for context) --- */
 .button--sm {
     padding: var(--spacing-1) var(--spacing-2);
     font-size: 0.75rem; /* 12px */
 }
 
-/* Styles for the checkbox group to ensure proper alignment */
 .form__group--checkbox {
     display: flex;
     align-items: center;
@@ -36,6 +80,6 @@
 }
 
 .form__label--checkbox {
-    margin-bottom: 0; /* Override default label margin */
+    margin-bottom: 0;
     cursor: pointer;
 }
