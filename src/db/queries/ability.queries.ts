@@ -46,10 +46,15 @@ export async function getAbilityTreeById(treeId: number): Promise<AbilityTree | 
     }
 }
 
+/**
+ * REWORKED: The payload for updating an ability tree now includes the
+ * optional attachmentType property.
+ */
 export type UpdateAbilityTreePayload = {
     name: string;
     description: string;
     tierCount: number;
+    attachmentType: string; // Now included
 };
 
 export async function updateAbilityTree(
@@ -78,10 +83,6 @@ export async function deleteAbilityTree(treeId: number): Promise<void> {
 
 // --- Ability Queries ---
 
-/**
- * REWORKED: The data contract for creating a new ability now
- * includes the optional attachmentPoint property.
- */
 type CreateAbilityData = {
     name: string;
     description: string;
@@ -89,7 +90,7 @@ type CreateAbilityData = {
     abilityTreeId: number;
     tier: number;
     iconUrl?: string;
-    attachmentPoint?: AttachmentPoint; // NEW
+    attachmentPoint?: AttachmentPoint;
 };
 
 export async function addAbility(abilityData: CreateAbilityData): Promise<number> {

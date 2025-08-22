@@ -59,7 +59,7 @@ export class RealmwrightDB extends Dexie {
             statDefinitions: '++id, worldId, name',
         });
 
-        this.version(4).upgrade((tx) => {
+        this.version(4).upgrade(() => {
             // This version added a non-indexed 'stats' property to characters.
             // No schema change needed, but the version bump is important.
         });
