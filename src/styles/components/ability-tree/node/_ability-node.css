@@ -2,8 +2,8 @@
 
 .ability-node {
     background-color: var(--color-panel-bg);
-    /* REWORK: Use a transparent border by default to reserve space. */
-    border: 2px solid transparent;
+    /* REWORK: The border is now static and will not change on selection. */
+    border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     width: 80px;
     height: 80px;
@@ -16,14 +16,15 @@
     padding: var(--spacing-1);
     text-align: center;
     cursor: pointer;
+    /* NEW: This property is crucial for the outline to look correct. */
+    outline-offset: 3px;
 }
 
-/* REWORK: On selection, we now change the color of the pre-existing border
-   and add a more prominent box-shadow. This prevents any layout shift. */
+/* REWORK: The selection style now uses `outline` instead of `border` or `box-shadow`.
+   `outline` does NOT affect the element's dimensions, which 100% prevents any "jumping". */
 .react-flow__node.selected .ability-node {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 30%, transparent),
-        0 4px 12px rgba(0, 0, 0, 0.2);
+    outline: 2px solid var(--color-accent);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* A slightly stronger shadow for emphasis */
 }
 
 .ability-node__icon-container {
