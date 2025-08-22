@@ -186,7 +186,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 deleteKeyCode={['Backspace', 'Delete']}
                 nodesFocusable={true}
                 edgesFocusable={true}
-                // NEW: Navigation rules to prevent disorientation
+                // REWORKED: Navigation rules to prevent disorientation
                 panOnDrag={false} // Disables free-form click-and-drag
                 panOnScroll={true} // Enables navigation with the mouse scroll wheel
                 panOnScrollMode={'vertical'} // Locks scroll wheel navigation to the Y-axis
