@@ -17,13 +17,12 @@ import ReactFlow, {
     type NodeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-// CORRECTED: Import paths are now accurate based on the file structure.
 import type { Ability, AbilityTree } from '../../../../db/types';
 import { AbilityNode } from '../Node/AbilityNode';
 import { LogicEdge } from '../Sidebar/LogicEdge';
 import { AttachmentNode } from '../Node/AttachmentNode';
 
-// This is the critical fix: These objects are defined once, outside the component.
+// These objects are defined once, outside the component, to prevent re-renders.
 const nodeTypes = {
     abilityNode: AbilityNode,
     attachmentNode: AttachmentNode,
@@ -37,8 +36,9 @@ const defaultEdgeOptions = {
     style: { strokeWidth: 2 },
 };
 
-const TIER_WIDTH = 250;
-const NODE_START_Y = 100;
+// REWORKED: Constants are now for a horizontal, row-based layout.
+const TIER_HEIGHT = 180; // Increased spacing for better readability
+const NODE_START_X = 200;
 
 interface AbilityTreeCanvasProps {
     abilities: Ability[];
@@ -64,8 +64,9 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
-            const xPos = ability.x ?? TIER_WIDTH * ability.tier - TIER_WIDTH / 2;
-            const yPos = ability.y ?? NODE_START_Y;
+            // REWORKED: Y position is now based on tier, X is free.
+            const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
+            const xPos = ability.x ?? NODE_START_X;
 
             let attachedTreeName: string | undefined = undefined;
             if (ability.attachmentPoint?.attachedTreeId) {
@@ -136,28 +137,19 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            let closestTier = 1;
-            let minDistance = Infinity;
+            // REWORKED: Snapping logic is now based on the Y-axis.
+            const closestTier = Math.max(1, Math.round(node.position.y / TIER_HEIGHT) + 1);
+            const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2;
 
-            for (let i = 1; i <= tierCount; i++) {
-                const tierX = TIER_WIDTH * i - TIER_WIDTH / 2;
-                const distance = Math.abs(node.position.x - tierX);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestTier = i;
-                }
-            }
-
-            const snappedX = TIER_WIDTH * closestTier - TIER_WIDTH / 2;
             setNodes((nds) =>
                 nds.map((n) =>
-                    n.id === node.id ? { ...n, position: { ...n.position, x: snappedX } } : n,
+                    n.id === node.id ? { ...n, position: { ...n.position, y: snappedY } } : n,
                 ),
             );
 
-            onNodeDragStop({ ...node, position: { ...node.position, x: snappedX } }, closestTier);
+            onNodeDragStop({ ...node, position: { ...node.position, y: snappedY } }, closestTier);
         },
-        [onNodeDragStop, tierCount, setNodes],
+        [onNodeDragStop, setNodes],
     );
 
     const handleConnect: OnConnect = useCallback(
@@ -177,11 +169,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     const handlePaneClick = useCallback(() => {
         onNodeClick(null);
     }, [onNodeClick]);
-
-    const translateExtent: [[number, number], [number, number]] = [
-        [0, -500],
-        [tierCount * TIER_WIDTH + TIER_WIDTH / 2, 2000],
-    ];
 
     return (
         <div className="ability-editor-wrapper">
@@ -203,7 +190,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 deleteKeyCode={['Backspace', 'Delete']}
                 nodesFocusable={true}
                 edgesFocusable={true}
-                translateExtent={translateExtent}
             >
                 <Background
                     variant={BackgroundVariant.Lines}
@@ -211,7 +197,20 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     lineWidth={0.25}
                     color="var(--color-border)"
                 />
-                {/* REMOVED: All SVG rendering for tiers has been taken out. */}
+                {/* REWORKED: Render horizontal tier lines. */}
+                <svg>
+                    {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
+                        <g key={`tier-group-${tierNum}`}>
+                            <line
+                                x1="0"
+                                y1={TIER_HEIGHT * tierNum}
+                                x2="100%"
+                                y2={TIER_HEIGHT * tierNum}
+                                className="tier-line"
+                            />
+                        </g>
+                    ))}
+                </svg>
                 <Controls />
                 <MiniMap />
             </ReactFlow>
