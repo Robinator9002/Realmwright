@@ -1,0 +1,30 @@
+/* src/styles/components/ability-tree/sidebar/_tier-bar.css */
+
+.tier-bar {
+    width: 100px; /* A slightly narrower, fixed width */
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-panel-bg);
+    border-left: 1px solid var(--color-border);
+    padding-top: 1px; /* Align with the top of the tier lines */
+    overflow: hidden; /* Prevents any weird overflow issues */
+}
+
+.tier-bar__label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-muted-foreground);
+    /* REWORK: Use a solid border for a cleaner look that matches the canvas lines */
+    border-bottom: 1px solid var(--color-border);
+    user-select: none; /* Prevent text selection */
+    transition: all 0.2s ease;
+}
+
+.tier-bar__label:hover {
+    background-color: var(--color-background);
+    color: var(--color-accent);
+}

@@ -28,6 +28,7 @@
 @import url('./components/ability-tree/node/_attachment-node.css');
 /* Sidebar */
 @import url('./components/ability-tree/sidebar/_tier-controls.css');
+@import url('./components/ability-tree/sidebar/_tier-bar.css');
 @import url('./components/ability-tree/sidebar/_logic-edge.css');
 @import url('./components/ability-tree/sidebar/_sidebar-panels.css');
 
