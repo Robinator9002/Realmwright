@@ -1,0 +1,64 @@
+/* src/styles/components/ability-tree/_reactflow-overrides.css */
+
+/* --- React Flow Controls Styling --- */
+
+/* Target the main container for the zoom/pan controls */
+.react-flow__controls {
+    box-shadow: var(--shadow-md);
+    border-radius: var(--border-radius);
+    background-color: var(--color-panel-bg);
+    border: 1px solid var(--color-border);
+}
+
+/* Style the individual buttons (zoom in/out, lock, etc.) */
+.react-flow__controls-button {
+    background-color: var(--color-panel-bg);
+    color: var(--color-muted-foreground);
+    border-bottom: 1px solid var(--color-border);
+    transition: all 0.2s ease;
+}
+
+.react-flow__controls-button:hover {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+}
+
+.react-flow__controls-button:last-child {
+    border-bottom: none;
+}
+
+/* --- React Flow MiniMap Styling --- */
+
+.react-flow__minimap {
+    border-radius: var(--border-radius);
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-md);
+}
+
+/* --- Custom Scrollbar Styling --- */
+/* This will style the scrollbar in the sidebar */
+
+/* The scrollbar track */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+/* The track (the area the scrollbar moves along) */
+::-webkit-scrollbar-track {
+    background: var(--color-background);
+    border-radius: var(--border-radius);
+}
+
+/* The draggable scrolling handle */
+::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--color-background); /* Creates a nice padding effect */
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-muted-foreground);
+}

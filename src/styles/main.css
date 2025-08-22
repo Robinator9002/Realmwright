@@ -22,12 +22,12 @@
 /* 3.1 Ability Tree */
 /* Manager */
 @import url('./components/ability-tree/_ability-manager.css');
+@import url('./components/ability-tree/_reactflow-overrides.css');
 /* Nodes */
 @import url('./components/ability-tree/node/_ability-node.css');
 @import url('./components/ability-tree/node/_attachment-node.css');
 /* Sidebar */
 @import url('./components/ability-tree/sidebar/_tier-controls.css');
-@import url('./components/ability-tree/sidebar/_tier-bar.css');
 @import url('./components/ability-tree/sidebar/_logic-edge.css');
 @import url('./components/ability-tree/sidebar/_sidebar-panels.css');
 
