@@ -1,7 +1,7 @@
 // src/pages/AbiltyTree/AbilityTreeEditorPage.tsx
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../context/WorldContext';
-import type { AbilityTree } from '../../db/types';
+import type { Ability, AbilityTree } from '../../db/types';
 import type { Connection, Node } from 'reactflow';
 import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
 import { updateAbilityTree, getAbilityTreesForWorld } from '../../db/queries/ability.queries';
@@ -19,8 +19,8 @@ interface AbilityTreeEditorPageProps {
 }
 
 /**
- * REWORKED: The page now gets the update and delete handlers from the
- * useAbilityTreeData hook and passes them down into the sidebar component.
+ * REWORKED: The page now manages state for the `allowedAttachmentType`
+ * of a new ability and passes it down to the sidebar.
  */
 export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, onClose }) => {
     const { selectedWorld } = useWorld();
@@ -37,17 +37,21 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         handleDelete,
         handleAttachTree,
         handleDetachTree,
-        // NEW: Destructure the new handlers from the hook.
         handleUpdateAbility,
         handleDeleteAbility,
     } = useAbilityTreeData(currentTree);
 
     const [availableTrees, setAvailableTrees] = useState<AbilityTree[]>([]);
+    // State for the "Create Ability" form
     const [newAbilityName, setNewAbilityName] = useState('');
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityTier, setNewAbilityTier] = useState(1);
     const [newAbilityIconUrl, setNewAbilityIconUrl] = useState('');
     const [isAttachmentPoint, setIsAttachmentPoint] = useState(false);
+    // NEW: State for the allowed attachment type input field.
+    const [newAllowedAttachmentType, setNewAllowedAttachmentType] = useState('');
+
+    // State for modals and selections
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -71,12 +75,15 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
             newAbilityTier,
             newAbilityIconUrl,
             isAttachmentPoint,
+            newAllowedAttachmentType, // Pass the new state here
         );
+        // Reset all form fields after creation
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityTier(1);
         setNewAbilityIconUrl('');
         setIsAttachmentPoint(false);
+        setNewAllowedAttachmentType(''); // And reset the new state
     };
 
     const onConnectStart = (connection: Connection) => {
@@ -109,14 +116,9 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         setSelectedNode(node);
     };
 
-    /**
-     * NEW: A wrapper around the delete handler that also clears the
-     * selected node from state, preventing the UI from trying to render
-     * an edit panel for a node that no longer exists.
-     */
     const handleDeleteAbilityFromSidebar = async (abilityId: number) => {
         await handleDeleteAbility(abilityId);
-        setSelectedNode(null); // Deselect the node after deletion
+        setSelectedNode(null);
     };
 
     return (
@@ -147,11 +149,13 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         onRemoveTier={handleRemoveTier}
                         isAttachmentPoint={isAttachmentPoint}
                         onIsAttachmentPointChange={setIsAttachmentPoint}
+                        // NEW: Pass the new state and its setter down as props.
+                        allowedAttachmentType={newAllowedAttachmentType}
+                        onAllowedAttachmentTypeChange={setNewAllowedAttachmentType}
                         selectedNode={selectedNode}
                         availableTrees={availableTrees.filter((t) => t.id !== currentTree.id)}
                         onAttachTree={handleAttachTree}
                         onDetachTree={handleDetachTree}
-                        // NEW: Pass the handlers down to the sidebar as props.
                         onUpdateAbility={handleUpdateAbility}
                         onDeleteAbility={handleDeleteAbilityFromSidebar}
                     />
