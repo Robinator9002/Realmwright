@@ -15,14 +15,18 @@ import ReactFlow, {
     type NodeDragHandler,
     type Connection,
     type NodeMouseHandler,
-    type PanOnScrollMode, // Import PanOnScrollMode here
+    type PanOnScrollMode,
+    useViewport, // Import useViewport hook
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Ability, AbilityTree } from '../../../../db/types';
 import { AbilityNode } from '../Node/AbilityNode';
 import { LogicEdge } from '../Sidebar/LogicEdge';
 import { AttachmentNode } from '../Node/AttachmentNode';
+// Import centralized constants
+import { TIER_HEIGHT, NODE_START_X } from '../../../../constants/abilityTree.constants';
 
+// Memoize nodeTypes and edgeTypes outside the component to prevent re-creation warnings.
 const nodeTypes = {
     abilityNode: AbilityNode,
     attachmentNode: AttachmentNode,
@@ -36,9 +40,6 @@ const defaultEdgeOptions = {
     style: { strokeWidth: 2 },
 };
 
-const TIER_HEIGHT = 180;
-const NODE_START_X = 200;
-
 interface AbilityTreeCanvasProps {
     abilities: Ability[];
     tierCount: number;
@@ -47,6 +48,8 @@ interface AbilityTreeCanvasProps {
     onDelete: (deletedNodes: Node[], deletedEdges: Edge[]) => void;
     onNodeClick: (node: Node | null) => void;
     availableTrees: AbilityTree[];
+    // NEW: Callback to report viewport changes to the parent
+    onViewportChange: (viewportY: number) => void;
 }
 
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
@@ -57,14 +60,22 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     onDelete,
     onNodeClick,
     availableTrees,
+    onViewportChange, // Destructure the new prop
 }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+    const viewport = useViewport(); // Get viewport state
+
+    // NEW: Effect to report viewport Y changes to the parent
+    useEffect(() => {
+        onViewportChange(viewport.y);
+    }, [viewport.y, onViewportChange]);
 
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
-            const yPos = ability.y ?? TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
-            const xPos = ability.x ?? NODE_START_X;
+            // Calculate y position based on tier, ensuring consistency with snapping logic
+            const yPos = TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
+            const xPos = ability.x ?? NODE_START_X; // Use stored x, or default start x
 
             let attachedTreeName: string | undefined = undefined;
             if (ability.attachmentPoint?.attachedTreeId) {
@@ -135,7 +146,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            const closestTier = Math.max(1, Math.round(node.position.y / TIER_HEIGHT) + 1);
+            const closestTier = Math.max(1, Math.round(node.position.y / TIER_HEIGHT));
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2;
 
             setNodes((nds) =>
@@ -212,7 +223,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     ))}
                 </svg>
                 <Controls />
-                <MiniMap />
+                {/* REMOVED: MiniMap as per user request */}
+                {/* <MiniMap /> */}
             </ReactFlow>
         </div>
     );
