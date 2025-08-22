@@ -19,8 +19,7 @@
     padding: var(--spacing-2) var(--spacing-4);
     border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
-    background-color: var(--color-panel-bg); /* Add bg to prevent transparency issues */
-    /* REWORK: Use a higher z-index than the sidebar to ensure it's on top. */
+    background-color: var(--color-panel-bg);
     position: relative;
     z-index: 30;
 }
@@ -43,14 +42,12 @@
     flex-direction: column;
     justify-content: space-between;
     position: relative;
-    /* REWORK: Sidebar is above the canvas but below the header. */
     z-index: 20;
 }
 
 .ability-editor-page__canvas {
     flex-grow: 1;
     position: relative;
-    /* Canvas is at the bottom of the stacking order. */
     z-index: 10;
 }
 
@@ -62,17 +59,22 @@
     height: 100%;
 }
 
-/* NEW: Styles for the in-canvas tier labels and lines */
 .tier-line {
     stroke: var(--color-border);
     stroke-width: 2;
-    stroke-dasharray: 5 5;
+    /* REWORK: Make the line slightly less prominent to complement the new background bands */
+    stroke-dasharray: 2 4;
 }
 
 .tier-label {
     font-size: var(--font-size-xl);
     font-weight: 700;
     fill: var(--color-muted-foreground);
-    text-anchor: middle; /* Center the text on its x coordinate */
+    text-anchor: middle;
     user-select: none;
+}
+
+/* NEW: Add a background rectangle for every other tier column */
+.tier-background {
+    fill: color-mix(in srgb, var(--color-border) 20%, transparent);
 }
