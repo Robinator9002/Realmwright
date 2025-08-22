@@ -12,8 +12,8 @@ import type { Ability, AbilityTree, PrerequisiteGroup, AttachmentPoint } from '.
 import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
 
 /**
- * REWORKED: The hook now includes handlers for updating and deleting a single ability,
- * which will be used by the sidebar's edit panel.
+ * REWORKED: The hook's `handleAddAbility` function now accepts an
+ * `allowedAttachmentType` to create restricted sockets.
  */
 export const useAbilityTreeData = (tree: AbilityTree) => {
     const { selectedWorld } = useWorld();
@@ -35,18 +35,26 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     }, [tree.id]);
 
+    /**
+     * REWORKED: The function now takes an additional parameter for the allowed attachment type.
+     */
     const handleAddAbility = async (
         name: string,
         description: string,
         tier: number,
         iconUrl: string,
         isAttachmentPoint: boolean,
+        allowedAttachmentType: string, // NEW parameter
     ) => {
         if (!name.trim() || !selectedWorld?.id) return;
         try {
             let attachmentPoint: AttachmentPoint | undefined = undefined;
             if (isAttachmentPoint) {
-                attachmentPoint = { id: crypto.randomUUID() };
+                // NEW: When creating a socket, include the allowedAttachmentType.
+                attachmentPoint = {
+                    id: crypto.randomUUID(),
+                    allowedAttachmentType: allowedAttachmentType.trim() || undefined,
+                };
             }
             await addAbility({
                 name,
@@ -105,27 +113,20 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
 
     const handleDelete = async (deletedNodes: Node[], deletedEdges: Edge[]) => {
         try {
-            // Handle node deletions
             for (const node of deletedNodes) {
                 await deleteAbility(parseInt(node.id, 10));
             }
-
-            // Handle edge deletions
             for (const edge of deletedEdges) {
                 const targetId = parseInt(edge.target, 10);
                 const sourceId = parseInt(edge.source, 10);
                 const targetAbility = abilities.find((a) => a.id === targetId);
-
                 if (targetAbility) {
-                    // Filter out the prerequisite group that corresponds to the deleted edge
                     const updatedPrerequisites = targetAbility.prerequisites.filter((group) => {
                         return !group.abilityIds.includes(sourceId);
                     });
                     await updateAbility(targetId, { prerequisites: updatedPrerequisites });
                 }
             }
-
-            // If anything was deleted, refresh the data from the DB
             if (deletedNodes.length > 0 || deletedEdges.length > 0) {
                 await refreshAbilities();
             }
@@ -135,10 +136,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     };
 
-    /**
-     * NEW: Updates a single ability with a given payload.
-     * This will be called from the sidebar's "Save Changes" button.
-     */
     const handleUpdateAbility = async (abilityId: number, updates: Partial<Ability>) => {
         try {
             await updateAbility(abilityId, updates);
@@ -149,10 +146,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     };
 
-    /**
-     * NEW: Deletes a single ability by its ID.
-     * This will be called from the sidebar's "Delete" button.
-     */
     const handleDeleteAbility = async (abilityId: number) => {
         try {
             await deleteAbility(abilityId);
@@ -208,7 +201,6 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         handleDelete,
         handleAttachTree,
         handleDetachTree,
-        // NEW: Export the new handlers so the page component can use them.
         handleUpdateAbility,
         handleDeleteAbility,
     };
