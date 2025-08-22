@@ -7,6 +7,7 @@ import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
 import { updateAbilityTree, getAbilityTreesForWorld } from '../../db/queries/ability.queries';
 import { AbilityTreeSidebar } from '../../components/specific/AbilityTree/Tree/AbilityTreeSidebar';
 import { AbilityTreeCanvas } from '../../components/specific/AbilityTree/Tree/AbilityTreeCanvas';
+// RE-IMPORTED: The TierBar is now part of the layout again.
 import { TierBar } from '../../components/specific/AbilityTree/Sidebar/TierBar';
 import {
     PrerequisiteModal,
@@ -18,10 +19,6 @@ interface AbilityTreeEditorPageProps {
     onClose: () => void;
 }
 
-/**
- * REWORKED: The page now manages state for the `allowedAttachmentType`
- * of a new ability and passes it down to the sidebar.
- */
 export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, onClose }) => {
     const { selectedWorld } = useWorld();
     const [currentTree, setCurrentTree] = useState<AbilityTree>(tree);
@@ -42,16 +39,12 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
     } = useAbilityTreeData(currentTree);
 
     const [availableTrees, setAvailableTrees] = useState<AbilityTree[]>([]);
-    // State for the "Create Ability" form
     const [newAbilityName, setNewAbilityName] = useState('');
     const [newAbilityDesc, setNewAbilityDesc] = useState('');
     const [newAbilityTier, setNewAbilityTier] = useState(1);
     const [newAbilityIconUrl, setNewAbilityIconUrl] = useState('');
     const [isAttachmentPoint, setIsAttachmentPoint] = useState(false);
-    // NEW: State for the allowed attachment type input field.
     const [newAllowedAttachmentType, setNewAllowedAttachmentType] = useState('');
-
-    // State for modals and selections
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -75,15 +68,14 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
             newAbilityTier,
             newAbilityIconUrl,
             isAttachmentPoint,
-            newAllowedAttachmentType, // Pass the new state here
+            newAllowedAttachmentType,
         );
-        // Reset all form fields after creation
         setNewAbilityName('');
         setNewAbilityDesc('');
         setNewAbilityTier(1);
         setNewAbilityIconUrl('');
         setIsAttachmentPoint(false);
-        setNewAllowedAttachmentType(''); // And reset the new state
+        setNewAllowedAttachmentType('');
     };
 
     const onConnectStart = (connection: Connection) => {
@@ -149,7 +141,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         onRemoveTier={handleRemoveTier}
                         isAttachmentPoint={isAttachmentPoint}
                         onIsAttachmentPointChange={setIsAttachmentPoint}
-                        // NEW: Pass the new state and its setter down as props.
                         allowedAttachmentType={newAllowedAttachmentType}
                         onAllowedAttachmentTypeChange={setNewAllowedAttachmentType}
                         selectedNode={selectedNode}
@@ -174,6 +165,7 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                             />
                         )}
                     </div>
+                    {/* RE-ADDED: The TierBar is now rendered alongside the canvas. */}
                     <TierBar tierCount={currentTree.tierCount} />
                 </main>
             </div>
