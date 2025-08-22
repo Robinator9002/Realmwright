@@ -1,11 +1,13 @@
-// src/components/specific/AbilityTree/AbilityTreeSidebar.tsx
+// src/components/specific/AbilityTree/Tree/AbilityTreeSidebar.tsx
 import { useState, useEffect, type FC } from 'react';
-import type { AbilityTree } from '../../../../db/types';
+// NEW: Import the Ability type, as it's now used in the onUpdateAbility prop.
+import type { Ability, AbilityTree } from '../../../../db/types';
 import type { Node } from 'reactflow';
 import { AbilityTreeTierControls } from './AbilityTreeTierControls';
 
 /**
  * The fully functional panel for managing an attachment point.
+ * This component remains unchanged.
  */
 const ManageAttachmentPanel: FC<{
     node: Node;
@@ -20,7 +22,6 @@ const ManageAttachmentPanel: FC<{
         : null;
 
     useEffect(() => {
-        // Reset dropdown when a new node is selected
         setSelectedTreeId('');
     }, [node.id]);
 
@@ -89,13 +90,118 @@ const ManageAttachmentPanel: FC<{
     );
 };
 
-const EditAbilityPanel: FC<{ node: Node }> = ({ node }) => {
+/**
+ * REWORKED: This panel is now a fully functional form for editing the
+ * properties of a selected ability.
+ */
+const EditAbilityPanel: FC<{
+    node: Node;
+    tierCount: number;
+    onUpdateAbility: (abilityId: number, updates: Partial<Ability>) => void;
+    onDeleteAbility: (abilityId: number) => void;
+}> = ({ node, tierCount, onUpdateAbility, onDeleteAbility }) => {
+    const [name, setName] = useState(node.data.label || '');
+    const [description, setDescription] = useState(node.data.description || '');
+    const [iconUrl, setIconUrl] = useState(node.data.iconUrl || '');
+    // BUGFIX: Ensure tier is correctly sourced from the ability data, not the node itself.
+    const [tier, setTier] = useState(node.data.tier || 1);
+
+    // Repopulate form when a different node is selected.
+    useEffect(() => {
+        setName(node.data.label || '');
+        setDescription(node.data.description || '');
+        setIconUrl(node.data.iconUrl || '');
+        setTier(node.data.tier || 1);
+    }, [node]);
+
+    const handleSaveChanges = (e: React.FormEvent) => {
+        e.preventDefault();
+        const abilityId = parseInt(node.id, 10);
+        const updates: Partial<Ability> = {
+            name,
+            description,
+            iconUrl,
+            tier,
+        };
+        onUpdateAbility(abilityId, updates);
+    };
+
+    const handleDelete = () => {
+        onDeleteAbility(parseInt(node.id, 10));
+    };
+
     return (
         <div>
             <h3 className="sidebar__title">Edit Ability</h3>
-            <div className="panel__item-details">
-                <h4 className="panel__item-title">{node.data.label}</h4>
-            </div>
+            <form onSubmit={handleSaveChanges} className="form">
+                <div className="form__group">
+                    <label htmlFor="abilityNameEdit" className="form__label">
+                        Ability Name
+                    </label>
+                    <input
+                        id="abilityNameEdit"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="form__input"
+                        required
+                    />
+                </div>
+                <div className="form__group">
+                    <label htmlFor="abilityDescEdit" className="form__label">
+                        Description
+                    </label>
+                    <textarea
+                        id="abilityDescEdit"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="form__textarea"
+                        rows={3}
+                    />
+                </div>
+                <div className="form__group">
+                    <label htmlFor="abilityIconEdit" className="form__label">
+                        Icon URL (Optional)
+                    </label>
+                    <input
+                        id="abilityIconEdit"
+                        value={iconUrl}
+                        onChange={(e) => setIconUrl(e.target.value)}
+                        className="form__input"
+                    />
+                </div>
+                <div className="form__group">
+                    <label htmlFor="abilityTierEdit" className="form__label">
+                        Tier
+                    </label>
+                    <select
+                        id="abilityTierEdit"
+                        value={tier}
+                        onChange={(e) => setTier(parseInt(e.target.value, 10))}
+                        className="form__select"
+                    >
+                        {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
+                            <option key={tierNum} value={tierNum}>
+                                Tier {tierNum}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                {/* NOTE: The ability to change an ability TO a socket is removed from the edit panel
+                    for simplicity. This should be a creation-time decision. Sockets can be edited
+                    in their own dedicated 'ManageAttachmentPanel'. */}
+                <div className="form__footer">
+                    <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="button button--danger mr-auto"
+                    >
+                        Delete
+                    </button>
+                    <button type="submit" className="button button--primary">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
     );
 };
@@ -200,11 +306,13 @@ interface AbilityTreeSidebarProps {
     availableTrees: AbilityTree[];
     onAttachTree: (abilityId: number, treeToAttachId: number) => void;
     onDetachTree: (abilityId: number) => void;
+    onUpdateAbility: (abilityId: number, updates: Partial<Ability>) => void;
+    onDeleteAbility: (abilityId: number) => void;
 }
 
 /**
- * REWORKED: The sidebar is now fully featured, with a functional
- * panel for managing attachments.
+ * REWORKED: The sidebar now passes the necessary props for updating and deleting
+ * abilities down to the newly implemented EditAbilityPanel.
  */
 export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
     const { selectedNode, availableTrees, onAttachTree, onDetachTree } = props;
@@ -213,6 +321,8 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
         if (!selectedNode) {
             return <CreateAbilityPanel {...props} />;
         }
+        // NOTE: The order here is important. Attachment nodes are a special type of ability node.
+        // We check for the more specific 'attachmentNode' type first.
         if (selectedNode.type === 'attachmentNode') {
             return (
                 <ManageAttachmentPanel
@@ -224,9 +334,16 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
             );
         }
         if (selectedNode.type === 'abilityNode') {
-            return <EditAbilityPanel node={selectedNode} />;
+            return (
+                <EditAbilityPanel
+                    node={selectedNode}
+                    tierCount={props.tierCount}
+                    onUpdateAbility={props.onUpdateAbility}
+                    onDeleteAbility={props.onDeleteAbility}
+                />
+            );
         }
-        return null;
+        return null; // Should not happen if nodes have types
     };
 
     return (
