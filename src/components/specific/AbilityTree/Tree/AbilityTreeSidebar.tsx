@@ -1,9 +1,13 @@
 // src/components/specific/AbilityTree/Tree/AbilityTreeSidebar.tsx
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, type FC, useMemo } from 'react';
 import type { Ability, AbilityTree } from '../../../../db/types';
 import type { Node } from 'reactflow';
 import { AbilityTreeTierControls } from './AbilityTreeTierControls';
 
+/**
+ * REWORKED: The panel now filters the list of available trees based on the
+ * `allowedAttachmentType` defined on the selected socket.
+ */
 const ManageAttachmentPanel: FC<{
     node: Node;
     availableTrees: AbilityTree[];
@@ -15,6 +19,17 @@ const ManageAttachmentPanel: FC<{
     const attachedTree = attachedTreeId
         ? availableTrees.find((t) => t.id === attachedTreeId)
         : null;
+
+    // NEW: Memoize the filtered list of compatible trees.
+    const compatibleTrees = useMemo(() => {
+        const requiredType = node.data.attachmentPoint?.allowedAttachmentType;
+        // If the socket doesn't require a specific type, show all available trees.
+        if (!requiredType) {
+            return availableTrees;
+        }
+        // Otherwise, only show trees that have a matching attachmentType.
+        return availableTrees.filter((tree) => tree.attachmentType === requiredType);
+    }, [availableTrees, node.data.attachmentPoint]);
 
     useEffect(() => {
         setSelectedTreeId('');
@@ -38,6 +53,13 @@ const ManageAttachmentPanel: FC<{
                 <p className="panel__item-description">
                     Attach an existing Ability Tree to this socket.
                 </p>
+                {/* NEW: Display the socket's required type if it has one. */}
+                {node.data.attachmentPoint?.allowedAttachmentType && (
+                    <p className="panel__item-meta">
+                        Requires Type:{' '}
+                        <strong>{node.data.attachmentPoint.allowedAttachmentType}</strong>
+                    </p>
+                )}
             </div>
 
             {attachedTree ? (
@@ -61,11 +83,15 @@ const ManageAttachmentPanel: FC<{
                             value={selectedTreeId}
                             onChange={(e) => setSelectedTreeId(e.target.value)}
                             className="form__select"
+                            disabled={compatibleTrees.length === 0} // Disable if no options
                         >
                             <option value="" disabled>
-                                Select a tree to attach...
+                                {compatibleTrees.length > 0
+                                    ? 'Select a compatible tree...'
+                                    : 'No compatible trees found.'}
                             </option>
-                            {availableTrees.map((tree) => (
+                            {/* REWORKED: Map over the filtered list of compatible trees. */}
+                            {compatibleTrees.map((tree) => (
                                 <option key={tree.id} value={tree.id}>
                                     {tree.name}
                                 </option>
@@ -95,7 +121,6 @@ const EditAbilityPanel: FC<{
     const [description, setDescription] = useState(node.data.description || '');
     const [iconUrl, setIconUrl] = useState(node.data.iconUrl || '');
     const [tier, setTier] = useState(node.data.tier || 1);
-    // NEW: State for the allowed type when editing a socket.
     const [allowedAttachmentType, setAllowedAttachmentType] = useState(
         node.data.attachmentPoint?.allowedAttachmentType || '',
     );
@@ -105,7 +130,6 @@ const EditAbilityPanel: FC<{
         setDescription(node.data.description || '');
         setIconUrl(node.data.iconUrl || '');
         setTier(node.data.tier || 1);
-        // NEW: Repopulate the allowed type when the node changes.
         setAllowedAttachmentType(node.data.attachmentPoint?.allowedAttachmentType || '');
     }, [node]);
 
@@ -119,7 +143,6 @@ const EditAbilityPanel: FC<{
             tier,
         };
 
-        // NEW: If the node is a socket, update its attachmentPoint object.
         if (node.data.attachmentPoint) {
             updates.attachmentPoint = {
                 ...node.data.attachmentPoint,
@@ -138,7 +161,6 @@ const EditAbilityPanel: FC<{
         <div>
             <h3 className="sidebar__title">Edit Ability</h3>
             <form onSubmit={handleSaveChanges} className="form">
-                {/* Standard ability fields... */}
                 <div className="form__group">
                     <label htmlFor="abilityNameEdit" className="form__label">
                         Ability Name
@@ -192,7 +214,6 @@ const EditAbilityPanel: FC<{
                     </select>
                 </div>
 
-                {/* NEW: Conditionally show the allowed type input if the node is a socket */}
                 {node.data.attachmentPoint && (
                     <div className="form__group">
                         <label htmlFor="allowedTypeEdit" className="form__label">
@@ -225,16 +246,11 @@ const EditAbilityPanel: FC<{
     );
 };
 
-/**
- * REWORKED: The Create panel now includes a conditional input for the
- * `allowedAttachmentType`.
- */
 const CreateAbilityPanel: FC<any> = (props) => {
     return (
         <div>
             <h3 className="sidebar__title">Create New Ability</h3>
             <form onSubmit={props.onSubmit} className="form">
-                {/* Standard creation fields... */}
                 <div className="form__group">
                     <label htmlFor="abilityName" className="form__label">
                         Ability Name
@@ -303,7 +319,6 @@ const CreateAbilityPanel: FC<any> = (props) => {
                     </label>
                 </div>
 
-                {/* NEW: Conditionally render the input for allowed attachment type */}
                 {props.isAttachmentPoint && (
                     <div className="form__group">
                         <label htmlFor="allowedType" className="form__label">
@@ -343,7 +358,6 @@ interface AbilityTreeSidebarProps {
     onRemoveTier: () => void;
     isAttachmentPoint: boolean;
     onIsAttachmentPointChange: (value: boolean) => void;
-    // NEW: Add props for the allowed attachment type field.
     allowedAttachmentType: string;
     onAllowedAttachmentTypeChange: (value: string) => void;
     selectedNode: Node | null;
