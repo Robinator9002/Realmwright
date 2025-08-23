@@ -11,6 +11,7 @@ import { TIER_HEIGHT, NODE_HEIGHT } from '../../../../constants/abilityTree.cons
  * REWORKED: The panel has been completely redesigned for clarity and
  * now includes a "Danger Zone" with a button to delete the socket.
  * REFINED: Includes confirmation modals for detach and delete actions.
+ * AESTHETIC REWORK: Improved visual consistency with other sidebar panels.
  */
 const ManageAttachmentPanel: FC<{
     node: Node;
@@ -65,9 +66,15 @@ const ManageAttachmentPanel: FC<{
     return (
         <div className="sidebar-panel">
             <h3 className="sidebar__title">Manage Socket</h3>
+
             <div className="sidebar-panel__section">
-                <div className="panel__item-details">
+                <div className="form__group">
+                    {' '}
+                    {/* Consistent form group for title/meta */}
                     <h4 className="panel__item-title">{node.data.label}</h4>
+                    {node.data.description && ( // Show description if available
+                        <p className="panel__item-description">{node.data.description}</p>
+                    )}
                     {node.data.attachmentPoint?.allowedAttachmentType && (
                         <p className="panel__item-meta">
                             Requires Type:{' '}
@@ -80,7 +87,8 @@ const ManageAttachmentPanel: FC<{
             <div className="sidebar-panel__section">
                 {attachedTree ? (
                     <div className="form__group">
-                        <p className="form__label">Currently Attached</p>
+                        <label className="form__label">Currently Attached</label>{' '}
+                        {/* Use form__label for consistency */}
                         <div className="attachment-display">
                             <span className="attachment-display__name">{attachedTree.name}</span>
                             <button
@@ -127,7 +135,7 @@ const ManageAttachmentPanel: FC<{
                 )}
             </div>
 
-            {/* NEW: Danger Zone for deleting the socket itself */}
+            {/* Danger Zone for deleting the socket itself */}
             <div className="sidebar-panel__section danger-zone">
                 <h4 className="danger-zone__title">Danger Zone</h4>
                 <button onClick={handleDelete} className="button button--danger button--full-width">
