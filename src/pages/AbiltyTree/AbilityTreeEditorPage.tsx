@@ -1,5 +1,5 @@
 // src/pages/AbiltyTree/AbilityTreeEditorPage.tsx
-import { useState, useEffect, type FC, useCallback } from 'react'; // Import useCallback
+import { useState, useEffect, type FC, useCallback } from 'react';
 import { useWorld } from '../../context/WorldContext';
 import type { AbilityTree } from '../../db/types';
 import type { Connection, Node } from 'reactflow';
@@ -7,12 +7,12 @@ import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
 import { updateAbilityTree, getAbilityTreesForWorld } from '../../db/queries/ability.queries';
 import { AbilityTreeSidebar } from '../../components/specific/AbilityTree/Tree/AbilityTreeSidebar';
 import { AbilityTreeCanvas } from '../../components/specific/AbilityTree/Tree/AbilityTreeCanvas';
-// RE-IMPORTED: The TierBar is now part of the layout again.
 import { TierBar } from '../../components/specific/AbilityTree/Sidebar/TierBar';
 import {
     PrerequisiteModal,
     type PrerequisiteLogicType,
 } from '../../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
+import { ReactFlowProvider } from 'reactflow'; // NEW: Import ReactFlowProvider
 
 interface AbilityTreeEditorPageProps {
     tree: AbilityTree;
@@ -48,7 +48,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-    // NEW: State to store the canvas viewport's Y position
     const [canvasViewportY, setCanvasViewportY] = useState(0);
 
     useEffect(() => {
@@ -115,7 +114,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
         setSelectedNode(null);
     };
 
-    // NEW: Callback to update the canvasViewportY state
     const handleCanvasViewportChange = useCallback((viewportY: number) => {
         setCanvasViewportY(viewportY);
     }, []);
@@ -161,20 +159,22 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         {isLoading && <p>Loading abilities...</p>}
                         {error && <p className="error-message">{error}</p>}
                         {!isLoading && !error && (
-                            <AbilityTreeCanvas
-                                abilities={abilities}
-                                tierCount={currentTree.tierCount}
-                                onNodeDragStop={handleNodeDragStop}
-                                onConnect={onConnectStart}
-                                onDelete={handleDelete}
-                                onNodeClick={handleNodeClick}
-                                availableTrees={availableTrees}
-                                onViewportChange={handleCanvasViewportChange}
-                            />
+                            // NEW: Wrap AbilityTreeCanvas with ReactFlowProvider
+                            <ReactFlowProvider>
+                                <AbilityTreeCanvas
+                                    abilities={abilities}
+                                    tierCount={currentTree.tierCount}
+                                    onNodeDragStop={handleNodeDragStop}
+                                    onConnect={onConnectStart}
+                                    onDelete={handleDelete}
+                                    onNodeClick={handleNodeClick}
+                                    availableTrees={availableTrees}
+                                    onViewportChange={handleCanvasViewportChange}
+                                />
+                            </ReactFlowProvider>
                         )}
                     </div>
-                    {/* RE-ADDED: The TierBar is now rendered alongside the canvas. */}
-                    <TierBar tierCount={currentTree.tierCount} viewportYOffset={canvasViewportY} /> {/* NEW: Pass viewport Y offset */}
+                    <TierBar tierCount={currentTree.tierCount} viewportYOffset={canvasViewportY} />
                 </main>
             </div>
 
