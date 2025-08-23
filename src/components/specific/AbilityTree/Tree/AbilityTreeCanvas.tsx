@@ -49,14 +49,15 @@ const defaultEdgeOptions = {
     style: { strokeWidth: 2 },
 };
 
-// NEW: Define a type for the state that tracks the drag preview
+// REWORKED: The drag preview state now tracks a single line position for clarity.
 type DragPreviewState = {
     x: number;
     y: number;
-    colX: number;
+    lineX: number; // Changed from colX to represent a line, not a column
     visible: boolean;
 };
 
+// REWORKED: The onViewportChange prop now passes both y and zoom.
 interface AbilityTreeCanvasProps {
     abilities: Ability[];
     tierCount: number;
@@ -65,7 +66,7 @@ interface AbilityTreeCanvasProps {
     onDelete: (deletedNodes: Node[], deletedEdges: Edge[]) => void;
     onNodeClick: (node: Node | null) => void;
     availableTrees: AbilityTree[];
-    onViewportChange: (viewportY: number) => void;
+    onViewportChange: (viewport: { y: number; zoom: number }) => void;
 }
 
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
@@ -80,20 +81,20 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const viewport = useViewport();
+    const { x, y, zoom } = useViewport();
     const { setViewport } = useReactFlow();
 
-    // NEW: State to manage the visibility and position of the ghost node and column highlight
     const [dragPreview, setDragPreview] = useState<DragPreviewState>({
         x: 0,
         y: 0,
-        colX: 0,
+        lineX: 0,
         visible: false,
     });
 
+    // REWORKED: This effect now passes the entire viewport object up.
     useEffect(() => {
-        onViewportChange(viewport.y);
-    }, [viewport.y, onViewportChange]);
+        onViewportChange({ y, zoom });
+    }, [y, zoom, onViewportChange]);
 
     const minX = NODE_START_X;
     const maxX = NODE_START_X + MAX_COLUMNS * COLUMN_WIDTH - NODE_HEIGHT;
@@ -176,25 +177,20 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         onEdgesChange(changes);
     };
 
-    // --- REWORKED DRAG HANDLERS ---
-
     const handleNodeDragStart = () => {
-        // When dragging starts, make the preview visible.
-        // Its position will be updated by handleNodeDrag.
         setDragPreview((prev) => ({ ...prev, visible: true }));
     };
 
     const handleNodeDrag: NodeDragHandler = useCallback(
         (_, node) => {
-            // This function runs continuously while a node is being dragged.
-            // It calculates the snap position in real-time and updates the preview.
-
-            // Vertical (Y) snapping logic
+            // --- FIX: Corrected Vertical Snapping Logic ---
+            // This formula correctly identifies the tier the node's center is in.
             const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
-            const closestTier = Math.max(1, Math.round(nodeCenterY / TIER_HEIGHT));
+            const closestTier = Math.max(1, Math.floor(nodeCenterY / TIER_HEIGHT) + 1);
+            // This calculation correctly finds the Y position to center the node in that tier.
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
 
-            // Horizontal (X) snapping logic
+            // Horizontal (X) snapping logic (no change to this part)
             const nodeCenterX = node.position.x + NODE_HEIGHT / 2;
             const relativeCenterX = nodeCenterX - NODE_START_X;
             const closestColumnIndex = Math.max(0, Math.round(relativeCenterX / COLUMN_WIDTH));
@@ -204,36 +200,32 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 COLUMN_WIDTH / 2 -
                 NODE_HEIGHT / 2;
 
-            // Clamp the snapped X position within the defined boundaries
             snappedX = Math.max(minX, Math.min(maxX, snappedX));
 
-            // Calculate the X position for the column highlight
-            const colX = NODE_START_X + closestColumnIndex * COLUMN_WIDTH;
+            // --- FIX: Corrected Horizontal Preview Logic ---
+            // Calculate the position for a single, centered line instead of a wide column.
+            const lineX = NODE_START_X + closestColumnIndex * COLUMN_WIDTH + COLUMN_WIDTH / 2;
 
-            // Update the state for the ghost node and column highlight
-            setDragPreview({ x: snappedX, y: snappedY, colX, visible: true });
+            setDragPreview({ x: snappedX, y: snappedY, lineX, visible: true });
         },
         [minX, maxX],
     );
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            // When the drag ends, hide the preview elements
-            setDragPreview({ x: 0, y: 0, colX: 0, visible: false });
+            setDragPreview({ x: 0, y: 0, lineX: 0, visible: false });
 
-            // Use the final calculated snap position from the preview state
             const { x: snappedX, y: snappedY } = dragPreview;
             const nodeCenterY = snappedY + NODE_HEIGHT / 2;
-            const closestTier = Math.max(1, Math.round(nodeCenterY / TIER_HEIGHT));
+            // Use the same corrected logic here to ensure the final tier is correct.
+            const closestTier = Math.max(1, Math.floor(nodeCenterY / TIER_HEIGHT) + 1);
 
-            // Update the actual node's position in the React Flow state
             setNodes((nds) =>
                 nds.map((n) =>
                     n.id === node.id ? { ...n, position: { x: snappedX, y: snappedY } } : n,
                 ),
             );
 
-            // Call the parent handler to save the changes to the database
             onNodeDragStop({ ...node, position: { x: snappedX, y: snappedY } }, closestTier);
         },
         [onNodeDragStop, setNodes, dragPreview],
@@ -301,21 +293,20 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 deleteKeyCode={['Backspace', 'Delete']}
                 nodesFocusable={true}
                 edgesFocusable={true}
-                panOnDrag={true} // UX IMPROVEMENT: Enable panning by dragging the background
+                panOnDrag={true}
                 panOnScroll={true}
                 panOnScrollMode={'vertical' as PanOnScrollMode}
                 minZoom={MIN_ZOOM}
                 maxZoom={MAX_ZOOM}
                 onMove={onMove}
             >
-                {/* --- NEW: Render the Ghost Node and Column Highlight --- */}
                 {dragPreview.visible && (
                     <>
+                        {/* REWORKED: This is now a thin, centered line for clarity. */}
                         <div
-                            className="snap-column-highlight"
+                            className="snap-line-highlight"
                             style={{
-                                width: `${COLUMN_WIDTH}px`,
-                                transform: `translateX(${dragPreview.colX}px)`,
+                                transform: `translateX(${dragPreview.lineX}px)`,
                             }}
                         />
                         <div
