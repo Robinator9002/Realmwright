@@ -10,6 +10,8 @@ import {
 } from '../db/queries/ability.queries';
 import type { Ability, AbilityTree, PrerequisiteGroup, AttachmentPoint } from '../db/types';
 import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
+// Import centralized constants
+import { TIER_HEIGHT, NODE_HEIGHT, NODE_START_X } from '../constants/abilityTree.constants';
 
 /**
  * REWORKED: The hook's `handleAddAbility` function now accepts an
@@ -37,6 +39,7 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
 
     /**
      * REWORKED: The function now takes an additional parameter for the allowed attachment type.
+     * REFINED: Calculates initial y position based on tier and node height.
      */
     const handleAddAbility = async (
         name: string,
@@ -56,6 +59,11 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
                     allowedAttachmentType: allowedAttachmentType.trim() || undefined,
                 };
             }
+
+            // Calculate initial y position to center the node in the tier
+            const yPos = TIER_HEIGHT * tier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
+            const xPos = NODE_START_X; // Use the default start X position
+
             await addAbility({
                 name,
                 description,
@@ -64,6 +72,8 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
                 tier,
                 iconUrl,
                 attachmentPoint,
+                x: xPos, // Save initial x position
+                y: yPos, // Save initial y position
             });
             await refreshAbilities();
         } catch (err) {
@@ -136,7 +146,17 @@ export const useAbilityTreeData = (tree: AbilityTree) => {
         }
     };
 
+    /**
+     * REFINED: If the tier is updated, also calculate and include the new y-position.
+     */
     const handleUpdateAbility = async (abilityId: number, updates: Partial<Ability>) => {
+        // If the tier is being updated, recalculate the y position
+        if (updates.tier !== undefined) {
+            const newTier = updates.tier;
+            const newYPos = TIER_HEIGHT * newTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
+            updates = { ...updates, y: newYPos };
+        }
+
         try {
             await updateAbility(abilityId, updates);
             await refreshAbilities();
