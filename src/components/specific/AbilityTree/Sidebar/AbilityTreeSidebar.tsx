@@ -3,7 +3,7 @@ import { useState, useEffect, type FC, useMemo } from 'react';
 import type { Ability, AbilityTree } from '../../../../db/types';
 import type { Node } from 'reactflow';
 import { Trash2 } from 'lucide-react'; // Import an icon for the delete button
-import { AbilityTreeTierControls } from './AbilityTreeTierControls';
+import { AbilityTreeTierControls } from '../Tree/AbilityTreeTierControls';
 import { useModal } from '../../../../context/ModalContext'; // NEW: Import useModal hook
 import { TIER_HEIGHT, NODE_HEIGHT } from '../../../../constants/abilityTree.constants'; // Import constants for tier calculation
 
