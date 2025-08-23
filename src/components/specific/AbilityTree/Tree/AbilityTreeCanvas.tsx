@@ -30,6 +30,8 @@ import {
     NODE_START_X,
     MIN_ZOOM,
     MAX_ZOOM,
+    MIN_Y_PAN, // Import new constants
+    MAX_Y_PAN_BUFFER, // Import new constants
 } from '../../../../constants/abilityTree.constants';
 
 // Memoize nodeTypes and edgeTypes outside the component to prevent re-creation warnings.
@@ -78,6 +80,17 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     // Define the horizontal boundaries for node dragging
     const minX = NODE_START_X;
     const maxX = NODE_START_X + MAX_COLUMNS * COLUMN_WIDTH - NODE_HEIGHT;
+
+    // NEW: Define the bounds for canvas panning
+    // minBoundX: Allow panning slightly to the left of the first column
+    const minBoundX = NODE_START_X - COLUMN_WIDTH;
+    // maxBoundX: Allow panning slightly to the right of the last column
+    const maxBoundX = NODE_START_X + MAX_COLUMNS * COLUMN_WIDTH + COLUMN_WIDTH;
+
+    // minBoundY: Allow panning slightly above the first tier
+    const minBoundY = MIN_Y_PAN;
+    // maxBoundY: Allow panning below the last tier, based on tierCount and buffer
+    const maxBoundY = tierCount * TIER_HEIGHT + MAX_Y_PAN_BUFFER;
 
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
@@ -169,7 +182,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 COLUMN_WIDTH / 2 -
                 NODE_HEIGHT / 2;
 
-            // NEW: Clamp snappedX within the defined horizontal boundaries
+            // Clamp snappedX within the defined horizontal boundaries
             snappedX = Math.max(minX, Math.min(maxX, snappedX));
 
             setNodes((nds) =>
@@ -226,8 +239,9 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 panOnDrag={false}
                 panOnScroll={true}
                 panOnScrollMode={'vertical' as PanOnScrollMode}
-                minZoom={MIN_ZOOM} // NEW: Apply minimum zoom level
-                maxZoom={MAX_ZOOM} // NEW: Apply maximum zoom level
+                minZoom={MIN_ZOOM}
+                maxZoom={MAX_ZOOM}
+                maxBounds={[minBoundX, minBoundY, maxBoundX, maxBoundY]} // NEW: Apply panning bounds
             >
                 <Background
                     variant={BackgroundVariant.Lines}
