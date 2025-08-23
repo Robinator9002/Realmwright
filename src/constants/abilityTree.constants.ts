@@ -28,3 +28,12 @@ export const MIN_ZOOM = 0.5; // Allow zooming out to half size
 
 // Maximum zoom level for the React Flow canvas.
 export const MAX_ZOOM = 2; // Allow zooming in to double size
+
+// Minimum Y pan value for the React Flow canvas.
+// Prevents panning too far up, ensuring the top tiers are always accessible.
+export const MIN_Y_PAN = -100; // Allow a little buffer above the first tier
+
+// Maximum Y pan value for the React Flow canvas.
+// Prevents panning too far down, keeping the view focused on relevant content.
+// This will be dynamically calculated based on tierCount, but a base value is good.
+export const MAX_Y_PAN_BUFFER = 200; // Additional buffer below the last tier
