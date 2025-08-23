@@ -4,18 +4,22 @@ import type { Ability, AbilityTree } from '../../../../db/types';
 import type { Node } from 'reactflow';
 import { Trash2 } from 'lucide-react'; // Import an icon for the delete button
 import { AbilityTreeTierControls } from './AbilityTreeTierControls';
+import { useModal } from '../../../../context/ModalContext'; // NEW: Import useModal hook
+import { TIER_HEIGHT, NODE_HEIGHT } from '../../../../constants/abilityTree.constants'; // Import constants for tier calculation
 
 /**
  * REWORKED: The panel has been completely redesigned for clarity and
  * now includes a "Danger Zone" with a button to delete the socket.
+ * REFINED: Includes confirmation modals for detach and delete actions.
  */
 const ManageAttachmentPanel: FC<{
     node: Node;
     availableTrees: AbilityTree[];
     onAttachTree: (abilityId: number, treeToAttachId: number) => void;
     onDetachTree: (abilityId: number) => void;
-    onDeleteAbility: (abilityId: number) => void; // NEW: Prop for deletion
+    onDeleteAbility: (abilityId: number) => void;
 }> = ({ node, availableTrees, onAttachTree, onDetachTree, onDeleteAbility }) => {
+    const { showModal } = useModal(); // NEW: Use the modal context
     const [selectedTreeId, setSelectedTreeId] = useState<string>('');
     const attachedTreeId = node.data.attachmentPoint?.attachedTreeId;
     const attachedTree = attachedTreeId
@@ -41,12 +45,21 @@ const ManageAttachmentPanel: FC<{
     };
 
     const handleDetach = () => {
-        onDetachTree(parseInt(node.id, 10));
+        showModal('confirmation', {
+            title: 'Detach Tree?',
+            message: `Are you sure you want to detach "${
+                attachedTree?.name || 'this tree'
+            }" from this socket?`,
+            onConfirm: () => onDetachTree(parseInt(node.id, 10)),
+        });
     };
 
-    // NEW: Handler for the delete button.
     const handleDelete = () => {
-        onDeleteAbility(parseInt(node.id, 10));
+        showModal('confirmation', {
+            title: 'Delete Attachment Socket?',
+            message: `This will permanently delete the "${node.data.label}" socket. This action cannot be undone.`,
+            onConfirm: () => onDeleteAbility(parseInt(node.id, 10)),
+        });
     };
 
     return (
@@ -125,14 +138,18 @@ const ManageAttachmentPanel: FC<{
     );
 };
 
-// --- EditAbilityPanel and CreateAbilityPanel remain unchanged from the previous step ---
-
+// --- EditAbilityPanel ---
+/**
+ * REFINED: When the tier is changed, the y-position is now correctly calculated.
+ * REFINED: Includes a confirmation modal for deleting an ability.
+ */
 const EditAbilityPanel: FC<{
     node: Node;
     tierCount: number;
     onUpdateAbility: (abilityId: number, updates: Partial<Ability>) => void;
     onDeleteAbility: (abilityId: number) => void;
 }> = ({ node, tierCount, onUpdateAbility, onDeleteAbility }) => {
+    const { showModal } = useModal(); // NEW: Use the modal context
     const [name, setName] = useState(node.data.label || '');
     const [description, setDescription] = useState(node.data.description || '');
     const [iconUrl, setIconUrl] = useState(node.data.iconUrl || '');
@@ -165,12 +182,18 @@ const EditAbilityPanel: FC<{
                 allowedAttachmentType: allowedAttachmentType.trim() || undefined,
             };
         }
+        // The y position calculation is now handled within useAbilityTreeData.ts
+        // when `updates.tier` is present.
 
         onUpdateAbility(abilityId, updates);
     };
 
     const handleDelete = () => {
-        onDeleteAbility(parseInt(node.id, 10));
+        showModal('confirmation', {
+            title: 'Delete Ability?',
+            message: `This will permanently delete the "${node.data.label}" ability and all its connections. This action cannot be undone.`,
+            onConfirm: () => onDeleteAbility(parseInt(node.id, 10)),
+        });
     };
 
     return (
@@ -248,7 +271,7 @@ const EditAbilityPanel: FC<{
                 <div className="form__footer">
                     <button
                         type="button"
-                        onClick={handleDelete}
+                        onClick={handleDelete} // Now triggers confirmation modal
                         className="button button--danger mr-auto"
                     >
                         Delete
@@ -263,6 +286,9 @@ const EditAbilityPanel: FC<{
 };
 
 const CreateAbilityPanel: FC<any> = (props) => {
+    // Re-calculating yPos here for consistency, but its value is largely handled in handleAddAbility
+    const currentYPos = TIER_HEIGHT * props.tier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
+
     return (
         <div>
             <h3 className="sidebar__title">Create New Ability</h3>
@@ -398,7 +424,7 @@ export const AbilityTreeSidebar: FC<AbilityTreeSidebarProps> = (props) => {
                     availableTrees={availableTrees}
                     onAttachTree={onAttachTree}
                     onDetachTree={onDetachTree}
-                    onDeleteAbility={onDeleteAbility} // Pass the handler down
+                    onDeleteAbility={onDeleteAbility}
                 />
             );
         }
