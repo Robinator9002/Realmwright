@@ -1,5 +1,5 @@
 // src/components/specific/AbilityTree/Tree/AbilityTreeCanvas.tsx
-import { useEffect, useCallback, useMemo, type FC } from 'react';
+import { useEffect, useCallback, useMemo, useState, type FC } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -49,6 +49,14 @@ const defaultEdgeOptions = {
     style: { strokeWidth: 2 },
 };
 
+// NEW: Define a type for the state that tracks the drag preview
+type DragPreviewState = {
+    x: number;
+    y: number;
+    colX: number;
+    visible: boolean;
+};
+
 interface AbilityTreeCanvasProps {
     abilities: Ability[];
     tierCount: number;
@@ -75,6 +83,14 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     const viewport = useViewport();
     const { setViewport } = useReactFlow();
 
+    // NEW: State to manage the visibility and position of the ghost node and column highlight
+    const [dragPreview, setDragPreview] = useState<DragPreviewState>({
+        x: 0,
+        y: 0,
+        colX: 0,
+        visible: false,
+    });
+
     useEffect(() => {
         onViewportChange(viewport.y);
     }, [viewport.y, onViewportChange]);
@@ -82,7 +98,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     const minX = NODE_START_X;
     const maxX = NODE_START_X + MAX_COLUMNS * COLUMN_WIDTH - NODE_HEIGHT;
 
-    // Define the bounds for canvas panning
     const minBoundX = NODE_START_X - COLUMN_WIDTH;
     const maxBoundX = NODE_START_X + MAX_COLUMNS * COLUMN_WIDTH + COLUMN_WIDTH;
     const minBoundY = MIN_Y_PAN;
@@ -161,12 +176,25 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         onEdgesChange(changes);
     };
 
-    const handleNodeDragStop: NodeDragHandler = useCallback(
+    // --- REWORKED DRAG HANDLERS ---
+
+    const handleNodeDragStart = () => {
+        // When dragging starts, make the preview visible.
+        // Its position will be updated by handleNodeDrag.
+        setDragPreview((prev) => ({ ...prev, visible: true }));
+    };
+
+    const handleNodeDrag: NodeDragHandler = useCallback(
         (_, node) => {
+            // This function runs continuously while a node is being dragged.
+            // It calculates the snap position in real-time and updates the preview.
+
+            // Vertical (Y) snapping logic
             const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
             const closestTier = Math.max(1, Math.round(nodeCenterY / TIER_HEIGHT));
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
 
+            // Horizontal (X) snapping logic
             const nodeCenterX = node.position.x + NODE_HEIGHT / 2;
             const relativeCenterX = nodeCenterX - NODE_START_X;
             const closestColumnIndex = Math.max(0, Math.round(relativeCenterX / COLUMN_WIDTH));
@@ -176,17 +204,39 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 COLUMN_WIDTH / 2 -
                 NODE_HEIGHT / 2;
 
+            // Clamp the snapped X position within the defined boundaries
             snappedX = Math.max(minX, Math.min(maxX, snappedX));
 
+            // Calculate the X position for the column highlight
+            const colX = NODE_START_X + closestColumnIndex * COLUMN_WIDTH;
+
+            // Update the state for the ghost node and column highlight
+            setDragPreview({ x: snappedX, y: snappedY, colX, visible: true });
+        },
+        [minX, maxX],
+    );
+
+    const handleNodeDragStop: NodeDragHandler = useCallback(
+        (_, node) => {
+            // When the drag ends, hide the preview elements
+            setDragPreview({ x: 0, y: 0, colX: 0, visible: false });
+
+            // Use the final calculated snap position from the preview state
+            const { x: snappedX, y: snappedY } = dragPreview;
+            const nodeCenterY = snappedY + NODE_HEIGHT / 2;
+            const closestTier = Math.max(1, Math.round(nodeCenterY / TIER_HEIGHT));
+
+            // Update the actual node's position in the React Flow state
             setNodes((nds) =>
                 nds.map((n) =>
                     n.id === node.id ? { ...n, position: { x: snappedX, y: snappedY } } : n,
                 ),
             );
 
+            // Call the parent handler to save the changes to the database
             onNodeDragStop({ ...node, position: { x: snappedX, y: snappedY } }, closestTier);
         },
-        [onNodeDragStop, setNodes, minX, maxX],
+        [onNodeDragStop, setNodes, dragPreview],
     );
 
     const handleConnect: OnConnect = useCallback(
@@ -207,31 +257,19 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         onNodeClick(null);
     }, [onNodeClick]);
 
-    // REWORKED: The onMove handler is now more robust to prevent feedback loops.
     const onMove = useCallback(
         (_: any, newViewport: Viewport) => {
             const { x, y, zoom } = newViewport;
-
-            // Calculate the boundaries in screen space
             const viewWidth = window.innerWidth;
             const viewHeight = window.innerHeight;
-
             const minXScreen = -maxBoundX * zoom + viewWidth;
             const maxXScreen = -minBoundX * zoom;
             const minYScreen = -maxBoundY * zoom + viewHeight;
             const maxYScreen = -minBoundY * zoom;
-
             const clampedX = Math.max(minXScreen, Math.min(x, maxXScreen));
             const clampedY = Math.max(minYScreen, Math.min(y, maxYScreen));
-
-            // --- FIX ---
-            // This condition is the key to preventing the infinite loop.
-            // We only call setViewport if the calculated clamped position is
-            // actually different from the current viewport position. This breaks
-            // the feedback cycle of onMove -> setViewport -> re-render -> onMove.
             const xDiff = Math.abs(clampedX - x);
             const yDiff = Math.abs(clampedY - y);
-
             if (xDiff > 0.01 || yDiff > 0.01) {
                 setViewport({ x: clampedX, y: clampedY, zoom });
             }
@@ -250,6 +288,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 edgeTypes={edgeTypes}
                 onNodesChange={handleNodesChange}
                 onEdgesChange={handleEdgesChange}
+                onNodeDragStart={handleNodeDragStart}
+                onNodeDrag={handleNodeDrag}
                 onNodeDragStop={handleNodeDragStop}
                 onConnect={handleConnect}
                 onNodeClick={handleNodeClick}
@@ -261,13 +301,32 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 deleteKeyCode={['Backspace', 'Delete']}
                 nodesFocusable={true}
                 edgesFocusable={true}
-                panOnDrag={false}
+                panOnDrag={true} // UX IMPROVEMENT: Enable panning by dragging the background
                 panOnScroll={true}
                 panOnScrollMode={'vertical' as PanOnScrollMode}
                 minZoom={MIN_ZOOM}
                 maxZoom={MAX_ZOOM}
                 onMove={onMove}
             >
+                {/* --- NEW: Render the Ghost Node and Column Highlight --- */}
+                {dragPreview.visible && (
+                    <>
+                        <div
+                            className="snap-column-highlight"
+                            style={{
+                                width: `${COLUMN_WIDTH}px`,
+                                transform: `translateX(${dragPreview.colX}px)`,
+                            }}
+                        />
+                        <div
+                            className="ghost-node"
+                            style={{
+                                transform: `translate(${dragPreview.x}px, ${dragPreview.y}px)`,
+                            }}
+                        />
+                    </>
+                )}
+
                 <Background
                     variant={BackgroundVariant.Lines}
                     gap={48}
@@ -286,7 +345,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                             />
                         </g>
                     ))}
-                    {Array.from({ length: numColumns }, (_, i) => i + 1).map((colNum) => (
+                    {Array.from({ length: numColumns + 1 }, (_, i) => i).map((colNum) => (
                         <g key={`column-group-${colNum}`}>
                             <line
                                 x1={NODE_START_X + COLUMN_WIDTH * colNum}
