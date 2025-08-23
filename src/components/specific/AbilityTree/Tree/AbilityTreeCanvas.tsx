@@ -28,6 +28,8 @@ import {
     COLUMN_WIDTH,
     MAX_COLUMNS,
     NODE_START_X,
+    MIN_ZOOM,
+    MAX_ZOOM,
 } from '../../../../constants/abilityTree.constants';
 
 // Memoize nodeTypes and edgeTypes outside the component to prevent re-creation warnings.
@@ -74,15 +76,12 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     }, [viewport.y, onViewportChange]);
 
     // Define the horizontal boundaries for node dragging
-    // minX: NODE_START_X (left edge of the first column)
-    // maxX: NODE_START_X + (MAX_COLUMNS * COLUMN_WIDTH) - NODE_HEIGHT (right edge of the last column, accounting for node width)
     const minX = NODE_START_X;
     const maxX = NODE_START_X + MAX_COLUMNS * COLUMN_WIDTH - NODE_HEIGHT;
 
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
             const yPos = TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
-            // Ensure initial xPos is within bounds
             const initialX = ability.x ?? NODE_START_X + COLUMN_WIDTH / 2 - NODE_HEIGHT / 2;
             const xPos = Math.max(minX, Math.min(maxX, initialX));
 
@@ -126,7 +125,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
             }
         }
         return { initialNodes: nodes, initialEdges: edges };
-    }, [abilities, availableTrees, minX, maxX]); // Add minX, maxX to dependencies
+    }, [abilities, availableTrees, minX, maxX]);
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -181,7 +180,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
             onNodeDragStop({ ...node, position: { x: snappedX, y: snappedY } }, closestTier);
         },
-        [onNodeDragStop, setNodes, minX, maxX], // Add minX, maxX to dependencies
+        [onNodeDragStop, setNodes, minX, maxX],
     );
 
     const handleConnect: OnConnect = useCallback(
@@ -202,7 +201,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         onNodeClick(null);
     }, [onNodeClick]);
 
-    // The number of columns for grid lines now directly uses MAX_COLUMNS
     const numColumns = MAX_COLUMNS;
 
     return (
@@ -225,10 +223,11 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 deleteKeyCode={['Backspace', 'Delete']}
                 nodesFocusable={true}
                 edgesFocusable={true}
-                // REWORKED: Navigation rules to prevent disorientation
-                panOnDrag={false} // Disables free-form click-and-drag
-                panOnScroll={true} // Enables navigation with the mouse scroll wheel
-                panOnScrollMode={'vertical' as PanOnScrollMode} // Locks scroll wheel navigation to the Y-axis
+                panOnDrag={false}
+                panOnScroll={true}
+                panOnScrollMode={'vertical' as PanOnScrollMode}
+                minZoom={MIN_ZOOM} // NEW: Apply minimum zoom level
+                maxZoom={MAX_ZOOM} // NEW: Apply maximum zoom level
             >
                 <Background
                     variant={BackgroundVariant.Lines}
