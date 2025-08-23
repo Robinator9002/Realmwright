@@ -3,7 +3,6 @@ import { useEffect, useCallback, useMemo, type FC } from 'react';
 import ReactFlow, {
     Background,
     Controls,
-    // REMOVED: MiniMap import as it's no longer used
     useNodesState,
     useEdgesState,
     BackgroundVariant,
@@ -16,18 +15,18 @@ import ReactFlow, {
     type Connection,
     type NodeMouseHandler,
     type PanOnScrollMode,
-    useViewport, // Import useViewport hook
+    useViewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Ability, AbilityTree } from '../../../../db/types';
 import { AbilityNode } from '../Node/AbilityNode';
 import { LogicEdge } from '../Sidebar/LogicEdge';
 import { AttachmentNode } from '../Node/AttachmentNode';
-// Import centralized constants, now including NODE_HEIGHT and COLUMN_WIDTH
 import {
     TIER_HEIGHT,
     NODE_HEIGHT,
     COLUMN_WIDTH,
+    MAX_COLUMNS,
     NODE_START_X,
 } from '../../../../constants/abilityTree.constants';
 
@@ -53,7 +52,6 @@ interface AbilityTreeCanvasProps {
     onDelete: (deletedNodes: Node[], deletedEdges: Edge[]) => void;
     onNodeClick: (node: Node | null) => void;
     availableTrees: AbilityTree[];
-    // NEW: Callback to report viewport changes to the parent
     onViewportChange: (viewportY: number) => void;
 }
 
@@ -65,23 +63,28 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     onDelete,
     onNodeClick,
     availableTrees,
-    onViewportChange, // Destructure the new prop
+    onViewportChange,
 }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const viewport = useViewport(); // Get viewport state
+    const viewport = useViewport();
 
-    // NEW: Effect to report viewport Y changes to the parent
     useEffect(() => {
         onViewportChange(viewport.y);
     }, [viewport.y, onViewportChange]);
 
+    // Define the horizontal boundaries for node dragging
+    // minX: NODE_START_X (left edge of the first column)
+    // maxX: NODE_START_X + (MAX_COLUMNS * COLUMN_WIDTH) - NODE_HEIGHT (right edge of the last column, accounting for node width)
+    const minX = NODE_START_X;
+    const maxX = NODE_START_X + MAX_COLUMNS * COLUMN_WIDTH - NODE_HEIGHT;
+
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
-            // Calculate y position based on tier, centering the node vertically
             const yPos = TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
-            // Calculate x position based on column, centering the node horizontally
-            const xPos = ability.x ?? NODE_START_X + COLUMN_WIDTH / 2 - NODE_HEIGHT / 2; // Default to a column-aligned position
+            // Ensure initial xPos is within bounds
+            const initialX = ability.x ?? NODE_START_X + COLUMN_WIDTH / 2 - NODE_HEIGHT / 2;
+            const xPos = Math.max(minX, Math.min(maxX, initialX));
 
             let attachedTreeName: string | undefined = undefined;
             if (ability.attachmentPoint?.attachedTreeId) {
@@ -123,7 +126,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
             }
         }
         return { initialNodes: nodes, initialEdges: edges };
-    }, [abilities, availableTrees]);
+    }, [abilities, availableTrees, minX, maxX]); // Add minX, maxX to dependencies
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -158,16 +161,17 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
 
             // Calculate the target x-position for snapping: center of the closest column.
-            // NODE_START_X is the left-most boundary for abilities.
-            // We need to find which COLUMN_WIDTH segment the node's center X falls into relative to NODE_START_X.
-            const nodeCenterX = node.position.x + NODE_HEIGHT / 2; // Assuming node is square, NODE_WIDTH = NODE_HEIGHT
+            const nodeCenterX = node.position.x + NODE_HEIGHT / 2;
             const relativeCenterX = nodeCenterX - NODE_START_X;
-            const closestColumnIndex = Math.max(0, Math.round(relativeCenterX / COLUMN_WIDTH)); // 0-indexed column
-            const snappedX =
+            const closestColumnIndex = Math.max(0, Math.round(relativeCenterX / COLUMN_WIDTH));
+            let snappedX =
                 NODE_START_X +
                 closestColumnIndex * COLUMN_WIDTH +
                 COLUMN_WIDTH / 2 -
-                NODE_HEIGHT / 2; // Adjust for node's top-left
+                NODE_HEIGHT / 2;
+
+            // NEW: Clamp snappedX within the defined horizontal boundaries
+            snappedX = Math.max(minX, Math.min(maxX, snappedX));
 
             setNodes((nds) =>
                 nds.map((n) =>
@@ -177,7 +181,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
             onNodeDragStop({ ...node, position: { x: snappedX, y: snappedY } }, closestTier);
         },
-        [onNodeDragStop, setNodes],
+        [onNodeDragStop, setNodes, minX, maxX], // Add minX, maxX to dependencies
     );
 
     const handleConnect: OnConnect = useCallback(
@@ -198,14 +202,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         onNodeClick(null);
     }, [onNodeClick]);
 
-    // Calculate the maximum X for the grid lines based on the current canvas width
-    // This is a rough estimation, a more accurate way would be to get the actual ReactFlow dimensions
-    const maxGridX = Math.max(
-        document.documentElement.scrollWidth, // Use scrollWidth to get a wider estimate
-        (abilities.length > 0 ? Math.max(...abilities.map((a) => a.x || NODE_START_X)) : 0) +
-            COLUMN_WIDTH * 5, // Ensure some space for abilities
-    );
-    const numColumns = Math.ceil(maxGridX / COLUMN_WIDTH);
+    // The number of columns for grid lines now directly uses MAX_COLUMNS
+    const numColumns = MAX_COLUMNS;
 
     return (
         <div className="ability-editor-wrapper">
@@ -239,8 +237,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     color="var(--color-border)"
                 />
                 <svg className="ability-editor-canvas__grid-lines">
-                    {' '}
-                    {/* NEW: Add class for styling */}
                     {/* Horizontal Tier Lines */}
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
@@ -261,7 +257,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                                 y1="0"
                                 x2={NODE_START_X + COLUMN_WIDTH * colNum}
                                 y2="100%"
-                                className="column-line" // Use a new class for styling
+                                className="column-line"
                             />
                         </g>
                     ))}
