@@ -21,9 +21,10 @@
 }
 
 /* REWORK: The selection style now uses `outline` instead of `border` or `box-shadow`.
-   `outline` does NOT affect the element's dimensions, which 100% prevents any "jumping". */
+   `outline` does NOT affect the element's dimensions, which 100% prevents any "jumping".
+   ENHANCED: Increased outline width for better visibility. */
 .react-flow__node.selected .ability-node {
-    outline: 2px solid var(--color-accent);
+    outline: 3px solid var(--color-accent); /* Increased from 2px to 3px */
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* A slightly stronger shadow for emphasis */
 }
 
