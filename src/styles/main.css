@@ -31,6 +31,8 @@
 @import url('./components/ability-tree/sidebar/_tier-bar.css');
 @import url('./components/ability-tree/sidebar/_logic-edge.css');
 @import url('./components/ability-tree/sidebar/_sidebar-panels.css');
+/* NEW: Import the styles for our canvas UX enhancements */
+@import url('./components/ability-tree/canvas/_canvas-enhancements.css');
 
 /* 3.2 Class Sheets */
 @import url('./components/class-sheet/_sheet-editor.css');
