@@ -17,15 +17,16 @@
     transition: transform 0.1s ease-out, opacity 0.2s ease; /* Smooth transitions for appearing/moving */
 }
 
-/* --- Column Highlight --- */
-/* This is the style for the vertical bar that highlights the column
-   the user is currently hovering over while dragging a node. */
-.snap-column-highlight {
+/* --- Snap Line Highlight --- */
+/* REWORKED: This is now a thin vertical line that shows the exact centerline
+   of the column the user is snapping to. This is much clearer than a wide highlight. */
+.snap-line-highlight {
     position: absolute;
     top: 0;
     height: 100%; /* Stretches the full height of the canvas */
+    width: 2px; /* A crisp, thin line */
     background-color: var(--color-accent);
-    opacity: 0.05; /* Very subtle highlight */
+    opacity: 0.4; /* A bit more visible than the old column highlight */
     z-index: 0; /* Sits behind everything */
     pointer-events: none;
     transition: transform 0.1s ease-out, opacity 0.2s ease;
