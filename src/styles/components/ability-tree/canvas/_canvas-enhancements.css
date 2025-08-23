@@ -1,33 +1,34 @@
 /* src/styles/components/ability-tree/_canvas-enhancements.css */
 
-/* --- Ghost Node Preview --- */
-/* This is the style for the semi-transparent node that shows where
-   the dragged node will snap to. It's a visual guide for the user. */
-.ghost-node {
-    background-color: var(--color-panel-bg);
-    border: 2px dashed var(--color-accent); /* Dashed border to indicate a preview */
-    border-radius: var(--border-radius);
-    width: 80px; /* Must match .ability-node width */
-    height: 80px; /* Must match .ability-node height */
-    opacity: 0.5; /* Semi-transparent */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-    position: absolute; /* Positioned absolutely within the canvas */
-    z-index: 0; /* Sits behind the actual nodes */
-    pointer-events: none; /* Prevents it from interfering with mouse events */
-    transition: transform 0.1s ease-out, opacity 0.2s ease; /* Smooth transitions for appearing/moving */
+/* --- Snap Target Indicator --- */
+/* This is the new primary indicator. It's a larger, circular target that shows
+   the exact center point where the dragged node will snap. It's designed to be
+   unambiguous and easy to see. */
+.snap-target {
+    background-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
+    border: 2px solid var(--color-accent);
+    border-radius: 50%; /* A perfect circle */
+    width: 100px; /* Larger than the node for clear visibility */
+    height: 100px;
+    box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 50%, transparent);
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+    /* This transform ensures the circle's center is at the snap point */
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease-out, opacity 0.2s ease;
 }
 
-/* --- Snap Line Highlight --- */
-/* REWORKED: This is now a thin vertical line that shows the exact centerline
-   of the column the user is snapping to. This is much clearer than a wide highlight. */
-.snap-line-highlight {
+/* --- Tier Highlight --- */
+/* This is the horizontal bar that highlights the entire tier the user is
+   currently targeting. It provides clear vertical context. */
+.snap-tier-highlight {
     position: absolute;
-    top: 0;
-    height: 100%; /* Stretches the full height of the canvas */
-    width: 2px; /* A crisp, thin line */
+    left: 0;
+    width: 100%; /* Stretches the full width of the canvas */
     background-color: var(--color-accent);
-    opacity: 0.4; /* A bit more visible than the old column highlight */
-    z-index: 0; /* Sits behind everything */
+    opacity: 0.05; /* Very subtle highlight */
+    z-index: 0;
     pointer-events: none;
     transition: transform 0.1s ease-out, opacity 0.2s ease;
 }
