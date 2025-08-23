@@ -91,6 +91,9 @@ type CreateAbilityData = {
     tier: number;
     iconUrl?: string;
     attachmentPoint?: AttachmentPoint;
+    // FIX: Added x and y to CreateAbilityData as optional properties
+    x?: number;
+    y?: number;
 };
 
 export async function addAbility(abilityData: CreateAbilityData): Promise<number> {
