@@ -65,3 +65,11 @@
     stroke-width: 1px;
     stroke-dasharray: 4 4; /* A clear but not overpowering dashed line */
 }
+
+/* NEW: Styles for the vertical column lines */
+.column-line {
+    stroke: var(--color-border);
+    stroke-width: 0.5px; /* Slightly thinner than tier lines for distinction */
+    stroke-dasharray: 2 2; /* A finer dashed line */
+    opacity: 0.6;
+}

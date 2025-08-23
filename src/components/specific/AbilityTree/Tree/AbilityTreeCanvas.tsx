@@ -23,10 +23,11 @@ import type { Ability, AbilityTree } from '../../../../db/types';
 import { AbilityNode } from '../Node/AbilityNode';
 import { LogicEdge } from '../Sidebar/LogicEdge';
 import { AttachmentNode } from '../Node/AttachmentNode';
-// Import centralized constants, now including NODE_HEIGHT
+// Import centralized constants, now including NODE_HEIGHT and COLUMN_WIDTH
 import {
     TIER_HEIGHT,
     NODE_HEIGHT,
+    COLUMN_WIDTH,
     NODE_START_X,
 } from '../../../../constants/abilityTree.constants';
 
@@ -78,11 +79,9 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
             // Calculate y position based on tier, centering the node vertically
-            // (TIER_HEIGHT * tier) gives the bottom of the tier line
-            // - (TIER_HEIGHT / 2) places the *center of the tier*
-            // - (NODE_HEIGHT / 2) adjusts the node's position so its top-left is correct for centering itself
             const yPos = TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
-            const xPos = ability.x ?? NODE_START_X; // Use stored x, or default start x
+            // Calculate x position based on column, centering the node horizontally
+            const xPos = ability.x ?? NODE_START_X + COLUMN_WIDTH / 2 - NODE_HEIGHT / 2; // Default to a column-aligned position
 
             let attachedTreeName: string | undefined = undefined;
             if (ability.attachmentPoint?.attachedTreeId) {
@@ -154,23 +153,29 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
             // Calculate the target y-position for snapping: center of the closest tier.
-            // Node's position.y is its top-left corner.
-            // To get its center: node.position.y + NODE_HEIGHT / 2
-            // Then, divide by TIER_HEIGHT to get the tier index for the center.
-            // Round to find the closest tier.
-            // Finally, calculate the new top-left y-position for the node
-            // to place its center at the center of the tier.
             const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
             const closestTier = Math.max(1, Math.round(nodeCenterY / TIER_HEIGHT));
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
 
+            // Calculate the target x-position for snapping: center of the closest column.
+            // NODE_START_X is the left-most boundary for abilities.
+            // We need to find which COLUMN_WIDTH segment the node's center X falls into relative to NODE_START_X.
+            const nodeCenterX = node.position.x + NODE_HEIGHT / 2; // Assuming node is square, NODE_WIDTH = NODE_HEIGHT
+            const relativeCenterX = nodeCenterX - NODE_START_X;
+            const closestColumnIndex = Math.max(0, Math.round(relativeCenterX / COLUMN_WIDTH)); // 0-indexed column
+            const snappedX =
+                NODE_START_X +
+                closestColumnIndex * COLUMN_WIDTH +
+                COLUMN_WIDTH / 2 -
+                NODE_HEIGHT / 2; // Adjust for node's top-left
+
             setNodes((nds) =>
                 nds.map((n) =>
-                    n.id === node.id ? { ...n, position: { ...n.position, y: snappedY } } : n,
+                    n.id === node.id ? { ...n, position: { x: snappedX, y: snappedY } } : n,
                 ),
             );
 
-            onNodeDragStop({ ...node, position: { ...node.position, y: snappedY } }, closestTier);
+            onNodeDragStop({ ...node, position: { x: snappedX, y: snappedY } }, closestTier);
         },
         [onNodeDragStop, setNodes],
     );
@@ -192,6 +197,15 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     const handlePaneClick = useCallback(() => {
         onNodeClick(null);
     }, [onNodeClick]);
+
+    // Calculate the maximum X for the grid lines based on the current canvas width
+    // This is a rough estimation, a more accurate way would be to get the actual ReactFlow dimensions
+    const maxGridX = Math.max(
+        document.documentElement.scrollWidth, // Use scrollWidth to get a wider estimate
+        (abilities.length > 0 ? Math.max(...abilities.map((a) => a.x || NODE_START_X)) : 0) +
+            COLUMN_WIDTH * 5, // Ensure some space for abilities
+    );
+    const numColumns = Math.ceil(maxGridX / COLUMN_WIDTH);
 
     return (
         <div className="ability-editor-wrapper">
@@ -224,7 +238,10 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     lineWidth={0.25}
                     color="var(--color-border)"
                 />
-                <svg>
+                <svg className="ability-editor-canvas__grid-lines">
+                    {' '}
+                    {/* NEW: Add class for styling */}
+                    {/* Horizontal Tier Lines */}
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
                             <line
@@ -236,10 +253,20 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                             />
                         </g>
                     ))}
+                    {/* NEW: Vertical Column Lines for Horizontal Snapping Guidance */}
+                    {Array.from({ length: numColumns }, (_, i) => i + 1).map((colNum) => (
+                        <g key={`column-group-${colNum}`}>
+                            <line
+                                x1={NODE_START_X + COLUMN_WIDTH * colNum}
+                                y1="0"
+                                x2={NODE_START_X + COLUMN_WIDTH * colNum}
+                                y2="100%"
+                                className="column-line" // Use a new class for styling
+                            />
+                        </g>
+                    ))}
                 </svg>
                 <Controls />
-                {/* REMOVED: MiniMap as per user request */}
-                {/* <MiniMap /> */}
             </ReactFlow>
         </div>
     );
