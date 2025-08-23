@@ -3,6 +3,7 @@ import { useEffect, useCallback, useMemo, type FC } from 'react';
 import ReactFlow, {
     Background,
     Controls,
+    // REMOVED: MiniMap import as it's no longer used
     useNodesState,
     useEdgesState,
     BackgroundVariant,
@@ -22,8 +23,12 @@ import type { Ability, AbilityTree } from '../../../../db/types';
 import { AbilityNode } from '../Node/AbilityNode';
 import { LogicEdge } from '../Sidebar/LogicEdge';
 import { AttachmentNode } from '../Node/AttachmentNode';
-// Import centralized constants
-import { TIER_HEIGHT, NODE_START_X } from '../../../../constants/abilityTree.constants';
+// Import centralized constants, now including NODE_HEIGHT
+import {
+    TIER_HEIGHT,
+    NODE_HEIGHT,
+    NODE_START_X,
+} from '../../../../constants/abilityTree.constants';
 
 // Memoize nodeTypes and edgeTypes outside the component to prevent re-creation warnings.
 const nodeTypes = {
@@ -72,8 +77,11 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = abilities.map((ability) => {
-            // Calculate y position based on tier, ensuring consistency with snapping logic
-            const yPos = TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2;
+            // Calculate y position based on tier, centering the node vertically
+            // (TIER_HEIGHT * tier) gives the bottom of the tier line
+            // - (TIER_HEIGHT / 2) places the *center of the tier*
+            // - (NODE_HEIGHT / 2) adjusts the node's position so its top-left is correct for centering itself
+            const yPos = TIER_HEIGHT * ability.tier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
             const xPos = ability.x ?? NODE_START_X; // Use stored x, or default start x
 
             let attachedTreeName: string | undefined = undefined;
@@ -145,8 +153,16 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            const closestTier = Math.max(1, Math.round(node.position.y / TIER_HEIGHT));
-            const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2;
+            // Calculate the target y-position for snapping: center of the closest tier.
+            // Node's position.y is its top-left corner.
+            // To get its center: node.position.y + NODE_HEIGHT / 2
+            // Then, divide by TIER_HEIGHT to get the tier index for the center.
+            // Round to find the closest tier.
+            // Finally, calculate the new top-left y-position for the node
+            // to place its center at the center of the tier.
+            const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
+            const closestTier = Math.max(1, Math.round(nodeCenterY / TIER_HEIGHT));
+            const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
 
             setNodes((nds) =>
                 nds.map((n) =>
