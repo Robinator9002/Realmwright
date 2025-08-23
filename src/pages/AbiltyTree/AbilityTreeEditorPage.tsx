@@ -12,7 +12,13 @@ import {
     PrerequisiteModal,
     type PrerequisiteLogicType,
 } from '../../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
-import { ReactFlowProvider } from 'reactflow'; // NEW: Import ReactFlowProvider
+import { ReactFlowProvider } from 'reactflow';
+
+// NEW: Define a type for the viewport state for clarity.
+type ViewportState = {
+    y: number;
+    zoom: number;
+};
 
 interface AbilityTreeEditorPageProps {
     tree: AbilityTree;
@@ -48,7 +54,8 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-    const [canvasViewportY, setCanvasViewportY] = useState(0);
+    // REWORKED: The state now holds both y and zoom.
+    const [canvasViewport, setCanvasViewport] = useState<ViewportState>({ y: 0, zoom: 1 });
 
     useEffect(() => {
         refreshAbilities();
@@ -59,63 +66,82 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
             }
         };
         fetchAvailableTrees();
-    }, [refreshAbilities, selectedWorld, currentTree.id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedWorld, currentTree.id]);
 
-    const handleCreateAbility = async (e: React.FormEvent) => {
-        e.preventDefault();
-        await handleAddAbility(
+    const handleCreateAbility = useCallback(
+        async (e: React.FormEvent) => {
+            e.preventDefault();
+            await handleAddAbility(
+                newAbilityName,
+                newAbilityDesc,
+                newAbilityTier,
+                newAbilityIconUrl,
+                isAttachmentPoint,
+                newAllowedAttachmentType,
+            );
+            setNewAbilityName('');
+            setNewAbilityDesc('');
+            setNewAbilityTier(1);
+            setNewAbilityIconUrl('');
+            setIsAttachmentPoint(false);
+            setNewAllowedAttachmentType('');
+        },
+        [
+            handleAddAbility,
             newAbilityName,
             newAbilityDesc,
             newAbilityTier,
             newAbilityIconUrl,
             isAttachmentPoint,
             newAllowedAttachmentType,
-        );
-        setNewAbilityName('');
-        setNewAbilityDesc('');
-        setNewAbilityTier(1);
-        setNewAbilityIconUrl('');
-        setIsAttachmentPoint(false);
-        setNewAllowedAttachmentType('');
-    };
+        ],
+    );
 
-    const onConnectStart = (connection: Connection) => {
+    const onConnectStart = useCallback((connection: Connection) => {
         setPendingConnection(connection);
         setIsModalOpen(true);
-    };
+    }, []);
 
-    const handlePrerequisiteSelect = (type: PrerequisiteLogicType) => {
-        if (pendingConnection) {
-            handleConnect(pendingConnection, type);
-        }
-        setPendingConnection(null);
-        setIsModalOpen(false);
-    };
+    const handlePrerequisiteSelect = useCallback(
+        (type: PrerequisiteLogicType) => {
+            if (pendingConnection) {
+                handleConnect(pendingConnection, type);
+            }
+            setPendingConnection(null);
+            setIsModalOpen(false);
+        },
+        [handleConnect, pendingConnection],
+    );
 
-    const handleAddTier = async () => {
+    const handleAddTier = useCallback(async () => {
         const newTierCount = currentTree.tierCount + 1;
-        setCurrentTree({ ...currentTree, tierCount: newTierCount });
+        setCurrentTree((prevTree) => ({ ...prevTree, tierCount: newTierCount }));
         await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
-    };
+    }, [currentTree]);
 
-    const handleRemoveTier = async () => {
+    const handleRemoveTier = useCallback(async () => {
         if (currentTree.tierCount <= 1) return;
         const newTierCount = currentTree.tierCount - 1;
-        setCurrentTree({ ...currentTree, tierCount: newTierCount });
+        setCurrentTree((prevTree) => ({ ...prevTree, tierCount: newTierCount }));
         await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
-    };
+    }, [currentTree]);
 
-    const handleNodeClick = (node: Node | null) => {
+    const handleNodeClick = useCallback((node: Node | null) => {
         setSelectedNode(node);
-    };
+    }, []);
 
-    const handleDeleteAbilityFromSidebar = async (abilityId: number) => {
-        await handleDeleteAbility(abilityId);
-        setSelectedNode(null);
-    };
+    const handleDeleteAbilityFromSidebar = useCallback(
+        async (abilityId: number) => {
+            await handleDeleteAbility(abilityId);
+            setSelectedNode(null);
+        },
+        [handleDeleteAbility],
+    );
 
-    const handleCanvasViewportChange = useCallback((viewportY: number) => {
-        setCanvasViewportY(viewportY);
+    // REWORKED: The handler now accepts the new viewport object.
+    const handleCanvasViewportChange = useCallback((viewport: ViewportState) => {
+        setCanvasViewport(viewport);
     }, []);
 
     return (
@@ -159,7 +185,6 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                         {isLoading && <p>Loading abilities...</p>}
                         {error && <p className="error-message">{error}</p>}
                         {!isLoading && !error && (
-                            // NEW: Wrap AbilityTreeCanvas with ReactFlowProvider
                             <ReactFlowProvider>
                                 <AbilityTreeCanvas
                                     abilities={abilities}
@@ -174,7 +199,12 @@ export const AbilityTreeEditorPage: FC<AbilityTreeEditorPageProps> = ({ tree, on
                             </ReactFlowProvider>
                         )}
                     </div>
-                    <TierBar tierCount={currentTree.tierCount} viewportYOffset={canvasViewportY} />
+                    {/* REWORKED: Pass both y offset and zoom to the TierBar */}
+                    <TierBar
+                        tierCount={currentTree.tierCount}
+                        viewportYOffset={canvasViewport.y}
+                        viewportZoom={canvasViewport.zoom}
+                    />
                 </main>
             </div>
 
