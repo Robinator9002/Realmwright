@@ -49,15 +49,16 @@ const defaultEdgeOptions = {
     style: { strokeWidth: 2 },
 };
 
-// REWORKED: The drag preview state now tracks a single line position for clarity.
+// REWORKED: The state now tracks the snap target's center and the tier's Y position.
 type DragPreviewState = {
-    x: number;
-    y: number;
-    lineX: number; // Changed from colX to represent a line, not a column
+    snappedX: number; // Top-left X for the final node position
+    snappedY: number; // Top-left Y for the final node position
+    targetCenterX: number; // Center X for the circular snap target
+    targetCenterY: number; // Center Y for the circular snap target
+    tierHighlightY: number; // Top Y for the tier highlight bar
     visible: boolean;
 };
 
-// REWORKED: The onViewportChange prop now passes both y and zoom.
 interface AbilityTreeCanvasProps {
     abilities: Ability[];
     tierCount: number;
@@ -81,17 +82,18 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const { x, y, zoom } = useViewport();
+    const { y, zoom } = useViewport();
     const { setViewport } = useReactFlow();
 
     const [dragPreview, setDragPreview] = useState<DragPreviewState>({
-        x: 0,
-        y: 0,
-        lineX: 0,
+        snappedX: 0,
+        snappedY: 0,
+        targetCenterX: 0,
+        targetCenterY: 0,
+        tierHighlightY: 0,
         visible: false,
     });
 
-    // REWORKED: This effect now passes the entire viewport object up.
     useEffect(() => {
         onViewportChange({ y, zoom });
     }, [y, zoom, onViewportChange]);
@@ -183,14 +185,10 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDrag: NodeDragHandler = useCallback(
         (_, node) => {
-            // --- FIX: Corrected Vertical Snapping Logic ---
-            // This formula correctly identifies the tier the node's center is in.
             const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
             const closestTier = Math.max(1, Math.floor(nodeCenterY / TIER_HEIGHT) + 1);
-            // This calculation correctly finds the Y position to center the node in that tier.
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
 
-            // Horizontal (X) snapping logic (no change to this part)
             const nodeCenterX = node.position.x + NODE_HEIGHT / 2;
             const relativeCenterX = nodeCenterX - NODE_START_X;
             const closestColumnIndex = Math.max(0, Math.round(relativeCenterX / COLUMN_WIDTH));
@@ -202,22 +200,32 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
             snappedX = Math.max(minX, Math.min(maxX, snappedX));
 
-            // --- FIX: Corrected Horizontal Preview Logic ---
-            // Calculate the position for a single, centered line instead of a wide column.
-            const lineX = NODE_START_X + closestColumnIndex * COLUMN_WIDTH + COLUMN_WIDTH / 2;
+            // REWORKED: Calculate positions for the new indicators
+            const targetCenterX = snappedX + NODE_HEIGHT / 2;
+            const targetCenterY = snappedY + NODE_HEIGHT / 2;
+            const tierHighlightY = (closestTier - 1) * TIER_HEIGHT;
 
-            setDragPreview({ x: snappedX, y: snappedY, lineX, visible: true });
+            setDragPreview({
+                snappedX,
+                snappedY,
+                targetCenterX,
+                targetCenterY,
+                tierHighlightY,
+                visible: true,
+            });
         },
         [minX, maxX],
     );
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            setDragPreview({ x: 0, y: 0, lineX: 0, visible: false });
+            // Use the final calculated snap position from the preview state
+            const { snappedX, snappedY } = dragPreview;
 
-            const { x: snappedX, y: snappedY } = dragPreview;
+            // Hide the preview elements
+            setDragPreview((prev) => ({ ...prev, visible: false }));
+
             const nodeCenterY = snappedY + NODE_HEIGHT / 2;
-            // Use the same corrected logic here to ensure the final tier is correct.
             const closestTier = Math.max(1, Math.floor(nodeCenterY / TIER_HEIGHT) + 1);
 
             setNodes((nds) =>
@@ -300,19 +308,20 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 maxZoom={MAX_ZOOM}
                 onMove={onMove}
             >
+                {/* REWORKED: Render the new Snap Target and Tier Highlight */}
                 {dragPreview.visible && (
                     <>
-                        {/* REWORKED: This is now a thin, centered line for clarity. */}
                         <div
-                            className="snap-line-highlight"
+                            className="snap-tier-highlight"
                             style={{
-                                transform: `translateX(${dragPreview.lineX}px)`,
+                                height: `${TIER_HEIGHT}px`,
+                                transform: `translateY(${dragPreview.tierHighlightY}px)`,
                             }}
                         />
                         <div
-                            className="ghost-node"
+                            className="snap-target"
                             style={{
-                                transform: `translate(${dragPreview.x}px, ${dragPreview.y}px)`,
+                                transform: `translate(${dragPreview.targetCenterX}px, ${dragPreview.targetCenterY}px)`,
                             }}
                         />
                     </>
