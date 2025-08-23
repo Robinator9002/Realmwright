@@ -13,7 +13,11 @@ export const NODE_HEIGHT = 80;
 
 // The fixed width allocated for each column/horizontal slot in the ability tree canvas.
 // This will be used for drawing vertical grid lines and potentially for horizontal snapping.
-export const COLUMN_WIDTH = 150; // A reasonable width for horizontal spacing
+export const COLUMN_WIDTH = 150;
+
+// The maximum number of columns visible/draggable on the canvas.
+// Used to define the horizontal boundaries for node dragging and canvas panning.
+export const MAX_COLUMNS = 10; // Allowing for 10 columns of horizontal space
 
 // The starting X position for newly created nodes.
 // This helps in consistent placement of nodes when they are first added to the canvas.
