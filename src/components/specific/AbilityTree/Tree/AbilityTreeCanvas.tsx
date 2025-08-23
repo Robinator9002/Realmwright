@@ -16,6 +16,8 @@ import ReactFlow, {
     type NodeMouseHandler,
     type PanOnScrollMode,
     useViewport,
+    useReactFlow,
+    type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Ability, AbilityTree } from '../../../../db/types';
@@ -30,11 +32,10 @@ import {
     NODE_START_X,
     MIN_ZOOM,
     MAX_ZOOM,
-    MIN_Y_PAN, // Import new constants
-    MAX_Y_PAN_BUFFER, // Import new constants
+    MIN_Y_PAN,
+    MAX_Y_PAN_BUFFER,
 } from '../../../../constants/abilityTree.constants';
 
-// Memoize nodeTypes and edgeTypes outside the component to prevent re-creation warnings.
 const nodeTypes = {
     abilityNode: AbilityNode,
     attachmentNode: AttachmentNode,
@@ -72,24 +73,19 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const viewport = useViewport();
+    const { setViewport } = useReactFlow();
 
     useEffect(() => {
         onViewportChange(viewport.y);
     }, [viewport.y, onViewportChange]);
 
-    // Define the horizontal boundaries for node dragging
     const minX = NODE_START_X;
     const maxX = NODE_START_X + MAX_COLUMNS * COLUMN_WIDTH - NODE_HEIGHT;
 
-    // NEW: Define the bounds for canvas panning
-    // minBoundX: Allow panning slightly to the left of the first column
+    // Define the bounds for canvas panning
     const minBoundX = NODE_START_X - COLUMN_WIDTH;
-    // maxBoundX: Allow panning slightly to the right of the last column
     const maxBoundX = NODE_START_X + MAX_COLUMNS * COLUMN_WIDTH + COLUMN_WIDTH;
-
-    // minBoundY: Allow panning slightly above the first tier
     const minBoundY = MIN_Y_PAN;
-    // maxBoundY: Allow panning below the last tier, based on tierCount and buffer
     const maxBoundY = tierCount * TIER_HEIGHT + MAX_Y_PAN_BUFFER;
 
     const { initialNodes, initialEdges } = useMemo(() => {
@@ -167,12 +163,10 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
 
     const handleNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            // Calculate the target y-position for snapping: center of the closest tier.
             const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
             const closestTier = Math.max(1, Math.round(nodeCenterY / TIER_HEIGHT));
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
 
-            // Calculate the target x-position for snapping: center of the closest column.
             const nodeCenterX = node.position.x + NODE_HEIGHT / 2;
             const relativeCenterX = nodeCenterX - NODE_START_X;
             const closestColumnIndex = Math.max(0, Math.round(relativeCenterX / COLUMN_WIDTH));
@@ -182,7 +176,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 COLUMN_WIDTH / 2 -
                 NODE_HEIGHT / 2;
 
-            // Clamp snappedX within the defined horizontal boundaries
             snappedX = Math.max(minX, Math.min(maxX, snappedX));
 
             setNodes((nds) =>
@@ -214,6 +207,38 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
         onNodeClick(null);
     }, [onNodeClick]);
 
+    // REWORKED: The onMove handler is now more robust to prevent feedback loops.
+    const onMove = useCallback(
+        (_: any, newViewport: Viewport) => {
+            const { x, y, zoom } = newViewport;
+
+            // Calculate the boundaries in screen space
+            const viewWidth = window.innerWidth;
+            const viewHeight = window.innerHeight;
+
+            const minXScreen = -maxBoundX * zoom + viewWidth;
+            const maxXScreen = -minBoundX * zoom;
+            const minYScreen = -maxBoundY * zoom + viewHeight;
+            const maxYScreen = -minBoundY * zoom;
+
+            const clampedX = Math.max(minXScreen, Math.min(x, maxXScreen));
+            const clampedY = Math.max(minYScreen, Math.min(y, maxYScreen));
+
+            // --- FIX ---
+            // This condition is the key to preventing the infinite loop.
+            // We only call setViewport if the calculated clamped position is
+            // actually different from the current viewport position. This breaks
+            // the feedback cycle of onMove -> setViewport -> re-render -> onMove.
+            const xDiff = Math.abs(clampedX - x);
+            const yDiff = Math.abs(clampedY - y);
+
+            if (xDiff > 0.01 || yDiff > 0.01) {
+                setViewport({ x: clampedX, y: clampedY, zoom });
+            }
+        },
+        [setViewport, minBoundX, minBoundY, maxBoundX, maxBoundY],
+    );
+
     const numColumns = MAX_COLUMNS;
 
     return (
@@ -241,7 +266,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                 panOnScrollMode={'vertical' as PanOnScrollMode}
                 minZoom={MIN_ZOOM}
                 maxZoom={MAX_ZOOM}
-                maxBounds={[minBoundX, minBoundY, maxBoundX, maxBoundY]} // NEW: Apply panning bounds
+                onMove={onMove}
             >
                 <Background
                     variant={BackgroundVariant.Lines}
@@ -250,7 +275,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                     color="var(--color-border)"
                 />
                 <svg className="ability-editor-canvas__grid-lines">
-                    {/* Horizontal Tier Lines */}
                     {Array.from({ length: tierCount }, (_, i) => i + 1).map((tierNum) => (
                         <g key={`tier-group-${tierNum}`}>
                             <line
@@ -262,7 +286,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({
                             />
                         </g>
                     ))}
-                    {/* NEW: Vertical Column Lines for Horizontal Snapping Guidance */}
                     {Array.from({ length: numColumns }, (_, i) => i + 1).map((colNum) => (
                         <g key={`column-group-${colNum}`}>
                             <line
