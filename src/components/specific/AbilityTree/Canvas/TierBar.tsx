@@ -1,25 +1,34 @@
-// src/components/specific/AbilityTree/Sidebar/TierBar.tsx
+// src/components/specific/AbilityTree/Canvas/TierBar.tsx
+
+/**
+ * COMMIT: chore(ability-tree): relocate TierBar to canvas directory
+ *
+ * This commit moves the `TierBar` component to its new, more logical home
+ * within the `/Canvas` subdirectory as part of the final cleanup phase.
+ *
+ * Rationale:
+ * The `TierBar` is a visual component directly related to the canvas layout
+ * and viewport. Placing it alongside the `AbilityTreeCanvas` and `DragPreview`
+ * components improves the organizational clarity of the module.
+ *
+ * No functional changes were required. The component's props-based interface
+ * for receiving viewport data remains the most efficient implementation for
+ * this presentational component.
+ */
 import type { FC } from 'react';
-// Import centralized constants
 import { TIER_HEIGHT } from '../../../../constants/abilityTree.constants';
 
-// REWORKED: The interface now accepts a viewportZoom prop.
 interface TierBarProps {
     tierCount: number;
     viewportYOffset: number;
     viewportZoom: number;
 }
 
-/**
- * A dedicated component that displays the tier labels for the ability tree editor.
- * It now scales and pans in sync with the main canvas.
- */
 export const TierBar: FC<TierBarProps> = ({ tierCount, viewportYOffset, viewportZoom }) => {
     return (
         <div className="tier-bar">
-            {/* REWORKED: The transform now includes scale to match the canvas zoom.
-          transform-origin: top is crucial to ensure it scales from the top edge,
-          keeping it perfectly aligned with the canvas grid lines during zoom. */}
+            {/* The transform style allows this component to pan and zoom
+                in perfect sync with the main React Flow canvas. */}
             <div
                 className="tier-bar__content"
                 style={{
