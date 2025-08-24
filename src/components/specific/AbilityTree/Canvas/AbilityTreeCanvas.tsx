@@ -1,29 +1,21 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: feat(ability-tree): synchronize all SVG visuals with viewport
+ * COMMIT: fix(ability-tree): resolve TypeScript errors and remove unused imports
  *
- * This commit resolves all outstanding visual bugs related to the grid and
- * drag highlighter by synchronizing them with the React Flow viewport.
+ * This commit corrects several TypeScript errors and cleans up the canvas
+ * component by removing unused variables and types.
  *
  * Rationale:
- * Previously, the custom SVG elements for the grid and highlighter were
- * rendered in a static coordinate space, causing them to become misaligned
- * when the user panned or zoomed the canvas.
+ * The previous version contained type mismatches and imported modules that were
+ * no longer in use, leading to compilation errors and code clutter.
  *
  * Implementation Details:
- * 1.  **Viewport Synchronization:**
- * - The `useViewport` hook is now used to get the live `x`, `y`, and `zoom`
- * of the canvas.
- * - All custom SVG elements are wrapped in a parent `<g>` element.
- * - The `transform` attribute of this `<g>` is dynamically set to match the
- * viewport's transform. This forces our entire custom layer to pan and
- * zoom in perfect sync with the React Flow nodes.
- * 2.  **Dynamic Grid Sizing:**
- * - The component now calculates the actual bounds of the nodes on the canvas.
- * - This is used to determine how many tier and column lines to render,
- * ensuring the grid always extends slightly beyond the content area rather
- * than being a fixed size.
+ * 1.  **Corrected Prop Type:** The `onViewportChange` callback was being called
+ * with an `x` property that was not defined in its type. The call has been
+ * corrected to only pass the expected `y` and `zoom` properties.
+ * 2.  **Removed Unused Imports:** The `getViewport` hook and `Viewport` type
+ * were imported but never used. They have been removed to clean up the code.
  */
 import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
@@ -41,8 +33,6 @@ import ReactFlow, {
     type Node,
     type NodeMouseHandler,
     type PanOnScrollMode,
-    useReactFlow,
-    type Viewport,
     type NodeDragHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -83,13 +73,13 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const { getViewport } = useReactFlow();
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const draggingNode = useStore(draggingNodeSelector);
     const { x, y, zoom } = useViewport(); // Get live viewport data
 
     useEffect(() => {
-        onViewportChange({ x, y, zoom });
+        // Corrected to only pass the expected properties
+        onViewportChange({ y, zoom });
     }, [x, y, zoom, onViewportChange]);
 
     const { initialNodes, initialEdges, canvasBounds, gridDimensions } = useMemo(() => {
