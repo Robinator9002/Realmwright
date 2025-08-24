@@ -1,34 +1,33 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: fix(ability-tree): resolve all typing and import errors in canvas
+ * COMMIT: feat(ability-tree): implement final interaction polish and bugfixes
  *
- * This commit addresses a series of TypeScript errors that arose from the
- * previous refactoring efforts.
+ * This commit implements the remaining items from the advanced interaction
+ * polish plan, addressing connection highlighting and node snapping/selection.
  *
  * Rationale:
- * The previous version had incorrect import paths after the directory
- * restructuring, was missing key type imports from React, and had a type
- * mismatch on the `onNodeDragStop` handler due to an incorrect function
- * signature.
+ * The canvas interactions, while functional, lacked the final layer of polish
+ * expected from a high-quality tool. This commit rectifies those issues.
  *
  * Implementation Details:
- * 1.  **Imports Corrected:**
- * - Added `type FC` to the React import.
- * - Corrected the relative paths for `AbilityNode`, `AttachmentNode`, and
- * `LogicEdge` to reflect the final directory structure.
- * - Removed the unused `NODE_HEIGHT` constant import.
- * 2.  **`onNodeDragStop` Handler Fixed:**
- * - Created a new `onNodeDragStop` handler inside the component that
- * correctly matches the signature expected by React Flow:
- * `(event, node) => void`.
- * - This new handler performs the final snapping calculation to determine the
- * `closestTier` and the final `snappedPosition`.
- * - It then calls the `handleNodeDragStop` function from the context, passing
- * the correctly formatted data. This properly bridges the gap between
- * React Flow's event signature and our context's action signature.
+ * 1.  **Connection Highlighting:**
+ * - `onConnectStart` and `onConnectEnd` handlers are now used to toggle a
+ * CSS class (`connection-in-progress`) on the React Flow wrapper element.
+ * - This class, combined with the new CSS, causes all valid target handles
+ * to light up when a connection is being dragged.
+ * 2.  **Accidental Drag Prevention:**
+ * - The `nodeDragThreshold` prop has been added to the `<ReactFlow>`
+ * component with a value of `1`. This requires the user to drag the mouse
+ * at least 1 pixel before a drag event is initiated, effectively
+ * distinguishing a click from a drag and fixing the "jump on click" bug.
+ * 3.  **Corrected Horizontal Snapping:**
+ * - The snapping calculation in `onNodeDragStop` has been rewritten. It now
+ * correctly calculates the distance to the center of each column and snaps
+ * the node to the column with the minimum distance, ensuring predictable
+ * and accurate horizontal placement.
  */
-import { useEffect, useCallback, useMemo, type FC } from 'react'; // Added FC
+import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -43,25 +42,23 @@ import ReactFlow, {
     type NodeMouseHandler,
     type PanOnScrollMode,
     useReactFlow,
-    type NodeDragHandler, // Import NodeDragHandler for correct typing
+    type NodeDragHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
-// Corrected import paths
 import { AbilityNode } from '../Node/AbilityNode';
 import { AttachmentNode } from '../Node/AttachmentNode';
 import { LogicEdge } from '../Edge/LogicEdge';
 import { GridHighlighter } from './GridHighlighter';
 import {
     TIER_HEIGHT,
-    COLUMN_WIDTH, // NODE_HEIGHT removed as it's not used here
+    COLUMN_WIDTH,
     MAX_COLUMNS,
     NODE_START_X,
-    NODE_HEIGHT, // Re-added for snapping calculation
+    NODE_HEIGHT,
 } from '../../../../constants/abilityTree.constants';
 
-// --- Component Setup ---
 const nodeTypes = { abilityNode: AbilityNode, attachmentNode: AttachmentNode };
 const edgeTypes = { logicEdge: LogicEdge };
 const defaultEdgeOptions = { type: 'logicEdge', style: { strokeWidth: 2 } };
@@ -71,7 +68,6 @@ interface AbilityTreeCanvasProps {
 }
 
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange }) => {
-    // --- Context Consumption ---
     const {
         abilities,
         tree,
@@ -81,29 +77,23 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
         setPendingConnection,
     } = useAbilityTreeEditor();
 
-    // --- React Flow State ---
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { getViewport } = useReactFlow();
+    const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const { y, zoom } = getViewport();
         onViewportChange({ y, zoom });
     }, [getViewport, onViewportChange]);
 
-    // --- Data Transformation & Memoization ---
     const { initialNodes, initialEdges, canvasBounds } = useMemo(() => {
-        const transformedNodes: Node[] = abilities.map((ability) => {
-            const attachedTreeName =
-                ability.attachmentPoint?.attachedTreeId != null ? tree.name : undefined;
-
-            return {
-                id: String(ability.id!),
-                position: { x: ability.x ?? 0, y: ability.y ?? 0 },
-                data: { ...ability, label: ability.name, attachedTreeName },
-                type: ability.attachmentPoint ? 'attachmentNode' : 'abilityNode',
-            };
-        });
+        const transformedNodes: Node[] = abilities.map((ability) => ({
+            id: String(ability.id!),
+            position: { x: ability.x ?? 0, y: ability.y ?? 0 },
+            data: { ...ability, label: ability.name },
+            type: ability.attachmentPoint ? 'attachmentNode' : 'abilityNode',
+        }));
 
         const transformedEdges: Edge[] = [];
         abilities.forEach((ability) => {
@@ -136,7 +126,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
         setEdges(initialEdges);
     }, [initialNodes, initialEdges, setNodes, setEdges]);
 
-    // --- Event Handlers ---
     const handleNodesChange: OnNodesChange = (changes) => {
         const deletedNodeChanges = changes.filter((c) => c.type === 'remove');
         if (deletedNodeChanges.length > 0) {
@@ -159,23 +148,19 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
         onEdgesChange(changes);
     };
 
-    // NEW: Properly typed handler that matches React Flow's expected signature.
     const onNodeDragStop: NodeDragHandler = useCallback(
         (_, node) => {
-            // Perform the final snapping calculation here.
             const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
             const closestTier = Math.max(1, Math.floor(nodeCenterY / TIER_HEIGHT) + 1);
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
 
+            // --- CORRECTED SNAPPING LOGIC ---
             const nodeCenterX = node.position.x + NODE_HEIGHT / 2;
-            const relativeCenterX = nodeCenterX - NODE_START_X;
-            const closestColIndex = Math.max(0, Math.round(relativeCenterX / COLUMN_WIDTH));
-            const snappedX =
-                NODE_START_X + closestColIndex * COLUMN_WIDTH + COLUMN_WIDTH / 2 - NODE_HEIGHT / 2;
+            const relativeX = nodeCenterX - NODE_START_X;
+            const closestColIndex = Math.round(relativeX / COLUMN_WIDTH);
+            const snappedX = NODE_START_X + closestColIndex * COLUMN_WIDTH - NODE_HEIGHT / 2;
 
             const snappedNode = { ...node, position: { x: snappedX, y: snappedY } };
-
-            // Now, call the handler from the context with the correct arguments.
             handleNodeDragStop(snappedNode, closestTier);
         },
         [handleNodeDragStop],
@@ -187,6 +172,14 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
         },
         [setPendingConnection],
     );
+
+    const onConnectStart = useCallback(() => {
+        reactFlowWrapper.current?.classList.add('connection-in-progress');
+    }, []);
+
+    const onConnectEnd = useCallback(() => {
+        reactFlowWrapper.current?.classList.remove('connection-in-progress');
+    }, []);
 
     const onNodeClick: NodeMouseHandler = useCallback(
         (_, node) => {
@@ -200,7 +193,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
     }, [setSelectedNode]);
 
     return (
-        <div className="ability-editor-wrapper">
+        <div className="ability-editor-wrapper" ref={reactFlowWrapper}>
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -208,8 +201,10 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                 edgeTypes={edgeTypes}
                 onNodesChange={handleNodesChange}
                 onEdgesChange={handleEdgesChange}
-                onNodeDragStop={onNodeDragStop} // Use the new, correctly typed handler
+                onNodeDragStop={onNodeDragStop}
                 onConnect={onConnect}
+                onConnectStart={onConnectStart}
+                onConnectEnd={onConnectEnd}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
                 defaultEdgeOptions={defaultEdgeOptions}
@@ -218,6 +213,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                 panOnScroll
                 panOnScrollMode={'vertical' as PanOnScrollMode}
                 translateExtent={canvasBounds}
+                nodeDragThreshold={1}
                 minZoom={0.5}
                 maxZoom={2}
                 onMove={(_, vp) => onViewportChange(vp)}
