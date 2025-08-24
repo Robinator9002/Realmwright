@@ -1,35 +1,55 @@
 // src/context/AbilityTreeEditorContext.tsx
 
 /**
- * COMMIT: fix(ability-tree): correct import path for PrerequisiteModal
+ * COMMIT: feat(ability-tree): make tree state reactive within context
  *
- * This commit corrects a file path error in the initial creation of the context.
- * The `PrerequisiteModal` component was incorrectly imported. With the full
- * project structure now available for reference, this path has been updated to
- * point to the correct location within the `/Sidebar/` directory.
+ * This commit refactors the context to manage the `AbilityTree` object as a
+ * reactive state, resolving the stale tier counter bug.
+ *
+ * Rationale:
+ * The previous implementation passed a static `tree` object to the provider,
+ * which never updated. This caused UI components to display stale data (like
+ * the tier count) until the entire editor was remounted.
+ *
+ * Implementation Details:
+ * - The provider now initializes the `AbilityTree` in a `useState` hook,
+ * making it a piece of reactive state (`currentTree`).
+ * - The logic for `onAddTier` and `onRemoveTier` has been moved directly
+ * into the provider. These functions now perform the database update and then
+ * call `setCurrentTree` to publish the new state to all consumers.
+ * - The context now exposes the reactive `currentTree` and the new handler
+ * functions, ensuring the entire UI updates instantly when the tree changes.
  */
-import { createContext, useContext, useMemo, useState, type FC, type ReactNode } from 'react';
+import {
+    createContext,
+    useContext,
+    useMemo,
+    useState,
+    useCallback,
+    type FC,
+    type ReactNode,
+} from 'react';
 import { type Node, type Edge, type Connection } from 'reactflow';
 import { useAbilityTreeData } from '../hooks/useAbilityTreeData';
+import { updateAbilityTree } from '../db/queries/ability.queries'; // Import the query
 import type { Ability, AbilityTree } from '../db/types';
-// CORRECTED IMPORT PATH
 import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
 
-// --- TYPE DEFINITION ---
-// Defines the precise "shape" of the data and actions that will be available
-// to any component that consumes this context. This ensures type safety.
 interface AbilityTreeEditorContextType {
-    // STATE: Read-only data representing the current state of the editor.
-    tree: AbilityTree;
+    // STATE
+    currentTree: AbilityTree; // Changed from 'tree' to 'currentTree' for clarity
     abilities: Ability[];
     isLoading: boolean;
     error: string | null;
     selectedNode: Node | null;
     pendingConnection: Connection | null;
 
-    // ACTIONS: Functions to modify the editor's state.
+    // ACTIONS
     setSelectedNode: (node: Node | null) => void;
     setPendingConnection: (connection: Connection | null) => void;
+    handleAddTier: () => Promise<void>; // New action
+    handleRemoveTier: () => Promise<void>; // New action
+    // ... other actions from useAbilityTreeData
     refreshAbilities: () => Promise<void>;
     handleAddAbility: (
         name: string,
@@ -48,40 +68,51 @@ interface AbilityTreeEditorContextType {
     handleDeleteAbility: (abilityId: number) => Promise<void>;
 }
 
-// --- CONTEXT CREATION ---
-// We create the context here, initially with `undefined`. This forces us to
-// provide a value and ensures any component trying to use the context outside
-// of its provider will fail loudly, preventing bugs.
 const AbilityTreeEditorContext = createContext<AbilityTreeEditorContextType | undefined>(undefined);
 
-// --- PROVIDER COMPONENT ---
-// This is the component that will wrap the entire Ability Tree Editor. It is
-// responsible for managing and providing the state to all its children.
 export const AbilityTreeEditorProvider: FC<{
-    tree: AbilityTree;
+    initialTree: AbilityTree; // Renamed for clarity
     children: ReactNode;
-}> = ({ tree, children }) => {
-    // The core data logic is still handled by our well-defined custom hook.
-    const abilityTreeData = useAbilityTreeData(tree);
-
-    // UI-specific state that lives here, close to where it's used.
+}> = ({ initialTree, children }) => {
+    // --- STATE MANAGEMENT ---
+    const [currentTree, setCurrentTree] = useState<AbilityTree>(initialTree);
+    const abilityTreeData = useAbilityTreeData(currentTree); // The hook now depends on the reactive state
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
 
-    // `useMemo` is a crucial optimization. It ensures that the context value
-    // object is only recreated when its dependencies change. This prevents
-    // unnecessary re-renders of all consumer components every time the provider
-    // itself re-renders.
+    // --- NEW TIER HANDLERS ---
+    const handleAddTier = useCallback(async () => {
+        const newTierCount = currentTree.tierCount + 1;
+        await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
+        setCurrentTree((prevTree) => ({ ...prevTree, tierCount: newTierCount }));
+    }, [currentTree]);
+
+    const handleRemoveTier = useCallback(async () => {
+        if (currentTree.tierCount <= 1) return;
+        const newTierCount = currentTree.tierCount - 1;
+        await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
+        setCurrentTree((prevTree) => ({ ...prevTree, tierCount: newTierCount }));
+    }, [currentTree]);
+
     const value = useMemo(
         () => ({
-            tree,
+            currentTree,
             ...abilityTreeData,
             selectedNode,
             setSelectedNode,
             pendingConnection,
             setPendingConnection,
+            handleAddTier,
+            handleRemoveTier,
         }),
-        [tree, abilityTreeData, selectedNode, pendingConnection],
+        [
+            currentTree,
+            abilityTreeData,
+            selectedNode,
+            pendingConnection,
+            handleAddTier,
+            handleRemoveTier,
+        ],
     );
 
     return (
@@ -91,18 +122,10 @@ export const AbilityTreeEditorProvider: FC<{
     );
 };
 
-// --- CONSUMER HOOK ---
-// This is the public-facing API for our context. Components will use this
-// custom hook to gain access to the editor's state and actions.
 export const useAbilityTreeEditor = (): AbilityTreeEditorContextType => {
     const context = useContext(AbilityTreeEditorContext);
-
-    // This check is a safeguard. If a component tries to use this hook without
-    // being a child of the Provider, we throw an explicit error, which makes
-    // debugging much easier than dealing with silent failures.
     if (!context) {
         throw new Error('useAbilityTreeEditor must be used within an AbilityTreeEditorProvider');
     }
-
     return context;
 };
