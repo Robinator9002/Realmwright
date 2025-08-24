@@ -1,24 +1,25 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: fix(ability-tree): correctly render drag highlighter inside SVG pane
+ * COMMIT: fix(ability-tree): resolve SVG layering issue causing highlighter clipping
  *
- * This commit resolves a critical runtime error where SVG elements were being
- * rendered in an HTML context, causing the browser to fail.
+ * This commit fixes a visual bug where the drag highlighter and grid lines
+ * would get clipped or covered when the user panned the canvas.
  *
  * Rationale:
- * The separate `GridHighlighter` component was being treated as an HTML overlay
- * by React Flow. The correct approach is to render the highlighter's SVG
- * elements within an existing SVG context that is part of the React Flow pane.
+ * The custom <svg> element for the grid and highlighter was rendering in a
+ * separate layer that did not always align with the main React Flow node
+ * container. This caused the node container to obscure the SVG content when
+ * panned.
  *
  * Implementation Details:
- * - The logic from the now-obsolete `GridHighlighter.tsx` has been moved
- * directly into the `AbilityTreeCanvas` component.
- * - The `useStore` hook is now used within the canvas to track the dragging node.
- * - The `<rect>` and `<circle>` elements for the highlighter are now
- * conditionally rendered inside the same `<svg>` tag used for the grid lines,
- * ensuring they are in the correct SVG namespace and coordinate space.
- * - The separate `GridHighlighter.tsx` file is no longer needed and can be deleted.
+ * - An inline style has been applied to the <svg> element for the grid lines.
+ * - `position: 'absolute'`, `width: '100%'`, `height: '100%'` ensures the SVG
+ * stretches to fill the entire React Flow pane.
+ * - `zIndex: -1` forces the SVG to render explicitly behind the nodes and
+ * edges, preventing any part of it from being clipped by other layers.
+ * - This ensures the highlighter is always visible across the entire canvas,
+ * regardless of pan or zoom level.
  */
 import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
@@ -27,7 +28,7 @@ import ReactFlow, {
     useNodesState,
     useEdgesState,
     BackgroundVariant,
-    useStore, // Import useStore
+    useStore,
     type Edge,
     type OnNodesChange,
     type OnEdgesChange,
@@ -57,7 +58,6 @@ const nodeTypes = { abilityNode: AbilityNode, attachmentNode: AttachmentNode };
 const edgeTypes = { logicEdge: LogicEdge };
 const defaultEdgeOptions = { type: 'logicEdge', style: { strokeWidth: 2 } };
 
-// Selector for the useStore hook to efficiently find the dragging node.
 const draggingNodeSelector = (state: { nodeInternals: Map<string, Node> }): Node | undefined => {
     const nodes = Array.from(state.nodeInternals.values());
     return nodes.find((n) => n.dragging);
@@ -81,7 +81,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { getViewport } = useReactFlow();
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
-    // Use the store to get the currently dragging node for the highlighter.
     const draggingNode = useStore(draggingNodeSelector);
 
     useEffect(() => {
@@ -224,8 +223,15 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                     gap={48}
                     color="var(--color-border)"
                 />
-                <svg className="ability-editor-canvas__grid-lines">
-                    {/* Render the grid lines first */}
+                <svg
+                    className="ability-editor-canvas__grid-lines"
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        position: 'absolute',
+                        zIndex: -1,
+                    }}
+                >
                     {Array.from({ length: tree.tierCount }, (_, i) => (
                         <line
                             key={`tier-line-${i}`}
@@ -246,19 +252,20 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                             className="column-line"
                         />
                     ))}
-                    {/* Conditionally render the highlighter elements inside the SVG */}
                     {draggingNode && (
                         <g>
                             <rect
                                 x={0}
                                 y={
-                                    Math.max(
-                                        0,
+                                    (Math.max(
+                                        1,
                                         Math.floor(
                                             (draggingNode.position.y + NODE_HEIGHT / 2) /
                                                 TIER_HEIGHT,
-                                        ),
-                                    ) * TIER_HEIGHT
+                                        ) + 1,
+                                    ) -
+                                        1) *
+                                    TIER_HEIGHT
                                 }
                                 width="100%"
                                 height={TIER_HEIGHT}
@@ -273,18 +280,17 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                                         (draggingNode.position.x + NODE_HEIGHT / 2 - NODE_START_X) /
                                             COLUMN_WIDTH,
                                     ) *
-                                        COLUMN_WIDTH -
-                                    NODE_HEIGHT / 2 +
-                                    NODE_HEIGHT / 2
+                                        COLUMN_WIDTH
                                 }
                                 cy={
-                                    Math.max(
-                                        0,
+                                    (Math.max(
+                                        1,
                                         Math.floor(
                                             (draggingNode.position.y + NODE_HEIGHT / 2) /
                                                 TIER_HEIGHT,
-                                        ),
-                                    ) *
+                                        ) + 1,
+                                    ) -
+                                        1) *
                                         TIER_HEIGHT +
                                     TIER_HEIGHT / 2
                                 }
