@@ -1,4 +1,19 @@
-// src/components/specific/AbilityTree/AbilityTreeTierControls.tsx
+// src/components/specific/AbilityTree/Sidebar/AbilityTreeTierControls.tsx
+
+/**
+ * COMMIT: chore(ability-tree): relocate TierControls to sidebar directory
+ *
+ * This commit moves the `AbilityTreeTierControls` component to its new,
+ * logical home within the `/Sidebar` subdirectory.
+ *
+ * Rationale:
+ * This component is an integral part of the sidebar's UI, providing the
+ * primary controls for modifying the tree's tier structure. Placing it
+ * alongside the other sidebar components enhances the organizational clarity
+ * of the module.
+ *
+ * No functional changes were necessary for this component.
+ */
 import type { FC } from 'react';
 import { Plus, Minus } from 'lucide-react';
 
@@ -8,10 +23,6 @@ interface AbilityTreeTierControlsProps {
     onRemoveTier: () => void;
 }
 
-/**
- * A UI component within the editor sidebar that allows the user to
- * add or remove tiers from the current ability tree.
- */
 export const AbilityTreeTierControls: FC<AbilityTreeTierControlsProps> = ({
     tierCount,
     onAddTier,
@@ -24,7 +35,7 @@ export const AbilityTreeTierControls: FC<AbilityTreeTierControlsProps> = ({
                 <button
                     onClick={onRemoveTier}
                     className="tier-controls__button"
-                    disabled={tierCount <= 1} // Can't have less than 1 tier
+                    disabled={tierCount <= 1}
                     title="Remove Last Tier"
                 >
                     <Minus size={16} />
