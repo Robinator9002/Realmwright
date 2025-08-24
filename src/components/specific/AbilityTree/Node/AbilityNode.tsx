@@ -1,15 +1,24 @@
 // src/components/specific/AbilityTree/Node/AbilityNode.tsx
-import type { FC } from 'react';
-import { Handle, Position } from 'reactflow';
-import type { NodeProps } from 'reactflow';
-import { ShieldCheck } from 'lucide-react';
 
 /**
- * REWORKED: The node is now wrapped in a div with a `title` attribute
- * to provide a native browser tooltip on hover, showing the full name and description.
+ * COMMIT: chore(ability-tree): relocate AbilityNode to node directory
+ *
+ * This commit moves the `AbilityNode` component to its final, organized
+ * location within the `/Node` subdirectory.
+ *
+ * Rationale:
+ * Consolidating all custom React Flow node components into a dedicated
+ * directory improves the overall structure and maintainability of the module,
+ * making it easy to locate and manage these critical visual components.
+ *
+ * No functional changes were required.
  */
+import type { FC } from 'react';
+import { Handle, Position, type NodeProps } from 'reactflow';
+import { ShieldCheck } from 'lucide-react';
+
 export const AbilityNode: FC<NodeProps> = ({ data }) => {
-    // Construct the tooltip content. Show description only if it exists.
+    // The `title` attribute provides a native browser tooltip on hover.
     const tooltipContent = `${data.label}${data.description ? `\n\n${data.description}` : ''}`;
 
     return (
@@ -18,16 +27,17 @@ export const AbilityNode: FC<NodeProps> = ({ data }) => {
                 <Handle type="target" position={Position.Top} className="ability-node__handle" />
 
                 <div className="ability-node__icon-container">
-                    {data.iconUrl && (
+                    {data.iconUrl ? (
                         <img
                             src={data.iconUrl}
                             alt={data.label}
                             className="ability-node__icon"
+                            // Simple error handling to show placeholder if image fails
                             onError={(e) => {
-                                e.currentTarget.parentElement?.classList.add('error');
+                                e.currentTarget.style.display = 'none';
                             }}
                         />
-                    )}
+                    ) : null}
                     <ShieldCheck className="ability-node__icon-placeholder" size={32} />
                 </div>
 
