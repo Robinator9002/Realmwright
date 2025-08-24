@@ -1,31 +1,24 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: feat(ability-tree): implement final interaction polish and bugfixes
+ * COMMIT: fix(ability-tree): correctly render drag highlighter inside SVG pane
  *
- * This commit implements the remaining items from the advanced interaction
- * polish plan, addressing connection highlighting and node snapping/selection.
+ * This commit resolves a critical runtime error where SVG elements were being
+ * rendered in an HTML context, causing the browser to fail.
  *
  * Rationale:
- * The canvas interactions, while functional, lacked the final layer of polish
- * expected from a high-quality tool. This commit rectifies those issues.
+ * The separate `GridHighlighter` component was being treated as an HTML overlay
+ * by React Flow. The correct approach is to render the highlighter's SVG
+ * elements within an existing SVG context that is part of the React Flow pane.
  *
  * Implementation Details:
- * 1.  **Connection Highlighting:**
- * - `onConnectStart` and `onConnectEnd` handlers are now used to toggle a
- * CSS class (`connection-in-progress`) on the React Flow wrapper element.
- * - This class, combined with the new CSS, causes all valid target handles
- * to light up when a connection is being dragged.
- * 2.  **Accidental Drag Prevention:**
- * - The `nodeDragThreshold` prop has been added to the `<ReactFlow>`
- * component with a value of `1`. This requires the user to drag the mouse
- * at least 1 pixel before a drag event is initiated, effectively
- * distinguishing a click from a drag and fixing the "jump on click" bug.
- * 3.  **Corrected Horizontal Snapping:**
- * - The snapping calculation in `onNodeDragStop` has been rewritten. It now
- * correctly calculates the distance to the center of each column and snaps
- * the node to the column with the minimum distance, ensuring predictable
- * and accurate horizontal placement.
+ * - The logic from the now-obsolete `GridHighlighter.tsx` has been moved
+ * directly into the `AbilityTreeCanvas` component.
+ * - The `useStore` hook is now used within the canvas to track the dragging node.
+ * - The `<rect>` and `<circle>` elements for the highlighter are now
+ * conditionally rendered inside the same `<svg>` tag used for the grid lines,
+ * ensuring they are in the correct SVG namespace and coordinate space.
+ * - The separate `GridHighlighter.tsx` file is no longer needed and can be deleted.
  */
 import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
@@ -34,6 +27,7 @@ import ReactFlow, {
     useNodesState,
     useEdgesState,
     BackgroundVariant,
+    useStore, // Import useStore
     type Edge,
     type OnNodesChange,
     type OnEdgesChange,
@@ -42,6 +36,7 @@ import ReactFlow, {
     type NodeMouseHandler,
     type PanOnScrollMode,
     useReactFlow,
+    type Viewport,
     type NodeDragHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -50,7 +45,6 @@ import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorConte
 import { AbilityNode } from '../Node/AbilityNode';
 import { AttachmentNode } from '../Node/AttachmentNode';
 import { LogicEdge } from '../Edge/LogicEdge';
-import { GridHighlighter } from './GridHighlighter';
 import {
     TIER_HEIGHT,
     COLUMN_WIDTH,
@@ -62,6 +56,12 @@ import {
 const nodeTypes = { abilityNode: AbilityNode, attachmentNode: AttachmentNode };
 const edgeTypes = { logicEdge: LogicEdge };
 const defaultEdgeOptions = { type: 'logicEdge', style: { strokeWidth: 2 } };
+
+// Selector for the useStore hook to efficiently find the dragging node.
+const draggingNodeSelector = (state: { nodeInternals: Map<string, Node> }): Node | undefined => {
+    const nodes = Array.from(state.nodeInternals.values());
+    return nodes.find((n) => n.dragging);
+};
 
 interface AbilityTreeCanvasProps {
     onViewportChange: (viewport: { y: number; zoom: number }) => void;
@@ -81,6 +81,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { getViewport } = useReactFlow();
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
+    // Use the store to get the currently dragging node for the highlighter.
+    const draggingNode = useStore(draggingNodeSelector);
 
     useEffect(() => {
         const { y, zoom } = getViewport();
@@ -154,7 +156,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
             const closestTier = Math.max(1, Math.floor(nodeCenterY / TIER_HEIGHT) + 1);
             const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
 
-            // --- CORRECTED SNAPPING LOGIC ---
             const nodeCenterX = node.position.x + NODE_HEIGHT / 2;
             const relativeX = nodeCenterX - NODE_START_X;
             const closestColIndex = Math.round(relativeX / COLUMN_WIDTH);
@@ -218,13 +219,13 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                 maxZoom={2}
                 onMove={(_, vp) => onViewportChange(vp)}
             >
-                <GridHighlighter />
                 <Background
                     variant={BackgroundVariant.Lines}
                     gap={48}
                     color="var(--color-border)"
                 />
                 <svg className="ability-editor-canvas__grid-lines">
+                    {/* Render the grid lines first */}
                     {Array.from({ length: tree.tierCount }, (_, i) => (
                         <line
                             key={`tier-line-${i}`}
@@ -245,6 +246,57 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                             className="column-line"
                         />
                     ))}
+                    {/* Conditionally render the highlighter elements inside the SVG */}
+                    {draggingNode && (
+                        <g>
+                            <rect
+                                x={0}
+                                y={
+                                    Math.max(
+                                        0,
+                                        Math.floor(
+                                            (draggingNode.position.y + NODE_HEIGHT / 2) /
+                                                TIER_HEIGHT,
+                                        ),
+                                    ) * TIER_HEIGHT
+                                }
+                                width="100%"
+                                height={TIER_HEIGHT}
+                                fill="var(--color-accent)"
+                                opacity={0.05}
+                                style={{ pointerEvents: 'none' }}
+                            />
+                            <circle
+                                cx={
+                                    NODE_START_X +
+                                    Math.round(
+                                        (draggingNode.position.x + NODE_HEIGHT / 2 - NODE_START_X) /
+                                            COLUMN_WIDTH,
+                                    ) *
+                                        COLUMN_WIDTH -
+                                    NODE_HEIGHT / 2 +
+                                    NODE_HEIGHT / 2
+                                }
+                                cy={
+                                    Math.max(
+                                        0,
+                                        Math.floor(
+                                            (draggingNode.position.y + NODE_HEIGHT / 2) /
+                                                TIER_HEIGHT,
+                                        ),
+                                    ) *
+                                        TIER_HEIGHT +
+                                    TIER_HEIGHT / 2
+                                }
+                                r={NODE_HEIGHT / 2 + 10}
+                                fill="none"
+                                stroke="var(--color-accent)"
+                                strokeWidth={2}
+                                strokeDasharray="5 5"
+                                style={{ pointerEvents: 'none' }}
+                            />
+                        </g>
+                    )}
                 </svg>
                 <Controls />
             </ReactFlow>
