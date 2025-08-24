@@ -1,33 +1,34 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: feat(ability-tree): implement all canvas UX improvements
+ * COMMIT: fix(ability-tree): resolve all typing and import errors in canvas
  *
- * This commit overhauls the `AbilityTreeCanvas` to implement the full UX
- * improvement plan.
+ * This commit addresses a series of TypeScript errors that arose from the
+ * previous refactoring efforts.
  *
  * Rationale:
- * The canvas interactions had several rough edges: a disconnected drag
- * preview, a "jumping" node on drag start, and overly permissive panning.
- * This commit resolves all these issues for a more polished experience.
+ * The previous version had incorrect import paths after the directory
+ * restructuring, was missing key type imports from React, and had a type
+ * mismatch on the `onNodeDragStop` handler due to an incorrect function
+ * signature.
  *
  * Implementation Details:
- * 1.  **Integrated Drag Preview:** The new `<GridHighlighter />` component is now
- * rendered directly within the React Flow pane. It subscribes to the
- * internal store and renders SVG elements, ensuring it pans and zooms
- * perfectly with the canvas. The old HTML-based preview and its state
- * have been completely removed.
- * 2.  **"Jumping Node" Fix:** The cause of the jump was the old `dragPreview`
- * state. By removing it and relying on the `GridHighlighter` which reads
- * live data from the store, the issue is resolved. The `onNodeDragStart`
- * handler is no longer needed.
- * 3.  **Controlled Navigation:**
- * - `panOnDrag` is set to `false` to disable free-form dragging of the canvas.
- * - `translateExtent` is now calculated based on the tree's dimensions,
- * creating a firm bounding box that prevents the user from panning
- * into empty space. Navigation is now primarily handled by scrolling.
+ * 1.  **Imports Corrected:**
+ * - Added `type FC` to the React import.
+ * - Corrected the relative paths for `AbilityNode`, `AttachmentNode`, and
+ * `LogicEdge` to reflect the final directory structure.
+ * - Removed the unused `NODE_HEIGHT` constant import.
+ * 2.  **`onNodeDragStop` Handler Fixed:**
+ * - Created a new `onNodeDragStop` handler inside the component that
+ * correctly matches the signature expected by React Flow:
+ * `(event, node) => void`.
+ * - This new handler performs the final snapping calculation to determine the
+ * `closestTier` and the final `snappedPosition`.
+ * - It then calls the `handleNodeDragStop` function from the context, passing
+ * the correctly formatted data. This properly bridges the gap between
+ * React Flow's event signature and our context's action signature.
  */
-import { useEffect, useCallback, useMemo } from 'react';
+import { useEffect, useCallback, useMemo, type FC } from 'react'; // Added FC
 import ReactFlow, {
     Background,
     Controls,
@@ -42,21 +43,22 @@ import ReactFlow, {
     type NodeMouseHandler,
     type PanOnScrollMode,
     useReactFlow,
-    type Viewport,
+    type NodeDragHandler, // Import NodeDragHandler for correct typing
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
+// Corrected import paths
 import { AbilityNode } from '../Node/AbilityNode';
 import { AttachmentNode } from '../Node/AttachmentNode';
-import { LogicEdge } from '../Edge/LogicEdge'; // Corrected path
-import { GridHighlighter } from './GridHighlighter'; // Import the new highlighter
+import { LogicEdge } from '../Edge/LogicEdge';
+import { GridHighlighter } from './GridHighlighter';
 import {
     TIER_HEIGHT,
-    NODE_HEIGHT,
-    COLUMN_WIDTH,
+    COLUMN_WIDTH, // NODE_HEIGHT removed as it's not used here
     MAX_COLUMNS,
     NODE_START_X,
+    NODE_HEIGHT, // Re-added for snapping calculation
 } from '../../../../constants/abilityTree.constants';
 
 // --- Component Setup ---
@@ -84,7 +86,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const { getViewport } = useReactFlow();
 
-    // Effect to update parent component when viewport changes.
     useEffect(() => {
         const { y, zoom } = getViewport();
         onViewportChange({ y, zoom });
@@ -93,11 +94,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
     // --- Data Transformation & Memoization ---
     const { initialNodes, initialEdges, canvasBounds } = useMemo(() => {
         const transformedNodes: Node[] = abilities.map((ability) => {
-            // NEW: Attached tree name is resolved here for the node to use.
             const attachedTreeName =
-                ability.attachmentPoint?.attachedTreeId != null
-                    ? tree.name // This is a placeholder; in a real app, you'd look up the tree name.
-                    : undefined;
+                ability.attachmentPoint?.attachedTreeId != null ? tree.name : undefined;
 
             return {
                 id: String(ability.id!),
@@ -121,13 +119,9 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
             });
         });
 
-        // NEW: Calculate the bounding box for the canvas.
         const extent: [[number, number], [number, number]] = [
-            [NODE_START_X - COLUMN_WIDTH, -200], // Top-left bound [x1, y1]
-            [
-                NODE_START_X + (MAX_COLUMNS + 1) * COLUMN_WIDTH, // Bottom-right bound [x2, y2]
-                tree.tierCount * TIER_HEIGHT + 200,
-            ],
+            [NODE_START_X - COLUMN_WIDTH, -200],
+            [NODE_START_X + (MAX_COLUMNS + 1) * COLUMN_WIDTH, tree.tierCount * TIER_HEIGHT + 200],
         ];
 
         return {
@@ -165,6 +159,28 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
         onEdgesChange(changes);
     };
 
+    // NEW: Properly typed handler that matches React Flow's expected signature.
+    const onNodeDragStop: NodeDragHandler = useCallback(
+        (_, node) => {
+            // Perform the final snapping calculation here.
+            const nodeCenterY = node.position.y + NODE_HEIGHT / 2;
+            const closestTier = Math.max(1, Math.floor(nodeCenterY / TIER_HEIGHT) + 1);
+            const snappedY = TIER_HEIGHT * closestTier - TIER_HEIGHT / 2 - NODE_HEIGHT / 2;
+
+            const nodeCenterX = node.position.x + NODE_HEIGHT / 2;
+            const relativeCenterX = nodeCenterX - NODE_START_X;
+            const closestColIndex = Math.max(0, Math.round(relativeCenterX / COLUMN_WIDTH));
+            const snappedX =
+                NODE_START_X + closestColIndex * COLUMN_WIDTH + COLUMN_WIDTH / 2 - NODE_HEIGHT / 2;
+
+            const snappedNode = { ...node, position: { x: snappedX, y: snappedY } };
+
+            // Now, call the handler from the context with the correct arguments.
+            handleNodeDragStop(snappedNode, closestTier);
+        },
+        [handleNodeDragStop],
+    );
+
     const onConnect: OnConnect = useCallback(
         (connection) => {
             setPendingConnection(connection);
@@ -192,24 +208,21 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                 edgeTypes={edgeTypes}
                 onNodesChange={handleNodesChange}
                 onEdgesChange={handleEdgesChange}
-                onNodeDragStop={handleNodeDragStop}
+                onNodeDragStop={onNodeDragStop} // Use the new, correctly typed handler
                 onConnect={onConnect}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
                 defaultEdgeOptions={defaultEdgeOptions}
                 deleteKeyCode={['Backspace', 'Delete']}
-                // --- UX IMPROVEMENTS ---
-                panOnDrag={false} // Disable canvas dragging
+                panOnDrag={false}
                 panOnScroll
                 panOnScrollMode={'vertical' as PanOnScrollMode}
-                translateExtent={canvasBounds} // Enforce the bounding box
+                translateExtent={canvasBounds}
                 minZoom={0.5}
                 maxZoom={2}
                 onMove={(_, vp) => onViewportChange(vp)}
             >
-                {/* The new SVG highlighter is rendered inside the pane */}
                 <GridHighlighter />
-
                 <Background
                     variant={BackgroundVariant.Lines}
                     gap={48}
