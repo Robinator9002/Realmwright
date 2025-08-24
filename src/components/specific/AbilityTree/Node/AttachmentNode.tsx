@@ -1,18 +1,30 @@
 // src/components/specific/AbilityTree/Node/AttachmentNode.tsx
-import type { FC } from 'react';
-import { Handle, Position } from 'reactflow';
-import type { NodeProps } from 'reactflow';
-import { Plug, Link } from 'lucide-react';
 
 /**
- * REWORKED: The node now has a native browser tooltip to show its full details,
- * including its current attachment status.
+ * COMMIT: chore(ability-tree): relocate AttachmentNode to node directory
+ *
+ * This commit moves the `AttachmentNode` component to its final location
+ * within the `/Node` subdirectory, alongside the standard `AbilityNode`.
+ *
+ * Rationale:
+ * This completes the organizational goal of consolidating all custom React
+ * Flow nodes into a single, easy-to-find directory. This improves the
+ * project's structure and makes the codebase more intuitive to navigate.
+ *
+ * No functional changes were required for this component.
  */
+import type { FC } from 'react';
+import { Handle, Position, type NodeProps } from 'reactflow';
+import { Plug, Link } from 'lucide-react';
+
 export const AttachmentNode: FC<NodeProps> = ({ data }) => {
     const isAttached = !!data.attachmentPoint?.attachedTreeId;
+
+    // The `attachedTreeName` is now passed down in the node's data object,
+    // which is more efficient than looking it up here.
     const attachedTreeName = data.attachedTreeName || 'Loading...';
 
-    // Construct the tooltip content based on attachment status.
+    // Construct the tooltip content based on the node's current state.
     const statusText = isAttached ? `Attached: ${attachedTreeName}` : 'Status: Empty Socket';
     const tooltipContent = `${data.label}\n\n${statusText}${
         data.description ? `\n\n${data.description}` : ''
