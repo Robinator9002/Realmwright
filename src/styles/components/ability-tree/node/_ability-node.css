@@ -2,7 +2,6 @@
 
 .ability-node {
     background-color: var(--color-panel-bg);
-    /* REWORK: The border is now static and will not change on selection. */
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
     width: 80px;
@@ -16,16 +15,13 @@
     padding: var(--spacing-1);
     text-align: center;
     cursor: pointer;
-    /* NEW: This property is crucial for the outline to look correct. */
     outline-offset: 3px;
+    position: relative; /* Needed for pseudo-elements */
 }
 
-/* REWORK: The selection style now uses `outline` instead of `border` or `box-shadow`.
-   `outline` does NOT affect the element's dimensions, which 100% prevents any "jumping".
-   ENHANCED: Increased outline width for better visibility. */
 .react-flow__node.selected .ability-node {
-    outline: 3px solid var(--color-accent); /* Increased from 2px to 3px */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* A slightly stronger shadow for emphasis */
+    outline: 3px solid var(--color-accent);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .ability-node__icon-container {
@@ -72,9 +68,33 @@
     width: 70px;
 }
 
+/* --- ERGONOMICS: Larger Handle Hitbox --- */
 .ability-node__handle {
     width: 8px !important;
     height: 8px !important;
     background-color: var(--color-accent) !important;
     border: 2px solid var(--color-background) !important;
+    z-index: 11; /* Ensure visual part is on top */
+}
+
+/* Create a large, invisible pseudo-element for easier clicking */
+.ability-node__handle::after {
+    content: '';
+    position: absolute;
+    top: -16px;
+    left: -16px;
+    width: 40px;
+    height: 40px;
+    background-color: transparent;
+    border-radius: 50%;
+    z-index: 10;
+    transform: translate(0, 0); /* Fix for positioning */
+}
+
+/* --- ERGONOMICS: Connection Target Highlighting --- */
+/* This class will be added to the React Flow instance */
+.react-flow.connection-in-progress .react-flow__handle.react-flow__handle-target {
+    background-color: var(--color-success) !important;
+    transform: scale(1.5);
+    transition: transform 0.2s ease;
 }
