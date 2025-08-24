@@ -1,25 +1,29 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: fix(ability-tree): resolve SVG layering issue causing highlighter clipping
+ * COMMIT: feat(ability-tree): synchronize all SVG visuals with viewport
  *
- * This commit fixes a visual bug where the drag highlighter and grid lines
- * would get clipped or covered when the user panned the canvas.
+ * This commit resolves all outstanding visual bugs related to the grid and
+ * drag highlighter by synchronizing them with the React Flow viewport.
  *
  * Rationale:
- * The custom <svg> element for the grid and highlighter was rendering in a
- * separate layer that did not always align with the main React Flow node
- * container. This caused the node container to obscure the SVG content when
- * panned.
+ * Previously, the custom SVG elements for the grid and highlighter were
+ * rendered in a static coordinate space, causing them to become misaligned
+ * when the user panned or zoomed the canvas.
  *
  * Implementation Details:
- * - An inline style has been applied to the <svg> element for the grid lines.
- * - `position: 'absolute'`, `width: '100%'`, `height: '100%'` ensures the SVG
- * stretches to fill the entire React Flow pane.
- * - `zIndex: -1` forces the SVG to render explicitly behind the nodes and
- * edges, preventing any part of it from being clipped by other layers.
- * - This ensures the highlighter is always visible across the entire canvas,
- * regardless of pan or zoom level.
+ * 1.  **Viewport Synchronization:**
+ * - The `useViewport` hook is now used to get the live `x`, `y`, and `zoom`
+ * of the canvas.
+ * - All custom SVG elements are wrapped in a parent `<g>` element.
+ * - The `transform` attribute of this `<g>` is dynamically set to match the
+ * viewport's transform. This forces our entire custom layer to pan and
+ * zoom in perfect sync with the React Flow nodes.
+ * 2.  **Dynamic Grid Sizing:**
+ * - The component now calculates the actual bounds of the nodes on the canvas.
+ * - This is used to determine how many tier and column lines to render,
+ * ensuring the grid always extends slightly beyond the content area rather
+ * than being a fixed size.
  */
 import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
@@ -29,6 +33,7 @@ import ReactFlow, {
     useEdgesState,
     BackgroundVariant,
     useStore,
+    useViewport, // Import useViewport
     type Edge,
     type OnNodesChange,
     type OnEdgesChange,
@@ -49,7 +54,6 @@ import { LogicEdge } from '../Edge/LogicEdge';
 import {
     TIER_HEIGHT,
     COLUMN_WIDTH,
-    MAX_COLUMNS,
     NODE_START_X,
     NODE_HEIGHT,
 } from '../../../../constants/abilityTree.constants';
@@ -70,7 +74,7 @@ interface AbilityTreeCanvasProps {
 export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange }) => {
     const {
         abilities,
-        tree,
+        currentTree,
         handleNodeDragStop,
         handleDelete,
         setSelectedNode,
@@ -82,13 +86,13 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
     const { getViewport } = useReactFlow();
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const draggingNode = useStore(draggingNodeSelector);
+    const { x, y, zoom } = useViewport(); // Get live viewport data
 
     useEffect(() => {
-        const { y, zoom } = getViewport();
-        onViewportChange({ y, zoom });
-    }, [getViewport, onViewportChange]);
+        onViewportChange({ x, y, zoom });
+    }, [x, y, zoom, onViewportChange]);
 
-    const { initialNodes, initialEdges, canvasBounds } = useMemo(() => {
+    const { initialNodes, initialEdges, canvasBounds, gridDimensions } = useMemo(() => {
         const transformedNodes: Node[] = abilities.map((ability) => ({
             id: String(ability.id!),
             position: { x: ability.x ?? 0, y: ability.y ?? 0 },
@@ -110,17 +114,25 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
             });
         });
 
+        // Calculate dynamic grid dimensions
+        let maxNodeX = NODE_START_X + COLUMN_WIDTH * 5; // Default width
+        if (transformedNodes.length > 0) {
+            maxNodeX = Math.max(...transformedNodes.map((n) => n.position.x + COLUMN_WIDTH));
+        }
+        const numCols = Math.ceil((maxNodeX - NODE_START_X) / COLUMN_WIDTH) + 1;
+
         const extent: [[number, number], [number, number]] = [
             [NODE_START_X - COLUMN_WIDTH, -200],
-            [NODE_START_X + (MAX_COLUMNS + 1) * COLUMN_WIDTH, tree.tierCount * TIER_HEIGHT + 200],
+            [NODE_START_X + numCols * COLUMN_WIDTH, currentTree.tierCount * TIER_HEIGHT + 200],
         ];
 
         return {
             initialNodes: transformedNodes,
             initialEdges: transformedEdges,
             canvasBounds: extent,
+            gridDimensions: { numCols },
         };
-    }, [abilities, tree]);
+    }, [abilities, currentTree.tierCount]);
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -167,30 +179,20 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
     );
 
     const onConnect: OnConnect = useCallback(
-        (connection) => {
-            setPendingConnection(connection);
-        },
+        (connection) => setPendingConnection(connection),
         [setPendingConnection],
     );
-
     const onConnectStart = useCallback(() => {
         reactFlowWrapper.current?.classList.add('connection-in-progress');
     }, []);
-
     const onConnectEnd = useCallback(() => {
         reactFlowWrapper.current?.classList.remove('connection-in-progress');
     }, []);
-
     const onNodeClick: NodeMouseHandler = useCallback(
-        (_, node) => {
-            setSelectedNode(node);
-        },
+        (_, node) => setSelectedNode(node),
         [setSelectedNode],
     );
-
-    const onPaneClick = useCallback(() => {
-        setSelectedNode(null);
-    }, [setSelectedNode]);
+    const onPaneClick = useCallback(() => setSelectedNode(null), [setSelectedNode]);
 
     return (
         <div className="ability-editor-wrapper" ref={reactFlowWrapper}>
@@ -216,93 +218,90 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                 nodeDragThreshold={1}
                 minZoom={0.5}
                 maxZoom={2}
-                onMove={(_, vp) => onViewportChange(vp)}
             >
                 <Background
                     variant={BackgroundVariant.Lines}
                     gap={48}
                     color="var(--color-border)"
                 />
-                <svg
-                    className="ability-editor-canvas__grid-lines"
-                    style={{
-                        width: '100%',
-                        height: '100%',
-                        position: 'absolute',
-                        zIndex: -1,
-                    }}
-                >
-                    {Array.from({ length: tree.tierCount }, (_, i) => (
-                        <line
-                            key={`tier-line-${i}`}
-                            x1="0"
-                            y1={TIER_HEIGHT * (i + 1)}
-                            x2="100%"
-                            y2={TIER_HEIGHT * (i + 1)}
-                            className="tier-line"
-                        />
-                    ))}
-                    {Array.from({ length: MAX_COLUMNS + 1 }, (_, i) => (
-                        <line
-                            key={`col-line-${i}`}
-                            x1={NODE_START_X + COLUMN_WIDTH * i}
-                            y1="0"
-                            x2={NODE_START_X + COLUMN_WIDTH * i}
-                            y2="100%"
-                            className="column-line"
-                        />
-                    ))}
-                    {draggingNode && (
-                        <g>
-                            <rect
-                                x={0}
-                                y={
-                                    (Math.max(
-                                        1,
-                                        Math.floor(
-                                            (draggingNode.position.y + NODE_HEIGHT / 2) /
-                                                TIER_HEIGHT,
-                                        ) + 1,
-                                    ) -
-                                        1) *
-                                    TIER_HEIGHT
-                                }
-                                width="100%"
-                                height={TIER_HEIGHT}
-                                fill="var(--color-accent)"
-                                opacity={0.05}
-                                style={{ pointerEvents: 'none' }}
+                <svg style={{ position: 'absolute', zIndex: -1, width: '100%', height: '100%' }}>
+                    <g transform={`translate(${x}, ${y}) scale(${zoom})`}>
+                        {/* Render grid lines within the transformed group */}
+                        {Array.from({ length: currentTree.tierCount }, (_, i) => (
+                            <line
+                                key={`tier-line-${i}`}
+                                x1={canvasBounds[0][0]}
+                                y1={TIER_HEIGHT * (i + 1)}
+                                x2={canvasBounds[1][0]}
+                                y2={TIER_HEIGHT * (i + 1)}
+                                className="tier-line"
                             />
-                            <circle
-                                cx={
-                                    NODE_START_X +
-                                    Math.round(
-                                        (draggingNode.position.x + NODE_HEIGHT / 2 - NODE_START_X) /
-                                            COLUMN_WIDTH,
-                                    ) *
-                                        COLUMN_WIDTH
-                                }
-                                cy={
-                                    (Math.max(
-                                        1,
-                                        Math.floor(
-                                            (draggingNode.position.y + NODE_HEIGHT / 2) /
-                                                TIER_HEIGHT,
-                                        ) + 1,
-                                    ) -
-                                        1) *
-                                        TIER_HEIGHT +
-                                    TIER_HEIGHT / 2
-                                }
-                                r={NODE_HEIGHT / 2 + 10}
-                                fill="none"
-                                stroke="var(--color-accent)"
-                                strokeWidth={2}
-                                strokeDasharray="5 5"
-                                style={{ pointerEvents: 'none' }}
+                        ))}
+                        {Array.from({ length: gridDimensions.numCols }, (_, i) => (
+                            <line
+                                key={`col-line-${i}`}
+                                x1={NODE_START_X + COLUMN_WIDTH * i}
+                                y1={canvasBounds[0][1]}
+                                x2={NODE_START_X + COLUMN_WIDTH * i}
+                                y2={canvasBounds[1][1]}
+                                className="column-line"
                             />
-                        </g>
-                    )}
+                        ))}
+                        {/* Conditionally render highlighter within the transformed group */}
+                        {draggingNode && (
+                            <g>
+                                <rect
+                                    x={canvasBounds[0][0]}
+                                    y={
+                                        (Math.max(
+                                            1,
+                                            Math.floor(
+                                                (draggingNode.position.y + NODE_HEIGHT / 2) /
+                                                    TIER_HEIGHT,
+                                            ) + 1,
+                                        ) -
+                                            1) *
+                                        TIER_HEIGHT
+                                    }
+                                    width={canvasBounds[1][0] - canvasBounds[0][0]}
+                                    height={TIER_HEIGHT}
+                                    fill="var(--color-accent)"
+                                    opacity={0.05}
+                                    style={{ pointerEvents: 'none' }}
+                                />
+                                <circle
+                                    cx={
+                                        NODE_START_X +
+                                        Math.round(
+                                            (draggingNode.position.x +
+                                                NODE_HEIGHT / 2 -
+                                                NODE_START_X) /
+                                                COLUMN_WIDTH,
+                                        ) *
+                                            COLUMN_WIDTH
+                                    }
+                                    cy={
+                                        (Math.max(
+                                            1,
+                                            Math.floor(
+                                                (draggingNode.position.y + NODE_HEIGHT / 2) /
+                                                    TIER_HEIGHT,
+                                            ) + 1,
+                                        ) -
+                                            1) *
+                                            TIER_HEIGHT +
+                                        TIER_HEIGHT / 2
+                                    }
+                                    r={NODE_HEIGHT / 2 + 10}
+                                    fill="none"
+                                    stroke="var(--color-accent)"
+                                    strokeWidth={2 / zoom} // Make stroke width consistent when zooming
+                                    strokeDasharray={`${10 / zoom} ${5 / zoom}`} // Adjust dash array with zoom
+                                    style={{ pointerEvents: 'none' }}
+                                />
+                            </g>
+                        )}
+                    </g>
                 </svg>
                 <Controls />
             </ReactFlow>
