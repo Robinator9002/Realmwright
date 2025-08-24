@@ -1,35 +1,30 @@
 // src/components/specific/AbilityTree/Sidebar/CreateAbilityPanel.tsx
 
 /**
- * COMMIT: feat(ability-tree): create isolated CreateAbilityPanel component
+ * COMMIT: fix(ability-tree): use correct 'currentTree' property from context
  *
- * This commit introduces the `CreateAbilityPanel`, the first of the new,
- * decomposed sidebar components.
+ * This commit resolves a runtime crash in the `CreateAbilityPanel`.
  *
  * Rationale:
- * As part of the plan to increase modularity, the logic for creating a new
- * ability has been extracted from the monolithic sidebar into this focused
- * component. It is responsible for rendering the creation form and handling
- * its own state.
+ * A previous refactor renamed the `tree` property in the editor context to
+ * `currentTree` for better clarity. This component was not updated to reflect
+ * that change, causing it to attempt to destructure a non-existent `tree`
+ * property, which resulted in an `undefined` variable and a subsequent crash
+ * when accessing `.tierCount`.
  *
  * Implementation Details:
- * - The component manages all its form input values using local `useState` hooks.
- * - It consumes the `useAbilityTreeEditor` context hook to get access to the
- * current `tree` (for populating the tier dropdown) and the `handleAddAbility`
- * function.
- * - On form submission, it calls the context's `handleAddAbility` function with
- * its local state and then resets the form fields.
- * - This component has zero prop dependencies for its core logic, demonstrating
- * the power and cleanliness of the new context-based architecture.
+ * - The destructuring from the `useAbilityTreeEditor` hook has been updated to
+ * use `currentTree` instead of `tree`.
+ * - The component now correctly reads the `tierCount` from the reactive
+ * `currentTree` object, resolving the error.
  */
 import { useState, type FC } from 'react';
 import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
 
 export const CreateAbilityPanel: FC = () => {
-    // This component now sources its required data and actions directly from the context.
-    const { tree, handleAddAbility } = useAbilityTreeEditor();
+    // FIX: Destructure 'currentTree' instead of the old 'tree' variable.
+    const { currentTree, handleAddAbility } = useAbilityTreeEditor();
 
-    // All form state is managed locally within this component.
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [tier, setTier] = useState(1);
@@ -39,7 +34,6 @@ export const CreateAbilityPanel: FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Call the handler from the context to perform the database action.
         await handleAddAbility(
             name,
             description,
@@ -48,7 +42,6 @@ export const CreateAbilityPanel: FC = () => {
             isAttachmentPoint,
             allowedAttachmentType,
         );
-        // Reset the form to be ready for the next entry.
         setName('');
         setDescription('');
         setTier(1);
@@ -56,6 +49,11 @@ export const CreateAbilityPanel: FC = () => {
         setIsAttachmentPoint(false);
         setAllowedAttachmentType('');
     };
+
+    // Safeguard to prevent rendering if the context is not fully ready.
+    if (!currentTree) {
+        return null;
+    }
 
     return (
         <div>
@@ -109,12 +107,14 @@ export const CreateAbilityPanel: FC = () => {
                         onChange={(e) => setTier(parseInt(e.target.value, 10))}
                         className="form__select"
                     >
-                        {/* The number of tiers is now read from the tree object in the context. */}
-                        {Array.from({ length: tree.tierCount }, (_, i) => i + 1).map((tierNum) => (
-                            <option key={tierNum} value={tierNum}>
-                                Tier {tierNum}
-                            </option>
-                        ))}
+                        {/* FIX: Read tierCount from the correctly named 'currentTree' object. */}
+                        {Array.from({ length: currentTree.tierCount }, (_, i) => i + 1).map(
+                            (tierNum) => (
+                                <option key={tierNum} value={tierNum}>
+                                    Tier {tierNum}
+                                </option>
+                            ),
+                        )}
                     </select>
                 </div>
                 <div className="form__group form__group--checkbox">
@@ -130,7 +130,6 @@ export const CreateAbilityPanel: FC = () => {
                     </label>
                 </div>
 
-                {/* This input only appears if the ability is marked as a socket. */}
                 {isAttachmentPoint && (
                     <div className="form__group">
                         <label htmlFor="allowedType" className="form__label">
