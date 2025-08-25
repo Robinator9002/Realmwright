@@ -1,14 +1,31 @@
 // src/context/ViewContext.tsx
+
+/**
+ * COMMIT: feat(class-sheet): add view state for ClassSheetEditor
+ *
+ * Rationale:
+ * To properly integrate the new ClassSheetEditor as a full-page component,
+ * the global ViewContext needs to be aware of it. This aligns the class
+ * editing workflow with the existing patterns used by the Ability Tree and
+ * Character Sheet views.
+ *
+ * Implementation Details:
+ * - Added 'class_sheet_editor' to the `MainView` type definition.
+ * - Introduced `editingClassId` and `setEditingClassId` to the context's
+ * state and type definition. This will be used to track which class blueprint
+ * is currently being designed.
+ */
 import { createContext, useState, useContext, useMemo } from 'react';
 import type { ReactNode, FC } from 'react';
 
-// REWORK: Add 'ability_tree_editor' as a valid main view
+// REWORK: Add 'class_sheet_editor' as a valid main view
 export type MainView =
     | 'worlds'
     | 'world_dashboard'
     | 'settings'
     | 'character_sheet'
-    | 'ability_tree_editor';
+    | 'ability_tree_editor'
+    | 'class_sheet_editor'; // NEW
 
 // Define the available tabs within the world dashboard
 export type WorldTab =
@@ -40,9 +57,13 @@ interface ViewContextType {
     characterIdForSheet: number | null;
     setCharacterIdForSheet: (id: number | null) => void;
 
-    // NEW: State to hold the ID of the ability tree we want to edit
+    // State to hold the ID of the ability tree we want to edit
     editingAbilityTreeId: number | null;
     setEditingAbilityTreeId: (id: number | null) => void;
+
+    // NEW: State to hold the ID of the class we want to edit
+    editingClassId: number | null;
+    setEditingClassId: (id: number | null) => void;
 }
 
 const ViewContext = createContext<ViewContextType | undefined>(undefined);
@@ -52,8 +73,9 @@ export const ViewProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [activeWorldTab, setActiveWorldTab] = useState<WorldTab>('campaigns');
     const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>('appearance');
     const [characterIdForSheet, setCharacterIdForSheet] = useState<number | null>(null);
-    // NEW: Initialize the new state for the ability tree editor
     const [editingAbilityTreeId, setEditingAbilityTreeId] = useState<number | null>(null);
+    // NEW: Initialize the new state for the class sheet editor
+    const [editingClassId, setEditingClassId] = useState<number | null>(null);
 
     const value = useMemo(
         () => ({
@@ -65,11 +87,20 @@ export const ViewProvider: FC<{ children: ReactNode }> = ({ children }) => {
             setActiveSettingsTab,
             characterIdForSheet,
             setCharacterIdForSheet,
-            // NEW: Expose the new state and its setter
             editingAbilityTreeId,
             setEditingAbilityTreeId,
+            // NEW: Expose the new state and its setter
+            editingClassId,
+            setEditingClassId,
         }),
-        [currentView, activeWorldTab, activeSettingsTab, characterIdForSheet, editingAbilityTreeId],
+        [
+            currentView,
+            activeWorldTab,
+            activeSettingsTab,
+            characterIdForSheet,
+            editingAbilityTreeId,
+            editingClassId, // Add to dependency array
+        ],
     );
 
     return <ViewContext.Provider value={value}>{children}</ViewContext.Provider>;
