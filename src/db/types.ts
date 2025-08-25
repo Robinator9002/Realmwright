@@ -1,11 +1,31 @@
 // src/db/types.ts
 
+/**
+ * COMMIT: feat(class-sheet): add layout properties to SheetBlock type
+ *
+ * Rationale:
+ * To support the new grid-based, multi-column character sheet editor, the
+ * core `SheetBlock` type needs to be aware of layout. This commit introduces
+ * an optional `width` property.
+ *
+ * Implementation Details:
+ * - Added `width?: 'full' | 'half'` to the `SheetBlock` interface.
+ * - This property will allow the `ClassSheetEditor` to render blocks that
+ * span one or two columns, enabling much more flexible and visually
+ * appealing character sheet designs.
+ * - The property is optional to maintain backward compatibility and to allow
+ * for a default behavior (e.g., defaulting to 'half' width).
+ */
+
 // --- Character Sheet Structure Definition ---
 
 export type SheetBlock = {
     id: string;
     type: 'details' | 'stats' | 'ability_tree' | 'inventory' | 'rich_text' | 'notes';
     content?: any;
+    // NEW: Optional layout properties for the grid-based sheet editor.
+    // 'full' will span two columns, 'half' will span one.
+    width?: 'full' | 'half';
 };
 
 export type SheetPage = {
@@ -67,7 +87,6 @@ export interface StatDefinition extends BaseManageable {
 
 // --- Ability System Interfaces ---
 
-// NEW: Export the logic type to be used by other components.
 export type PrerequisiteLogicType = 'AND' | 'OR';
 
 export type PrerequisiteGroup = {
