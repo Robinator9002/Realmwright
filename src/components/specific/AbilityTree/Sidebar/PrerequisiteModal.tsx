@@ -1,7 +1,7 @@
 // src/components/specific/AbilityTree/Sidebar/PrerequisiteModal.tsx
 
 /**
- * COMMIT: fix(ability-tree): resolve modal logic bug and improve styling
+ * COMMIT: fix(ability-tree): Resolve modal logic bug and improve styling
  *
  * This commit addresses the final outstanding issues in the PrerequisiteModal.
  *
@@ -25,32 +25,50 @@ import type { FC } from 'react';
 import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
 import type { PrerequisiteLogicType } from '../../../../db/types';
 
+// --- INTERFACE DEFINITION ---
+// Defines the properties (props) that this component accepts.
 interface PrerequisiteModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSelect: (type: PrerequisiteLogicType) => void;
+    isOpen: boolean; // Controls whether the modal is visible or not.
+    onClose: () => void; // Function to call when the modal should be closed.
+    onSelect: (type: PrerequisiteLogicType) => void; // Function to call when a logic type is selected.
 }
 
+// --- COMPONENT DEFINITION ---
+// This is a functional component for selecting or editing prerequisite logic.
 export const PrerequisiteModal: FC<PrerequisiteModalProps> = ({ isOpen, onClose, onSelect }) => {
+    // --- HOOKS ---
+    // Accessing the global state and actions from our custom context.
     const { selectedEdge, handleUpdateEdgeLogic, handleDeleteEdge } = useAbilityTreeEditor();
 
+    // --- RENDER LOGIC ---
+    // If the modal is not supposed to be open, render nothing.
     if (!isOpen) {
         return null;
     }
 
+    // Determine if the modal is in "edit" mode by checking if an edge is selected.
     const isEditMode = !!selectedEdge;
+    // Get the current logic type from the selected edge's data, if it exists.
     const currentLogic = selectedEdge?.data.label as PrerequisiteLogicType | undefined;
 
+    // --- EVENT HANDLERS ---
+    // Handles the update action in edit mode.
     const handleUpdate = (type: PrerequisiteLogicType) => {
         handleUpdateEdgeLogic(type);
+        onClose(); // Close the modal after updating.
     };
 
+    // Handles the delete action in edit mode.
     const handleDelete = () => {
         handleDeleteEdge();
+        onClose(); // Close the modal after deleting.
     };
 
+    // --- JSX ---
     return (
+        // The modal overlay, which closes the modal when clicked.
         <div className="modal-overlay" onClick={onClose}>
+            {/* The modal content itself. stopPropagation prevents clicks inside from closing it. */}
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal__header">
                     <h2 className="modal__title">
@@ -67,9 +85,10 @@ export const PrerequisiteModal: FC<PrerequisiteModalProps> = ({ isOpen, onClose,
                             : 'How should this new prerequisite be linked to any existing ones?'}
                     </p>
                 </div>
-                {/* REWORKED FOOTER FOR BETTER STYLING AND LOGIC */}
+                {/* Reworked footer for better styling and logic */}
                 <div className="modal__footer flex justify-between items-center">
                     {isEditMode ? (
+                        // --- EDIT MODE FOOTER ---
                         <>
                             <button onClick={handleDelete} className="button button--danger">
                                 Delete Connection
@@ -97,6 +116,7 @@ export const PrerequisiteModal: FC<PrerequisiteModalProps> = ({ isOpen, onClose,
                             </div>
                         </>
                     ) : (
+                        // --- CREATE MODE FOOTER ---
                         <div className="flex w-full justify-end gap-2">
                             <button
                                 onClick={() => {
