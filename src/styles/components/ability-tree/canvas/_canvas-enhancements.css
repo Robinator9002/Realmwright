@@ -2,16 +2,7 @@
 
 /* --- VISUAL CLARITY: De-emphasize the background pattern --- */
 .react-flow__background {
-    opacity: 0.5; /* Reduce the visibility of the dot pattern */
-}
-
-/* --- VISUAL CLARITY: Emphasize the grid lines --- */
-.ability-editor-canvas__grid-lines .tier-line,
-.ability-editor-canvas__grid-lines .column-line {
-    stroke: var(--color-border);
-    stroke-width: 2px; /* Make lines thicker and more visible */
-    opacity: 0.75;
-    stroke-dasharray: 4 8; /* A more pronounced dash pattern */
+    opacity: 0.1; /* Reduce the visibility of the dot pattern */
 }
 
 /* --- Minor Style Polish --- */
