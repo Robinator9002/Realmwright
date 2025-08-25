@@ -67,25 +67,20 @@ export interface StatDefinition extends BaseManageable {
 
 // --- Ability System Interfaces ---
 
+// NEW: Export the logic type to be used by other components.
+export type PrerequisiteLogicType = 'AND' | 'OR';
+
 export type PrerequisiteGroup = {
-    type: 'AND' | 'OR';
+    type: PrerequisiteLogicType;
     abilityIds: number[];
 };
 
-/**
- * REWORKED: The AttachmentPoint now includes an optional property
- * to specify what kind of tree it is allowed to accept.
- */
 export type AttachmentPoint = {
-    id: string; // A unique ID for this specific socket
-    // RENAMED for clarity from acceptedTreeType to allowedAttachmentType
-    allowedAttachmentType?: string; // An optional tag to filter what can be attached
-    attachedTreeId?: number; // The ID of the AbilityTree currently attached
+    id: string;
+    allowedAttachmentType?: string;
+    attachedTreeId?: number;
 };
 
-/**
- * Represents a single ability or skill (a "node" in a tree).
- */
 export interface Ability extends BaseManageable {
     worldId: number;
     abilityTreeId: number;
@@ -98,14 +93,9 @@ export interface Ability extends BaseManageable {
     attachmentPoint?: AttachmentPoint;
 }
 
-/**
- * REWORKED: An AbilityTree can now be categorized with an attachmentType,
- * defining what kind of "thing" it is (e.g., "Weapon Mod", "Class Feat").
- */
 export interface AbilityTree extends BaseManageable {
     worldId: number;
     createdAt: Date;
     tierCount: number;
-    // NEW: An optional type for categorization.
     attachmentType?: string;
 }
