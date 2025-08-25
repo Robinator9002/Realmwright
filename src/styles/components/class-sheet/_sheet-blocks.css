@@ -1,33 +1,33 @@
 /* src/styles/components/class-sheet/_sheet-blocks.css */
 
 /**
- * COMMIT: style(class-sheet): add grid layout and interaction styles for blocks
+ * COMMIT: style(character-sheet): improve inventory layout and fix block styles
  *
  * Rationale:
- * To complete the visual implementation of the new grid-based editor, this
- * commit adds the necessary styles for the sheet blocks themselves.
+ * Several visual bugs were present in the sheet blocks:
+ * 1. The Inventory block's table columns were misaligned and the block
+ * could grow infinitely, breaking the page layout.
+ * 2. The AbilityTreeBlock's React Flow instance had no height and would not render.
  *
  * Implementation Details:
- * - **Grid Sizing:** Added `.sheet-block--half-width` and
- * `.sheet-block--full-width` classes. The full-width class uses
- * `grid-column: span 2` to occupy the entire row of the grid.
- * - **Interaction Chrome:** Added styles for the `.sheet-block__drag-handle`
- * and `.sheet-block__remove-button`. These elements are positioned absolutely
- * within the block and appear on hover, providing a clean and intuitive UI
- * for managing blocks.
- * - **Content Wrapper:** A new `.sheet-block__content` class ensures that the
- * actual block content has the correct padding and layout, separate from the
- * main block container.
+ * - **Inventory Block:**
+ * - The `.inventory-block__table-wrapper` now has a `max-height` and
+ * `overflow-y: auto` to introduce a scrollbar for long item lists.
+ * - The `<table>` now uses `table-layout: fixed` and has explicit column
+ * widths to ensure consistent alignment of all cells.
+ * - **Ability Tree Block:**
+ * - The new `.ability-tree-block__react-flow-wrapper` class now has a
+ * `min-height` of 300px, giving the React Flow canvas a container to
+ * render into and fixing the layout bug.
  */
 
 /* --- Base Block Container --- */
-/* REWORK: The base block is now a relative container for its UI elements. */
 .sheet-block {
     position: relative;
     background-color: var(--color-panel-bg);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
-    display: flex; /* Use flexbox for internal alignment */
+    display: flex;
     transition: box-shadow 0.2s ease;
 }
 
@@ -35,25 +35,20 @@
     box-shadow: 0 0 0 1px var(--color-accent);
 }
 
-/* NEW: A wrapper for the actual block content to handle padding. */
 .sheet-block__content {
     padding: var(--spacing-4);
     width: 100%;
 }
 
-/* NEW: Styles for half-width blocks (default) */
 .sheet-block--half-width {
     grid-column: span 1;
 }
 
-/* NEW: Styles for full-width blocks */
 .sheet-block--full-width {
     grid-column: span 2;
 }
 
 /* --- Block Interaction "Chrome" --- */
-
-/* NEW: Style for the drag handle */
 .sheet-block__drag-handle {
     position: absolute;
     top: 50%;
@@ -61,19 +56,18 @@
     transform: translateY(-50%);
     color: var(--color-muted-foreground);
     cursor: grab;
-    opacity: 0; /* Hidden by default */
+    opacity: 0;
     transition: opacity 0.2s ease, color 0.2s ease;
 }
 
 .sheet-block:hover .sheet-block__drag-handle {
-    opacity: 1; /* Show on hover */
+    opacity: 1;
 }
 
 .sheet-block__drag-handle:hover {
     color: var(--color-accent);
 }
 
-/* NEW: Style for the remove button */
 .sheet-block__remove-button {
     position: absolute;
     top: 6px;
@@ -85,12 +79,12 @@
     padding: var(--spacing-1);
     border-radius: 999px;
     line-height: 1;
-    opacity: 0; /* Hidden by default */
+    opacity: 0;
     transition: all 0.2s ease;
 }
 
 .sheet-block:hover .sheet-block__remove-button {
-    opacity: 1; /* Show on hover */
+    opacity: 1;
 }
 
 .sheet-block__remove-button:hover {
@@ -210,15 +204,23 @@
     width: 100%;
 }
 
+/* NEW: Gives the React Flow container a defined height so it can render. */
+.ability-tree-block__react-flow-wrapper {
+    width: 100%;
+    min-height: 300px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+}
+
 /* --- Rich Text Block --- */
 .rich-text-block {
     width: 100%;
-    position: relative; /* For positioning the edit button */
+    position: relative;
 }
 
 .rich-text-block__display {
     width: 100%;
-    min-height: 50px; /* Ensure it has some height even when empty */
+    min-height: 50px;
     padding: var(--spacing-2);
     border-radius: var(--border-radius);
     transition: background-color 0.2s ease;
@@ -239,12 +241,12 @@
     padding: var(--spacing-1);
     border-radius: 999px;
     line-height: 1;
-    opacity: 0; /* Hidden by default */
+    opacity: 0;
     transition: opacity 0.2s ease;
 }
 
 .rich-text-block:hover .rich-text-block__edit-button {
-    opacity: 1; /* Show on hover */
+    opacity: 1;
 }
 
 .rich-text-block__edit-button:hover {
@@ -259,7 +261,7 @@
 }
 
 .rich-text-block__save-button {
-    align-self: flex-end; /* Position save button to the right */
+    align-self: flex-end;
 }
 
 /* --- Inventory Block --- */
@@ -278,22 +280,61 @@
     padding-bottom: var(--spacing-2);
 }
 
+/* NEW: A wrapper to contain the scrolling table. */
+.inventory-block__table-wrapper {
+    max-height: 250px; /* Or whatever height you prefer */
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+}
+
+/* REWORK: Use fixed layout and defined columns for stability. */
 .inventory-block__table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed; /* This is key for stable columns */
+}
+
+.inventory-block__table th,
+.inventory-block__table td {
+    padding: var(--spacing-2);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .inventory-block__table th {
-    text-align: left;
     font-size: 0.75rem;
     color: var(--color-muted-foreground);
     text-transform: uppercase;
-    padding-bottom: var(--spacing-2);
+    background-color: var(--color-background);
+    position: sticky;
+    top: 0; /* Makes headers stick during scroll */
 }
 
-.inventory-block__table td {
-    padding: var(--spacing-1) 0;
-    border-bottom: 1px solid var(--color-border);
+/* REWORK: Define column widths */
+.inventory-block__table th:nth-child(1),
+.inventory-block__table td:nth-child(1) {
+    width: 60px; /* Quantity */
+}
+
+.inventory-block__table th:nth-child(2),
+.inventory-block__table td:nth-child(2) {
+    width: 35%; /* Name */
+}
+
+.inventory-block__table th:nth-child(3),
+.inventory-block__table td:nth-child(3) {
+    width: 65%; /* Description */
+}
+
+.inventory-block__table th:nth-child(4),
+.inventory-block__table td:nth-child(4) {
+    width: 50px; /* Actions */
+    text-align: center;
+}
+
+.inventory-block__table tr:last-child td {
+    border-bottom: none;
 }
 
 .inventory-item__input {
@@ -311,8 +352,8 @@
 }
 
 .inventory-item__input--qty {
-    width: 60px;
     text-align: center;
+    padding: var(--spacing-1) 0;
 }
 
 .inventory-item__remove-button {
