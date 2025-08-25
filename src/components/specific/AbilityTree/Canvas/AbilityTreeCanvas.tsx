@@ -1,22 +1,24 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: feat(ability-tree): enable edge selection to open edit modal
+ * COMMIT: feat(ability-tree): implement adaptive navigation based on zoom
  *
- * This commit wires up the final piece of the interactive edge management
- * feature.
+ * This commit implements the final item on the polish plan: adaptive canvas
+ * navigation. This completes the full refactor and polish of the module.
  *
  * Rationale:
- * With the context and modal ready to handle edge editing, the canvas needed
- * a way to initiate that process. This change allows users to click on a
- * connection to open the edit/delete modal.
+ * A single navigation mode felt restrictive. Disabling drag-panning is ideal
+ * for high-level organization (zoomed out), but feels clumsy for detailed
+ * work (zoomed in). This change creates a hybrid system that adapts to the
+ * user's context.
  *
  * Implementation Details:
- * - An `onEdgeClick` handler has been added to the component.
- * - This handler calls the `setSelectedEdge` function from the context, passing
- * the clicked edge. This action is the trigger that causes the `PrerequisiteModal`
- * to open in its "edit" state.
- * - The `<ReactFlow>` component is now passed the `onEdgeClick` prop.
+ * - The `useViewport` hook is used to monitor the live `zoom` level of the canvas.
+ * - The `panOnDrag` prop of the `<ReactFlow>` component is now set dynamically.
+ * - When the zoom level is below a certain threshold (1.2), `panOnDrag` is
+ * `false`, enforcing the structured, scroll-based navigation.
+ * - When the user zooms in past the threshold, `panOnDrag` becomes `true`,
+ * allowing for free-form panning, which is better for fine-tuned adjustments.
  */
 import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
@@ -35,7 +37,7 @@ import ReactFlow, {
     type NodeMouseHandler,
     type PanOnScrollMode,
     type NodeDragHandler,
-    type EdgeMouseHandler, // Import the type for the edge click handler
+    type EdgeMouseHandler,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -54,6 +56,7 @@ const nodeTypes = { abilityNode: AbilityNode, attachmentNode: AttachmentNode };
 const edgeTypes = { logicEdge: LogicEdge };
 const defaultEdgeOptions = { type: 'logicEdge', style: { strokeWidth: 2 } };
 const GRID_SPAN = 100000;
+const PAN_ON_DRAG_ZOOM_THRESHOLD = 1.2; // The zoom level to switch navigation modes
 
 const draggingNodeSelector = (state: { nodeInternals: Map<string, Node> }): Node | undefined => {
     const nodes = Array.from(state.nodeInternals.values());
@@ -72,7 +75,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
         handleDelete,
         setSelectedNode,
         setPendingConnection,
-        setSelectedEdge, // Get the new action from the context
+        setSelectedEdge,
     } = useAbilityTreeEditor();
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -163,14 +166,10 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
         [handleNodeDragStop],
     );
 
-    // NEW: Handler for clicking on an edge
     const onEdgeClick: EdgeMouseHandler = useCallback(
-        (_, edge) => {
-            setSelectedEdge(edge);
-        },
+        (_, edge) => setSelectedEdge(edge),
         [setSelectedEdge],
     );
-
     const onConnect: OnConnect = useCallback(
         (connection) => setPendingConnection(connection),
         [setPendingConnection],
@@ -201,11 +200,12 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                 onConnectStart={onConnectStart}
                 onConnectEnd={onConnectEnd}
                 onNodeClick={onNodeClick}
-                onEdgeClick={onEdgeClick} // NEW: Pass the handler to React Flow
+                onEdgeClick={onEdgeClick}
                 onPaneClick={onPaneClick}
                 defaultEdgeOptions={defaultEdgeOptions}
                 deleteKeyCode={['Backspace', 'Delete']}
-                panOnDrag={false}
+                // ADAPTIVE NAVIGATION
+                panOnDrag={zoom >= PAN_ON_DRAG_ZOOM_THRESHOLD}
                 panOnScroll
                 panOnScrollMode={'vertical' as PanOnScrollMode}
                 translateExtent={canvasBounds}
