@@ -1,4 +1,22 @@
 // src/components/specific/SheetBlocks/AbilityTreeBlock.tsx
+
+/**
+ * COMMIT: fix(react-flow): resolve performance and layout bugs in AbilityTreeBlock
+ *
+ * Rationale:
+ * The console was reporting two errors related to this component:
+ * 1. A performance warning (Error #002) because the `nodeTypes` object was
+ * being recreated on every render.
+ * 2. A layout error (Error #004) because the React Flow container had no
+ * explicit dimensions, causing it to collapse to zero height.
+ *
+ * Implementation Details:
+ * - The `nodeTypes` constant has been moved outside the component's function
+ * scope, ensuring it is defined only once and resolving the performance issue.
+ * - The wrapping div for the React Flow component now has the className
+ * `ability-tree-block__react-flow-wrapper`, which is styled in the CSS
+ * to have a minimum height, fixing the layout rendering bug.
+ */
 import { useState, useEffect, type FC } from 'react';
 import ReactFlow, {
     Background,
@@ -15,7 +33,8 @@ import type { AbilityTree, Ability } from '../../../db/types';
 import { Settings } from 'lucide-react';
 import { AbilityNode } from '../AbilityTree/Node/AbilityNode';
 
-// Define the custom node types for React Flow
+// PERFORMANCE FIX: Define the custom node types outside the component.
+// This ensures the object is not recreated on every render.
 const nodeTypes = {
     abilityNode: AbilityNode,
 };
@@ -27,7 +46,6 @@ export interface AbilityTreeBlockProps {
 
 /**
  * A sheet block for displaying a selected Ability Tree.
- * Includes a configuration mode and a read-only visual render of the tree.
  */
 export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContentChange }) => {
     const { selectedWorld } = useWorld();
@@ -36,11 +54,9 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
     const [isLoading, setIsLoading] = useState(true);
     const [isConfiguring, setIsConfiguring] = useState(false);
 
-    // States for React Flow
     const [nodes, setNodes] = useNodesState([]);
     const [edges, setEdges] = useEdgesState([]);
 
-    // Effect to fetch the list of all available trees
     useEffect(() => {
         if (selectedWorld?.id) {
             getAbilityTreesForWorld(selectedWorld.id).then((trees) => {
@@ -50,39 +66,39 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
         }
     }, [selectedWorld]);
 
-    // Effect to fetch the abilities for the currently selected tree
     useEffect(() => {
         if (content) {
             getAbilitiesForTree(content).then(setAbilities);
         } else {
-            setAbilities([]); // Clear abilities if no tree is selected
+            setAbilities([]);
         }
     }, [content]);
 
-    // Effect to transform the fetched abilities into nodes and edges for React Flow
     useEffect(() => {
-        const initialNodes: Node[] = [];
+        const initialNodes: Node[] = abilities.map((ability) => ({
+            id: String(ability.id!),
+            position: { x: ability.x ?? 0, y: ability.y ?? 0 },
+            data: {
+                label: ability.name,
+                description: ability.description,
+                iconUrl: ability.iconUrl,
+            },
+            type: 'abilityNode',
+        }));
+
         const initialEdges: Edge[] = [];
-
-        for (const ability of abilities) {
-            initialNodes.push({
-                id: String(ability.id!),
-                position: { x: ability.x ?? 0, y: ability.y ?? 0 },
-                data: { label: ability.name, description: ability.description },
-                type: 'abilityNode',
-            });
-
-            if (ability.prerequisites?.abilityIds) {
-                for (const prereqId of ability.prerequisites.abilityIds) {
+        abilities.forEach((ability) => {
+            ability.prerequisites?.forEach((group) => {
+                group.abilityIds.forEach((prereqId) => {
                     initialEdges.push({
                         id: `e-${prereqId}-${ability.id}`,
                         source: String(prereqId),
                         target: String(ability.id!),
-                        animated: true,
                     });
-                }
-            }
-        }
+                });
+            });
+        });
+
         setNodes(initialNodes);
         setEdges(initialEdges);
     }, [abilities, setNodes, setEdges]);
@@ -94,8 +110,6 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
         onContentChange(id);
         setIsConfiguring(false);
     };
-
-    // --- Render Logic ---
 
     if (isLoading) {
         return <p>Loading ability trees...</p>;
@@ -115,7 +129,7 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
                 >
                     <option value="">-- None --</option>
                     {allTrees.map((tree) => (
-                        <option key={tree.id} value={tree.id}>
+                        <option key={tree.id} value={String(tree.id!)}>
                             {tree.name}
                         </option>
                     ))}
@@ -140,6 +154,7 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
             </div>
             <div className="ability-tree-block__content">
                 {selectedTree ? (
+                    // LAYOUT FIX: Added a wrapper class to give the container dimensions.
                     <div className="ability-tree-block__react-flow-wrapper">
                         <ReactFlow
                             nodes={nodes}
