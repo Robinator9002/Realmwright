@@ -1,4 +1,18 @@
 // src/db/queries/class.queries.ts
+
+/**
+ * COMMIT: feat(class-sheet): add getClassById query function
+ *
+ * Rationale:
+ * The main App component needs a way to fetch the specific CharacterClass
+ * data for the ClassSheetEditor. This commit adds the necessary query
+ * function to retrieve a single class by its primary key.
+ *
+ * Implementation Details:
+ * - Created and exported a new async function `getClassById`.
+ * - This function uses `db.characterClasses.get(classId)` for efficient,
+ * direct lookup of a class record.
+ */
 import { db } from '../db';
 import type { CharacterClass, SheetPage } from '../types';
 
@@ -37,7 +51,6 @@ export async function addClass(classData: {
 
 /**
  * Retrieves all Character Classes for a specific World, sorted by name.
- * (This function remains unchanged)
  */
 export async function getClassesForWorld(worldId: number): Promise<CharacterClass[]> {
     try {
@@ -46,6 +59,21 @@ export async function getClassesForWorld(worldId: number): Promise<CharacterClas
     } catch (error) {
         console.error(`Failed to get classes for world ${worldId}:`, error);
         throw new Error('Could not retrieve character classes from the database.');
+    }
+}
+
+/**
+ * NEW: Retrieves a single Character Class by its unique ID.
+ * @param classId - The ID of the class to fetch.
+ * @returns A promise that resolves to the CharacterClass object or undefined if not found.
+ */
+export async function getClassById(classId: number): Promise<CharacterClass | undefined> {
+    try {
+        const characterClass = await db.characterClasses.get(classId);
+        return characterClass;
+    } catch (error) {
+        console.error(`Failed to get class with ID ${classId}:`, error);
+        throw new Error('Could not retrieve the character class from the database.');
     }
 }
 
@@ -78,7 +106,6 @@ export async function updateClass(
 
 /**
  * Deletes a specific Character Class from the database.
- * (This function remains unchanged)
  */
 export async function deleteClass(classId: number): Promise<void> {
     try {
