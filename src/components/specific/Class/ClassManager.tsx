@@ -1,8 +1,29 @@
 // src/components/specific/Class/ClassManager.tsx
+
+/**
+ * COMMIT: refactor(class-sheet): integrate ClassManager with new view context
+ *
+ * Rationale:
+ * To complete the integration of the new ClassSheetEditor, the ClassManager
+ * must be updated to use the global view context for navigation instead of
+
+ * managing its own local state for the editor.
+ *
+ * Implementation Details:
+ * - Imported and consumed the `useView` hook.
+ * - The local `editingClass` state and the direct rendering of the
+ * `ClassSheetEditor` have been removed.
+ * - The "Design Sheet" button's `onClick` handler now calls
+ * `setEditingClassId` and `setCurrentView('class_sheet_editor')`.
+ * - This change fully decouples the manager from the editor and aligns its
+ * behavior with the application's established navigation patterns.
+ */
 import { useState, useEffect, useCallback, type FC } from 'react';
 import { Settings, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { useWorld } from '../../../context/WorldContext';
 import { useModal } from '../../../context/ModalContext';
+// NEW: Import useView to control navigation to the editor.
+import { useView } from '../../../context/ViewContext';
 import {
     getClassesForWorld,
     deleteClass,
@@ -10,25 +31,28 @@ import {
     updateClass,
 } from '../../../db/queries/class.queries';
 import type { CharacterClass } from '../../../db/types';
-// FIX: The generic ManageModal has been replaced by the specialized ManageClassModal
 import { ManageClassModal, type ClassSaveData } from './ManageClassModal';
-import { ClassSheetEditor } from './ClassSheetEditor';
 
 /**
  * A component for listing and managing Character Classes within the active world.
  */
 export const ClassManager: FC = () => {
+    // --- HOOKS ---
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
-    const [classes, setClasses] = useState<CharacterClass[]>([]);
+    // NEW: Get the necessary functions from useView to navigate to the editor.
+    const { setCurrentView, setEditingClassId } = useView();
 
+    // --- STATE ---
+    const [classes, setClasses] = useState<CharacterClass[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const [editingClass, setEditingClass] = useState<CharacterClass | null>(null);
+    // State for the "Manage Details" modal.
     const [managingClass, setManagingClass] = useState<CharacterClass | null>(null);
     const isManageModalOpen = !!managingClass;
 
+    // --- DATA FETCHING ---
     const fetchClasses = useCallback(async () => {
         if (!selectedWorld?.id) return;
         try {
@@ -48,23 +72,33 @@ export const ClassManager: FC = () => {
         fetchClasses();
     }, [fetchClasses]);
 
-    // FIX: Replaced prompt() with modal logic.
+    // --- EVENT HANDLERS ---
+
+    // Opens the modal for creating a new class.
     const handleOpenCreateModal = () => {
         setManagingClass({} as CharacterClass); // Open modal with a placeholder
     };
 
+    // Opens the modal for editing a class's details (name, stats).
     const handleOpenEditModal = (characterClass: CharacterClass) => {
         setManagingClass(characterClass);
     };
 
+    // REWORKED: Navigates to the full-page sheet editor.
+    const handleOpenSheetEditor = (characterClass: CharacterClass) => {
+        if (characterClass.id) {
+            setEditingClassId(characterClass.id);
+            setCurrentView('class_sheet_editor');
+        }
+    };
+
+    // Handles saving from the ManageClassModal (for create or edit).
     const handleSaveClass = async (saveData: ClassSaveData) => {
         if (!selectedWorld?.id) return;
         try {
             if (managingClass && managingClass.id) {
-                // This is an update
                 await updateClass(managingClass.id, saveData);
             } else {
-                // This is a creation
                 await addClass({ ...saveData, worldId: selectedWorld.id });
             }
             await fetchClasses();
@@ -73,6 +107,7 @@ export const ClassManager: FC = () => {
         }
     };
 
+    // Handles deleting a class after confirmation.
     const handleDeleteClass = (characterClass: CharacterClass) => {
         showModal('confirmation', {
             title: `Delete ${characterClass.name}?`,
@@ -89,12 +124,8 @@ export const ClassManager: FC = () => {
         });
     };
 
-    if (editingClass) {
-        return (
-            <ClassSheetEditor characterClass={editingClass} onBack={() => setEditingClass(null)} />
-        );
-    }
-
+    // --- JSX ---
+    // The editor is no longer rendered here; App.tsx handles it.
     return (
         <>
             <div className="panel">
@@ -129,7 +160,7 @@ export const ClassManager: FC = () => {
                                             <Settings size={16} /> Details
                                         </button>
                                         <button
-                                            onClick={() => setEditingClass(charClass)}
+                                            onClick={() => handleOpenSheetEditor(charClass)}
                                             className="button button--primary"
                                         >
                                             <Edit size={16} /> Design Sheet
