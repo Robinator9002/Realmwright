@@ -61,64 +61,66 @@ export const InventoryBlock: FC<InventoryBlockProps> = ({ content, onContentChan
     return (
         <div className="inventory-block">
             <h4 className="inventory-block__title">Inventory</h4>
-            <table className="inventory-block__table">
-                <thead>
-                    <tr>
-                        <th>Qty</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {items.map((item) => (
-                        <tr key={item.id}>
-                            <td>
-                                <input
-                                    type="number"
-                                    className="inventory-item__input inventory-item__input--qty"
-                                    value={item.quantity}
-                                    onChange={(e) =>
-                                        handleItemChange(
-                                            item.id,
-                                            'quantity',
-                                            parseInt(e.target.value, 10) || 1,
-                                        )
-                                    }
-                                />
-                            </td>
-                            <td>
-                                <input
-                                    type="text"
-                                    className="inventory-item__input"
-                                    value={item.name}
-                                    onChange={(e) =>
-                                        handleItemChange(item.id, 'name', e.target.value)
-                                    }
-                                />
-                            </td>
-                            <td>
-                                <input
-                                    type="text"
-                                    className="inventory-item__input"
-                                    value={item.description}
-                                    onChange={(e) =>
-                                        handleItemChange(item.id, 'description', e.target.value)
-                                    }
-                                />
-                            </td>
-                            <td>
-                                <button
-                                    onClick={() => handleRemoveItem(item.id)}
-                                    className="inventory-item__remove-button"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </td>
+            <div className="inventory-block__table-wrapper">
+                <table className="inventory-block__table">
+                    <thead>
+                        <tr>
+                            <th>Qty</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th></th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {items.map((item) => (
+                            <tr key={item.id}>
+                                <td>
+                                    <input
+                                        type="number"
+                                        className="inventory-item__input inventory-item__input--qty"
+                                        value={item.quantity}
+                                        onChange={(e) =>
+                                            handleItemChange(
+                                                item.id,
+                                                'quantity',
+                                                parseInt(e.target.value, 10) || 1,
+                                            )
+                                        }
+                                    />
+                                </td>
+                                <td>
+                                    <input
+                                        type="text"
+                                        className="inventory-item__input"
+                                        value={item.name}
+                                        onChange={(e) =>
+                                            handleItemChange(item.id, 'name', e.target.value)
+                                        }
+                                    />
+                                </td>
+                                <td>
+                                    <input
+                                        type="text"
+                                        className="inventory-item__input"
+                                        value={item.description}
+                                        onChange={(e) =>
+                                            handleItemChange(item.id, 'description', e.target.value)
+                                        }
+                                    />
+                                </td>
+                                <td>
+                                    <button
+                                        onClick={() => handleRemoveItem(item.id)}
+                                        className="inventory-item__remove-button"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
             <div className="inventory-block__add-form">
                 <input
                     type="text"
