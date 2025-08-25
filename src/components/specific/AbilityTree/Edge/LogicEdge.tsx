@@ -1,25 +1,34 @@
 // src/components/specific/AbilityTree/Edge/LogicEdge.tsx
 
 /**
- * COMMIT: chore(ability-tree): relocate LogicEdge and finalize refactor
+ * COMMIT: fix(ability-tree): ensure edge label click is always interactive
  *
- * This commit moves the `LogicEdge` component to its final location in a new
- * `/Edge` subdirectory and marks the completion of the refactoring plan.
+ * This commit resolves the bug where clicking on an edge's label did not
+ * open the edit modal.
  *
  * Rationale:
- * Separating custom edge components into their own directory, distinct from
- * nodes, provides the highest level of organizational clarity. This file was
- * the last remaining piece of the original structure to be formally moved.
+ * The React Flow `EdgeLabelRenderer` can sometimes prevent click events from
+ * propagating to the main edge component. This meant our `onEdgeClick` handler
+ * in the canvas was never firing when the user clicked the label.
  *
- * With this commit, the entire Ability Tree module now adheres to the new,
- * modular, context-driven architecture. The foundation is solid, scalable,
- * and ready for future feature development.
+ * Implementation Details:
+ * - The component now consumes the `useAbilityTreeEditor` context.
+ * - An `onClick` handler has been added directly to the label's `<div>`.
+ * - This handler bypasses React Flow's event system and directly calls the
+ * `setSelectedEdge` function from our context, passing in its own props
+ * (which represent the full edge object).
+ * - This ensures that clicking the label reliably triggers the desired state
+ * change, causing the edit modal to appear.
  */
 import type { FC } from 'react';
 import { getStraightPath, EdgeLabelRenderer, type EdgeProps } from 'reactflow';
+import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
 
-export const LogicEdge: FC<EdgeProps> = ({ id, sourceX, sourceY, targetX, targetY, data }) => {
-    // This helper function calculates the SVG path for a straight line.
+export const LogicEdge: FC<EdgeProps> = (props) => {
+    const { id, sourceX, sourceY, targetX, targetY, data } = props;
+    // Get the state setter directly from our application's context.
+    const { setSelectedEdge } = useAbilityTreeEditor();
+
     const [edgePath, labelX, labelY] = getStraightPath({
         sourceX,
         sourceY,
@@ -27,13 +36,15 @@ export const LogicEdge: FC<EdgeProps> = ({ id, sourceX, sourceY, targetX, target
         targetY,
     });
 
+    const handleEdgeClick = () => {
+        // When the label is clicked, we manually set this edge as the selected
+        // one in our global context.
+        setSelectedEdge(props);
+    };
+
     return (
         <>
-            {/* The SVG path for the edge line itself */}
             <path id={id} className="react-flow__edge-path" d={edgePath} />
-
-            {/* This special renderer ensures the label is positioned correctly
-                over the edge and pans/zooms with the canvas. */}
             <EdgeLabelRenderer>
                 <div
                     style={{
@@ -43,7 +54,9 @@ export const LogicEdge: FC<EdgeProps> = ({ id, sourceX, sourceY, targetX, target
                     }}
                     className="nodrag nopan"
                 >
-                    <div className="logic-edge__label">{data.label}</div>
+                    <div className="logic-edge__label" onClick={handleEdgeClick}>
+                        {data.label}
+                    </div>
                 </div>
             </EdgeLabelRenderer>
         </>
