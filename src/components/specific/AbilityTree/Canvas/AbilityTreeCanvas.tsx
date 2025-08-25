@@ -1,24 +1,24 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: feat(ability-tree): implement adaptive navigation based on zoom
+ * COMMIT: fix(ability-tree): enforce strict, content-aware canvas boundaries
  *
- * This commit implements the final item on the polish plan: adaptive canvas
- * navigation. This completes the full refactor and polish of the module.
+ * This commit resolves the issue of infinite scrolling and dragging by
+ * correctly implementing and calculating the `translateExtent` prop.
  *
  * Rationale:
- * A single navigation mode felt restrictive. Disabling drag-panning is ideal
- * for high-level organization (zoomed out), but feels clumsy for detailed
- * work (zoomed in). This change creates a hybrid system that adapts to the
- * user's context.
+ * The previous implementation used an arbitrarily large number for the canvas
+ * bounds, creating a functionally infinite canvas that felt uncontrolled. A
+ * well-defined workspace is critical for a good user experience.
  *
  * Implementation Details:
- * - The `useViewport` hook is used to monitor the live `zoom` level of the canvas.
- * - The `panOnDrag` prop of the `<ReactFlow>` component is now set dynamically.
- * - When the zoom level is below a certain threshold (1.2), `panOnDrag` is
- * `false`, enforcing the structured, scroll-based navigation.
- * - When the user zooms in past the threshold, `panOnDrag` becomes `true`,
- * allowing for free-form panning, which is better for fine-tuned adjustments.
+ * - The `useMemo` hook now calculates a precise bounding box for the content.
+ * - `minX` and `maxX` are determined by the `NODE_START_X` and a generous
+ * but finite `MAX_PAN_COLUMNS` constant.
+ * - `minY` and `maxY` are determined by the reactive `currentTree.tierCount`.
+ * - This precise `[[x1, y1], [x2, y2]]` array is passed to `translateExtent`,
+ * physically preventing the user from panning or dragging outside the
+ * defined work area.
  */
 import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
@@ -56,7 +56,8 @@ const nodeTypes = { abilityNode: AbilityNode, attachmentNode: AttachmentNode };
 const edgeTypes = { logicEdge: LogicEdge };
 const defaultEdgeOptions = { type: 'logicEdge', style: { strokeWidth: 2 } };
 const GRID_SPAN = 100000;
-const PAN_ON_DRAG_ZOOM_THRESHOLD = 1.2; // The zoom level to switch navigation modes
+const PAN_ON_DRAG_ZOOM_THRESHOLD = 1.2;
+const MAX_PAN_COLUMNS = 20; // Define a generous but finite horizontal panning area
 
 const draggingNodeSelector = (state: { nodeInternals: Map<string, Node> }): Node | undefined => {
     const nodes = Array.from(state.nodeInternals.values());
@@ -110,9 +111,13 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
             });
         });
 
+        // Correctly calculate the content boundaries
         const extent: [[number, number], [number, number]] = [
-            [-GRID_SPAN / 2, -GRID_SPAN / 2],
-            [GRID_SPAN / 2, GRID_SPAN / 2],
+            [NODE_START_X - COLUMN_WIDTH * 2, -200], // minX, minY
+            [
+                NODE_START_X + MAX_PAN_COLUMNS * COLUMN_WIDTH, // maxX
+                currentTree.tierCount * TIER_HEIGHT + 200, // maxY
+            ],
         ];
 
         return {
@@ -120,7 +125,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
             initialEdges: transformedEdges,
             canvasBounds: extent,
         };
-    }, [abilities]);
+    }, [abilities, currentTree.tierCount]);
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -204,7 +209,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                 onPaneClick={onPaneClick}
                 defaultEdgeOptions={defaultEdgeOptions}
                 deleteKeyCode={['Backspace', 'Delete']}
-                // ADAPTIVE NAVIGATION
                 panOnDrag={zoom >= PAN_ON_DRAG_ZOOM_THRESHOLD}
                 panOnScroll
                 panOnScrollMode={'vertical' as PanOnScrollMode}
