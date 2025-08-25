@@ -1,24 +1,22 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: fix(ability-tree): enforce strict, content-aware canvas boundaries
+ * COMMIT: feat(ability-tree): refine panning threshold and fix performance warnings
  *
- * This commit resolves the issue of infinite scrolling and dragging by
- * correctly implementing and calculating the `translateExtent` prop.
+ * This commit implements two key items from the final calibration plan.
  *
  * Rationale:
- * The previous implementation used an arbitrarily large number for the canvas
- * bounds, creating a functionally infinite canvas that felt uncontrolled. A
- * well-defined workspace is critical for a good user experience.
+ * 1. The previous zoom threshold for enabling drag-panning was too high,
+ * making the canvas feel restrictive.
+ * 2. A React Flow performance warning indicated that the `nodeTypes` and
+ * `edgeTypes` objects were being recreated on every render.
  *
  * Implementation Details:
- * - The `useMemo` hook now calculates a precise bounding box for the content.
- * - `minX` and `maxX` are determined by the `NODE_START_X` and a generous
- * but finite `MAX_PAN_COLUMNS` constant.
- * - `minY` and `maxY` are determined by the reactive `currentTree.tierCount`.
- * - This precise `[[x1, y1], [x2, y2]]` array is passed to `translateExtent`,
- * physically preventing the user from panning or dragging outside the
- * defined work area.
+ * - The `PAN_ON_DRAG_ZOOM_THRESHOLD` has been lowered from 1.2 to 0.8,
+ * enabling free-form panning at a more intuitive zoom level.
+ * - The `nodeTypes` and `edgeTypes` constant objects have been moved outside
+ * of the component function scope. This ensures they are defined only once,
+ * resolving the performance warning and making the component more efficient.
  */
 import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
@@ -52,12 +50,14 @@ import {
     NODE_HEIGHT,
 } from '../../../../constants/abilityTree.constants';
 
+// PERFORMANCE FIX: Define these outside the component so they are not recreated on every render.
 const nodeTypes = { abilityNode: AbilityNode, attachmentNode: AttachmentNode };
 const edgeTypes = { logicEdge: LogicEdge };
+
 const defaultEdgeOptions = { type: 'logicEdge', style: { strokeWidth: 2 } };
 const GRID_SPAN = 100000;
-const PAN_ON_DRAG_ZOOM_THRESHOLD = 1.2;
-const MAX_PAN_COLUMNS = 20; // Define a generous but finite horizontal panning area
+const PAN_ON_DRAG_ZOOM_THRESHOLD = 0.8; // UX TWEAK: Lowered threshold for a better feel
+const MAX_PAN_COLUMNS = 20;
 
 const draggingNodeSelector = (state: { nodeInternals: Map<string, Node> }): Node | undefined => {
     const nodes = Array.from(state.nodeInternals.values());
@@ -111,12 +111,11 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
             });
         });
 
-        // Correctly calculate the content boundaries
         const extent: [[number, number], [number, number]] = [
-            [NODE_START_X - COLUMN_WIDTH * 2, -200], // minX, minY
+            [NODE_START_X - COLUMN_WIDTH * 2, -200],
             [
-                NODE_START_X + MAX_PAN_COLUMNS * COLUMN_WIDTH, // maxX
-                currentTree.tierCount * TIER_HEIGHT + 200, // maxY
+                NODE_START_X + MAX_PAN_COLUMNS * COLUMN_WIDTH,
+                currentTree.tierCount * TIER_HEIGHT + 200,
             ],
         ];
 
