@@ -8,57 +8,66 @@
 
 ---
 
-### Project Overview
+Welcome to Realmwright, an ambitious, offline-first desktop application designed to be the ultimate tool for Pen & Paper Game Masters. Built with flexibility and power at its core, Realmwright empowers GMs to craft, manage, and run their campaigns with unparalleled detail and efficiency, whether they are meticulous world-builders or on-the-fly improvisers.
 
-**Realmwright** is an ambitious, offline-first Pen & Paper command center designed to be the ultimate tool for Dungeon Masters. Built with React, TypeScript, and a semantic CSS architecture, it serves as an indispensable digital companion for crafting, managing, and running deeply immersive campaigns. Whether you are a meticulous world-builder or a quick-thinking improviser, Realmwright aims to streamline your workflow and amplify your storytelling.
+This application is built for the storyteller who needs a tool that adapts to their style, not the other way around.
 
-### 🎯 Core Concept
+---
 
-Realmwright is founded on the philosophy of being an **Adaptive Command Center**. It's a powerful, non-distracting tool that enhances the TTRPG experience by prioritizing speed, intuitive design, and flexibility. The core of the application is its robust **offline-first architecture** using IndexedDB (via Dexie.js), ensuring that your entire world is always available, fast, and reliable, regardless of internet connectivity.
+## Core Philosophy
 
-### ✨ Key Features
+-   **Speed and Responsiveness**: Immediate access to information is critical. Realmwright is built for performance, ensuring no distracting lag during a live session.
 
--   **🏛️ Foundational World Management:** Create, manage, and delete self-contained worlds, each serving as a container for its own campaigns and characters.
--   **📚 Dynamic Campaign & Character Creation:** Full CRUD (Create, Read, Update, Delete) functionality for campaigns and characters within a selected world.
--   **🎨 Robust Theming Engine:** A clean, immersive UI with four distinct, user-selectable themes (Modern/Ancient, Light/Dark) powered by a semantic CSS variable system.
--   **⚡ Two-Mode Interface (Planned):** Seamlessly switch between **Creation/Management Mode** for deep world-building and **Active Play Mode**—a live DM console for running sessions.
--   **📦 Robust Data Handling:** All data is stored locally in your browser, providing lightning-fast access and full offline functionality. Includes plans for proprietary text-based import/export for sharing entire worlds.
+-   **Intuitive Design**: A clean, immersive UI that supports the fantasy theme without getting in the way. The goal is to minimize cognitive load so the GM can focus on the story.
 
-### 💡 The "Why": A Tool Forged from Experience
+-   **Offline First**: Leveraging IndexedDB, the app works seamlessly with or without an internet connection. Your worlds are always with you.
 
-As a Dungeon Master who has run countless sessions, I've always yearned for a single, cohesive tool that could handle the sprawling complexity of a homebrew world without getting in the way. Existing solutions are often too rigid, too slow, or too focused on a single ruleset. Realmwright is born from that need—an opinionated, yet flexible, system designed by a DM, for DMs. It's an experiment to see if we can create a digital tool that feels less like software and more like an extension of the storyteller's mind.
+-   **Deep Flexibility**: From custom character sheet layouts to intricate ability trees with logical prerequisites, the tool is designed to handle complex, unique game systems.
 
-### 🗺️ Project Roadmap
+---
 
-The initial architectural phase is complete. The foundational UI, data structures, and core CRUD operations are stable and consistent. Development will now proceed by implementing the core "Creation Mode" modules.
+## Tech Stack
 
-1.  **✓ Base Camp 1: The Foundation**
+-   **Framework**: React with TypeScript
 
-    -   [x] Establish the Dexie.js database schema for Worlds, Campaigns, & Characters.
-    -   [x] Implement a fully type-safe, generic modal for managing data.
-    -   [x] Build consistent, full CRUD panels for Worlds, Campaigns, & Characters.
-    -   [x] Finalize the semantic CSS architecture and theming engine.
+-   **Desktop Shell**: Electron
 
-2.  **► Base Camp 2: The Chronicle Keeper (Current Focus)**
+-   **Styling**: A custom BEM-style CSS system (no utility-first frameworks)
 
-    -   [x] Design and implement the **Lore Creator** module.
-    -   [x] Develop a rich text editor for detailed lore entries.
-    -   [ ] Implement categorization (Factions, Locations, etc.) and cross-linking/tagging.
-    -   [ ] Integrate a chronological timeline view for historical events.
+-   **Data Persistence**: Dexie.js (a wrapper for IndexedDB) for robust offline storage.
 
-3.  **Base Camp 3: The Persona Forge**
+-   **Diagramming/Canvas**: React Flow for the Ability Tree editor.
 
-    -   [x] Build the **Character Template Creator** with modular components.
-    -   [x] Integrate stats and abilities from a future Rule Creator.
-    -   [x] Allow for custom, free-form pages within a character sheet.
+-   **Drag & Drop**: dnd-kit for the Class Sheet editor.
 
-4.  **Base Camp 4: The System Architect & The Skill Weaver**
+---
 
-    -   [x] Build the **Rule Creator** to define game mechanics and rule packs.
-    -   [x] Design and implement the node-based **Ability Tree Creator**.
+## Project Roadmap
 
-5.  **The Summit Push: The Live Console & World Canvas**
-    -   [ ] Develop the **"Active Play Mode"** with its various trackers (Quests, Combat, etc.).
-    -   [ ] Implement the interactive **Map Creator**.
+### ✅ **Phase 1: The Skill Web Weaver (Completed)**
 
-_(The full, detailed development plan can be found in our collaborative development log.)_
+The foundational `Ability Tree Creator` was a monumental undertaking, establishing many of the core patterns for the application.
+
+-   **1. Core Canvas & Node System:** Implemented the fundamental React Flow canvas, custom nodes (`AbilityNode`, `AttachmentNode`), and the grid-based tier layout.
+
+-   **2. Reactive State Management:** Developed the `AbilityTreeEditorContext` to handle all state changes, from adding/deleting nodes to managing tiers, ensuring the UI is always in sync with the data.
+
+-   **3. Advanced Prerequisite & Socket Logic:** Engineered the system for creating complex prerequisites between abilities (AND/OR logic) and the innovative "socketing" feature, allowing entire skill trees to be attached to designated nodes.
+
+-   **4. UI/UX Polish & Ergonomics:** Refined the user experience with features like drag-and-snap, interactive edge labels, tier highlighting, and a dedicated sidebar for a smooth, intuitive editing workflow.
+
+### ➡️ **Phase 2: The Persona Forge (Next Up)**
+
+The next major initiative is a complete overhaul of the **Class and Character Sheet System**. The goal is to move beyond simple data entry and create a truly modular and customizable character creation experience.
+
+-   **Objective:** Refactor the `ClassManager` and `CharacterManager` to support a new `ClassSheetEditor` where GMs can design character sheet layouts using draggable blocks (`Stats`, `Inventory`, `RichText`, `AbilityTree`, etc.). Characters will then be instantiated from these class blueprints.
+
+### **Future Milestones**
+
+-   **World & Campaign Managers:** Build out the top-level containers for organizing all game content.
+
+-   **Lore & Rules Creators:** Develop the tools for writing and cross-referencing all narrative and mechanical information.
+
+-   **The DM's Live Console:** Implement the "Active Play Mode" with modules for tracking quests, journeys, combat, and session notes.
+
+-   **Import/Export Functionality:** Create the system for saving, sharing, and loading entire worlds.
