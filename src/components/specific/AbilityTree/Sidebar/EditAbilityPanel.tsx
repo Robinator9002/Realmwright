@@ -6,8 +6,9 @@
  * This commit resolves a runtime crash when selecting a node to edit.
  *
  * Rationale:
- * The context refactor renamed the `tree` property to `currentTree`. This
- * component was not updated to reflect that change, causing a crash when it
+ * The context refactor renamed the `tree` property in the editor context to
+ * `currentTree` for better clarity. This component was not updated to reflect
+ * that change, causing a crash when it
  * tried to access `tree.tierCount` to render the tier dropdown.
  *
  * Implementation Details:
