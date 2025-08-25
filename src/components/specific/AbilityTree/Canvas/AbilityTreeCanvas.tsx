@@ -1,21 +1,25 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: fix(ability-tree): resolve TypeScript errors and remove unused imports
+ * COMMIT: feat(ability-tree): implement 'infinite' grid for seamless zooming
  *
- * This commit corrects several TypeScript errors and cleans up the canvas
- * component by removing unused variables and types.
+ * This commit addresses the issue where grid lines and the drag highlighter
+ * would not cover the entire viewport when zoomed out.
  *
  * Rationale:
- * The previous version contained type mismatches and imported modules that were
- * no longer in use, leading to compilation errors and code clutter.
+ * The previous implementation sized the SVG grid elements based on the content
+ * bounds, which created a jarring visual artifact at low zoom levels. The grid
+ * should appear continuous and infinite to the user.
  *
  * Implementation Details:
- * 1.  **Corrected Prop Type:** The `onViewportChange` callback was being called
- * with an `x` property that was not defined in its type. The call has been
- * corrected to only pass the expected `y` and `zoom` properties.
- * 2.  **Removed Unused Imports:** The `getViewport` hook and `Viewport` type
- * were imported but never used. They have been removed to clean up the code.
+ * - A `GRID_SPAN` constant has been introduced with a very large value.
+ * - The `<line>` elements for the grid and the `<rect>` for the highlighter
+ * are now rendered using this large span. Their `x` and `y` coordinates are
+ * offset by half this span, ensuring they are always centered and extend
+ * far beyond the visible area, regardless of pan or zoom.
+ * - The dynamic calculation of `gridDimensions` has been removed in favor of
+ * rendering a generous, fixed number of column lines to ensure performance
+ * while still covering a wide pan area.
  */
 import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
@@ -25,7 +29,7 @@ import ReactFlow, {
     useEdgesState,
     BackgroundVariant,
     useStore,
-    useViewport, // Import useViewport
+    useViewport,
     type Edge,
     type OnNodesChange,
     type OnEdgesChange,
@@ -51,6 +55,7 @@ import {
 const nodeTypes = { abilityNode: AbilityNode, attachmentNode: AttachmentNode };
 const edgeTypes = { logicEdge: LogicEdge };
 const defaultEdgeOptions = { type: 'logicEdge', style: { strokeWidth: 2 } };
+const GRID_SPAN = 100000; // A very large number for our "infinite" grid
 
 const draggingNodeSelector = (state: { nodeInternals: Map<string, Node> }): Node | undefined => {
     const nodes = Array.from(state.nodeInternals.values());
@@ -75,14 +80,13 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const draggingNode = useStore(draggingNodeSelector);
-    const { x, y, zoom } = useViewport(); // Get live viewport data
+    const { x, y, zoom } = useViewport();
 
     useEffect(() => {
-        // Corrected to only pass the expected properties
         onViewportChange({ y, zoom });
-    }, [x, y, zoom, onViewportChange]);
+    }, [y, zoom, onViewportChange]);
 
-    const { initialNodes, initialEdges, canvasBounds, gridDimensions } = useMemo(() => {
+    const { initialNodes, initialEdges, canvasBounds } = useMemo(() => {
         const transformedNodes: Node[] = abilities.map((ability) => ({
             id: String(ability.id!),
             position: { x: ability.x ?? 0, y: ability.y ?? 0 },
@@ -104,23 +108,21 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
             });
         });
 
-        // Calculate dynamic grid dimensions
-        let maxNodeX = NODE_START_X + COLUMN_WIDTH * 5; // Default width
+        let maxNodeX = NODE_START_X + COLUMN_WIDTH * 5;
         if (transformedNodes.length > 0) {
             maxNodeX = Math.max(...transformedNodes.map((n) => n.position.x + COLUMN_WIDTH));
         }
         const numCols = Math.ceil((maxNodeX - NODE_START_X) / COLUMN_WIDTH) + 1;
 
         const extent: [[number, number], [number, number]] = [
-            [NODE_START_X - COLUMN_WIDTH, -200],
-            [NODE_START_X + numCols * COLUMN_WIDTH, currentTree.tierCount * TIER_HEIGHT + 200],
+            [-GRID_SPAN / 2, -GRID_SPAN / 2],
+            [GRID_SPAN / 2, GRID_SPAN / 2],
         ];
 
         return {
             initialNodes: transformedNodes,
             initialEdges: transformedEdges,
             canvasBounds: extent,
-            gridDimensions: { numCols },
         };
     }, [abilities, currentTree.tierCount]);
 
@@ -216,32 +218,31 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                 />
                 <svg style={{ position: 'absolute', zIndex: -1, width: '100%', height: '100%' }}>
                     <g transform={`translate(${x}, ${y}) scale(${zoom})`}>
-                        {/* Render grid lines within the transformed group */}
                         {Array.from({ length: currentTree.tierCount }, (_, i) => (
                             <line
                                 key={`tier-line-${i}`}
-                                x1={canvasBounds[0][0]}
+                                x1={-GRID_SPAN / 2}
                                 y1={TIER_HEIGHT * (i + 1)}
-                                x2={canvasBounds[1][0]}
+                                x2={GRID_SPAN / 2}
                                 y2={TIER_HEIGHT * (i + 1)}
                                 className="tier-line"
                             />
                         ))}
-                        {Array.from({ length: gridDimensions.numCols }, (_, i) => (
+                        {/* Render a generous fixed number of column lines */}
+                        {Array.from({ length: 50 }, (_, i) => (
                             <line
                                 key={`col-line-${i}`}
-                                x1={NODE_START_X + COLUMN_WIDTH * i}
-                                y1={canvasBounds[0][1]}
-                                x2={NODE_START_X + COLUMN_WIDTH * i}
-                                y2={canvasBounds[1][1]}
+                                x1={NODE_START_X + COLUMN_WIDTH * (i - 25)}
+                                y1={-GRID_SPAN / 2}
+                                x2={NODE_START_X + COLUMN_WIDTH * (i - 25)}
+                                y2={GRID_SPAN / 2}
                                 className="column-line"
                             />
                         ))}
-                        {/* Conditionally render highlighter within the transformed group */}
                         {draggingNode && (
                             <g>
                                 <rect
-                                    x={canvasBounds[0][0]}
+                                    x={-GRID_SPAN / 2}
                                     y={
                                         (Math.max(
                                             1,
@@ -253,7 +254,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                                             1) *
                                         TIER_HEIGHT
                                     }
-                                    width={canvasBounds[1][0] - canvasBounds[0][0]}
+                                    width={GRID_SPAN}
                                     height={TIER_HEIGHT}
                                     fill="var(--color-accent)"
                                     opacity={0.05}
@@ -285,8 +286,8 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                                     r={NODE_HEIGHT / 2 + 10}
                                     fill="none"
                                     stroke="var(--color-accent)"
-                                    strokeWidth={2 / zoom} // Make stroke width consistent when zooming
-                                    strokeDasharray={`${10 / zoom} ${5 / zoom}`} // Adjust dash array with zoom
+                                    strokeWidth={2 / zoom}
+                                    strokeDasharray={`${10 / zoom} ${5 / zoom}`}
                                     style={{ pointerEvents: 'none' }}
                                 />
                             </g>
