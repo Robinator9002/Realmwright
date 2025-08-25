@@ -1,23 +1,26 @@
 // src/pages/AbiltyTree/AbilityTreeEditorPage.tsx
 
 /**
- * COMMIT: refactor(ability-tree): simplify editor page and add exit button
+ * COMMIT: fix(ability-tree): ensure edge click correctly triggers edit modal
  *
- * This commit refactors the `AbilityTreeEditorPage` to be a simple layout
- * component that consumes the reactive state from the `AbilityTreeEditorContext`.
+ * This commit resolves a critical bug where clicking an edge to edit it did
+ * not open the PrerequisiteModal.
  *
  * Rationale:
- * The page component no longer needs to manage the `currentTree` state, as this
- * is now handled by the context provider. This change completes the state
- * management refactor and resolves the stale UI bug.
+ * The root cause was a state-to-UI disconnect. The `selectedEdge` state was
+ * being set correctly in the context, but the `AbilityTreeEditorPage` was not
+ * reacting to this change to set its local `isModalOpen` state to true.
  *
  * Implementation Details:
- * - All local state for `currentTree` and the `onAddTier`/`onRemoveTier` handlers
- * have been removed. The component now relies entirely on the context.
- * - The `AbilityTreeSidebar` is now called without the tier-related props, as
- * the `TierControls` will get them from the context directly.
- * - A "Back to List" button has been added to the header, fulfilling a key
- * requirement from the final polish plan.
+ * 1.  **State Synchronization:**
+ * - A new `useEffect` hook has been added to the `AbilityTreeEditor` component.
+ * - This effect listens for changes to both `pendingConnection` (for creation)
+ * and `selectedEdge` (for editing). If either exists, it sets
+ * `isModalOpen` to `true`, ensuring the modal always appears when needed.
+ * 2.  **Centralized Modal Close Logic:**
+ * - A new `handleModalClose` function now handles all modal closing logic.
+ * - It correctly resets `isModalOpen`, `pendingConnection`, and `selectedEdge`,
+ * preventing stale state and ensuring the modal behaves predictably.
  */
 import { useState, useEffect, type FC, useCallback } from 'react';
 import { useWorld } from '../../context/WorldContext';
@@ -43,9 +46,14 @@ const AbilityTreeEditor: FC<{
     onClose: () => void;
 }> = ({ onClose }) => {
     const { selectedWorld } = useWorld();
-    // The reactive tree and handlers are now sourced from the context
-    const { currentTree, handleConnect, pendingConnection, setPendingConnection } =
-        useAbilityTreeEditor();
+    const {
+        currentTree,
+        handleConnect,
+        pendingConnection,
+        setPendingConnection,
+        selectedEdge,
+        setSelectedEdge,
+    } = useAbilityTreeEditor();
 
     const [availableTrees, setAvailableTrees] = useState<AbilityTree[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,42 +69,47 @@ const AbilityTreeEditor: FC<{
         fetchAvailableTrees();
     }, [selectedWorld, currentTree.id]);
 
+    // NEW: This effect synchronizes the modal's visibility with the context state.
     useEffect(() => {
-        if (pendingConnection) {
+        // If a new connection is pending OR an existing edge is selected, open the modal.
+        if (pendingConnection || selectedEdge) {
             setIsModalOpen(true);
         }
-    }, [pendingConnection]);
+    }, [pendingConnection, selectedEdge]);
 
     const handlePrerequisiteSelect = useCallback(
         (type: 'AND' | 'OR') => {
             if (pendingConnection) {
                 handleConnect(pendingConnection, type);
             }
-            setPendingConnection(null);
-            setIsModalOpen(false);
+            // The modal close logic will handle resetting state.
         },
-        [handleConnect, pendingConnection, setPendingConnection],
+        [handleConnect, pendingConnection],
     );
+
+    // NEW: Centralized handler for closing the modal and resetting all related state.
+    const handleModalClose = () => {
+        setIsModalOpen(false);
+        setPendingConnection(null);
+        setSelectedEdge(null);
+    };
 
     return (
         <>
             <div className="ability-editor-page">
                 <header className="ability-editor-page__header">
-                    {/* NEW: Exit button added */}
                     <button onClick={onClose} className="button">
                         &larr; Back to List
                     </button>
                     <h2 className="ability-editor-page__title">Editing: {currentTree.name}</h2>
                 </header>
                 <main className="ability-editor-page__main">
-                    {/* The sidebar no longer needs the tier handlers passed as props */}
                     <AbilityTreeSidebar availableTrees={availableTrees} />
                     <div className="ability-editor-page__canvas">
                         <ReactFlowProvider>
                             <AbilityTreeCanvas onViewportChange={setCanvasViewport} />
                         </ReactFlowProvider>
                     </div>
-                    {/* TierBar now reads the reactive tierCount from the context-aware currentTree */}
                     <TierBar
                         tierCount={currentTree.tierCount}
                         viewportYOffset={canvasViewport.y}
@@ -106,7 +119,7 @@ const AbilityTreeEditor: FC<{
             </div>
             <PrerequisiteModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={handleModalClose}
                 onSelect={handlePrerequisiteSelect}
             />
         </>
