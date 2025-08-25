@@ -1,25 +1,22 @@
 // src/components/specific/AbilityTree/Canvas/AbilityTreeCanvas.tsx
 
 /**
- * COMMIT: feat(ability-tree): implement 'infinite' grid for seamless zooming
+ * COMMIT: feat(ability-tree): enable edge selection to open edit modal
  *
- * This commit addresses the issue where grid lines and the drag highlighter
- * would not cover the entire viewport when zoomed out.
+ * This commit wires up the final piece of the interactive edge management
+ * feature.
  *
  * Rationale:
- * The previous implementation sized the SVG grid elements based on the content
- * bounds, which created a jarring visual artifact at low zoom levels. The grid
- * should appear continuous and infinite to the user.
+ * With the context and modal ready to handle edge editing, the canvas needed
+ * a way to initiate that process. This change allows users to click on a
+ * connection to open the edit/delete modal.
  *
  * Implementation Details:
- * - A `GRID_SPAN` constant has been introduced with a very large value.
- * - The `<line>` elements for the grid and the `<rect>` for the highlighter
- * are now rendered using this large span. Their `x` and `y` coordinates are
- * offset by half this span, ensuring they are always centered and extend
- * far beyond the visible area, regardless of pan or zoom.
- * - The dynamic calculation of `gridDimensions` has been removed in favor of
- * rendering a generous, fixed number of column lines to ensure performance
- * while still covering a wide pan area.
+ * - An `onEdgeClick` handler has been added to the component.
+ * - This handler calls the `setSelectedEdge` function from the context, passing
+ * the clicked edge. This action is the trigger that causes the `PrerequisiteModal`
+ * to open in its "edit" state.
+ * - The `<ReactFlow>` component is now passed the `onEdgeClick` prop.
  */
 import { useEffect, useCallback, useMemo, useRef, type FC } from 'react';
 import ReactFlow, {
@@ -38,6 +35,7 @@ import ReactFlow, {
     type NodeMouseHandler,
     type PanOnScrollMode,
     type NodeDragHandler,
+    type EdgeMouseHandler, // Import the type for the edge click handler
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -55,7 +53,7 @@ import {
 const nodeTypes = { abilityNode: AbilityNode, attachmentNode: AttachmentNode };
 const edgeTypes = { logicEdge: LogicEdge };
 const defaultEdgeOptions = { type: 'logicEdge', style: { strokeWidth: 2 } };
-const GRID_SPAN = 100000; // A very large number for our "infinite" grid
+const GRID_SPAN = 100000;
 
 const draggingNodeSelector = (state: { nodeInternals: Map<string, Node> }): Node | undefined => {
     const nodes = Array.from(state.nodeInternals.values());
@@ -74,6 +72,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
         handleDelete,
         setSelectedNode,
         setPendingConnection,
+        setSelectedEdge, // Get the new action from the context
     } = useAbilityTreeEditor();
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -108,12 +107,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
             });
         });
 
-        let maxNodeX = NODE_START_X + COLUMN_WIDTH * 5;
-        if (transformedNodes.length > 0) {
-            maxNodeX = Math.max(...transformedNodes.map((n) => n.position.x + COLUMN_WIDTH));
-        }
-        const numCols = Math.ceil((maxNodeX - NODE_START_X) / COLUMN_WIDTH) + 1;
-
         const extent: [[number, number], [number, number]] = [
             [-GRID_SPAN / 2, -GRID_SPAN / 2],
             [GRID_SPAN / 2, GRID_SPAN / 2],
@@ -124,7 +117,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
             initialEdges: transformedEdges,
             canvasBounds: extent,
         };
-    }, [abilities, currentTree.tierCount]);
+    }, [abilities]);
 
     useEffect(() => {
         setNodes(initialNodes);
@@ -170,6 +163,14 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
         [handleNodeDragStop],
     );
 
+    // NEW: Handler for clicking on an edge
+    const onEdgeClick: EdgeMouseHandler = useCallback(
+        (_, edge) => {
+            setSelectedEdge(edge);
+        },
+        [setSelectedEdge],
+    );
+
     const onConnect: OnConnect = useCallback(
         (connection) => setPendingConnection(connection),
         [setPendingConnection],
@@ -200,6 +201,7 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                 onConnectStart={onConnectStart}
                 onConnectEnd={onConnectEnd}
                 onNodeClick={onNodeClick}
+                onEdgeClick={onEdgeClick} // NEW: Pass the handler to React Flow
                 onPaneClick={onPaneClick}
                 defaultEdgeOptions={defaultEdgeOptions}
                 deleteKeyCode={['Backspace', 'Delete']}
@@ -228,7 +230,6 @@ export const AbilityTreeCanvas: FC<AbilityTreeCanvasProps> = ({ onViewportChange
                                 className="tier-line"
                             />
                         ))}
-                        {/* Render a generous fixed number of column lines */}
                         {Array.from({ length: 50 }, (_, i) => (
                             <line
                                 key={`col-line-${i}`}
