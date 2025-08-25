@@ -1,4 +1,21 @@
-/* src/styles/components/_sheet-editor.css */
+/* src/styles/components/class-sheet/_sheet-editor.css */
+
+/**
+ * COMMIT: style(class-sheet): implement grid layout for editor canvas
+ *
+ * Rationale:
+ * To support the new modular, multi-column character sheet design, the core
+ * layout of the editor's canvas has been changed from a flexbox column to a
+ * CSS grid.
+ *
+ * Implementation Details:
+ * - The `.sheet-editor__canvas` class now uses `display: grid` with two
+ * equal-fraction columns (`grid-template-columns: 1fr 1fr`).
+ * - `align-content: start` is used to ensure that blocks stack neatly from
+ * the top of the canvas, preventing any unwanted vertical centering.
+ * - This change provides the structural foundation for placing half-width and
+ * full-width blocks, enabling the intended free-form design experience.
+ */
 
 .sheet-editor {
     /* This allows the editor to take up the full space of its container */
@@ -19,14 +36,16 @@
     overflow: hidden; /* Prevent scrolling on the main editor body */
 }
 
+/* REWORK: Switched from flexbox to a two-column grid layout */
 .sheet-editor__canvas {
     background-color: var(--color-background);
     border-radius: var(--border-radius);
     padding: var(--spacing-4);
-    overflow-y: auto; /* Allow the canvas itself to scroll if content overflows */
-    display: flex;
-    flex-direction: column;
+    overflow-y: auto; /* Allow the canvas itself to scroll */
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Create two equal columns */
     gap: var(--spacing-4);
+    align-content: start; /* Stack items from the top */
 }
 
 .sheet-editor__sidebar {
@@ -53,42 +72,4 @@
 .sidebar__block-button {
     width: 100%;
     justify-content: flex-start; /* Align button content to the left */
-}
-
-/* --- Canvas Block Styles --- */
-.sheet-block {
-    background-color: var(--color-panel-bg);
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
-    padding: var(--spacing-4);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-
-.sheet-block__header {
-    font-weight: 600;
-    color: var(--color-muted-foreground);
-}
-
-.sheet-block__type {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--color-accent);
-}
-
-.sheet-block__remove-button {
-    background: none;
-    border: none;
-    color: var(--color-muted-foreground);
-    cursor: pointer;
-    padding: var(--spacing-1);
-    border-radius: 999px;
-    line-height: 1;
-}
-
-.sheet-block__remove-button:hover {
-    background-color: var(--color-danger);
-    color: white;
 }
