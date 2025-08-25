@@ -1,16 +1,29 @@
 // src/components/specific/Class/ClassSheetEditor.tsx
+
+/**
+ * COMMIT: refactor(class-sheet): overhaul ClassSheetEditor with grid layout
+ *
+ * Rationale:
+ * This commit completely rebuilds the ClassSheetEditor to fulfill the vision
+ * of a modular, drag-and-drop, grid-based canvas for designing character
+ * sheets. The previous implementation was a simple vertical list placeholder.
+ *
+ * Implementation Details:
+ * - **Component Composition:** The editor is now composed of smaller, dedicated
+ * components (`SortableSheetBlock`, `SheetBlockRenderer`), making the main
+ * component responsible only for state and layout orchestration.
+ * - **Grid-Based Canvas:** The main canvas area is now a CSS grid, capable of
+ * displaying blocks in a two-column layout based on their `width` property.
+ * - **State Management:** All logic for managing the sheet's state (adding,
+ * removing, reordering, and updating blocks) is handled here.
+ * - **Drag & Drop:** Implemented `DndContext` from dnd-kit to manage the
+ * drag-and-drop functionality, including the logic for reordering blocks
+ * in the `handleDragEnd` function.
+ * - **Sidebar:** The sidebar now correctly adds new blocks with a default
+ * `width` of 'half', ready to be placed on the grid.
+ */
 import { useState, type FC } from 'react';
-import {
-    ArrowLeft,
-    X,
-    Type,
-    BarChart2,
-    Swords,
-    Backpack,
-    FileText,
-    GripVertical,
-} from 'lucide-react';
-// NEW: Import from Dnd Kit instead of react-beautiful-dnd
+import { ArrowLeft, Save } from 'lucide-react';
 import {
     DndContext,
     closestCenter,
@@ -24,103 +37,31 @@ import {
     arrayMove,
     SortableContext,
     sortableKeyboardCoordinates,
-    useSortable,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 import type { CharacterClass, SheetPage, SheetBlock } from '../../../db/types';
 import { updateClass } from '../../../db/queries/class.queries';
-import { StatsBlock } from '../SheetBlocks/StatsBlock';
-import { DetailsBlock } from '../SheetBlocks/DetailsBlock';
-import { AbilityTreeBlock } from '../SheetBlocks/AbilityTreeBlock';
-import { RichTextBlock } from '../SheetBlocks/RichTextBlock';
-import { InventoryBlock } from '../SheetBlocks/InventoryBlock';
+import { blockTypes } from '../../../constants/sheetEditor.constants';
 
-// --- Reusable Sortable Item Wrapper ---
-const SortableBlockItem: FC<{ block: SheetBlock; children: React.ReactNode }> = ({
-    block,
-    children,
-}) => {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-        id: block.id,
-    });
+import { SortableSheetBlock } from './SortableSheetBlock';
+import { SheetBlockRenderer } from './SheetBlockRenderer';
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-    };
-
-    return (
-        <div ref={setNodeRef} style={style} className="sheet-block">
-            <div className="sheet-block__drag-handle" {...attributes} {...listeners}>
-                <GripVertical size={16} />
-            </div>
-            {children}
-        </div>
-    );
-};
-
+// --- COMPONENT PROPS ---
 export interface ClassSheetEditorProps {
     characterClass: CharacterClass;
     onBack: () => void; // Function to return to the ClassManager list
 }
 
-const blockTypes: { type: SheetBlock['type']; label: string; icon: React.ReactNode }[] = [
-    { type: 'details', label: 'Details', icon: <Type size={16} /> },
-    { type: 'stats', label: 'Stats Panel', icon: <BarChart2 size={16} /> },
-    { type: 'ability_tree', label: 'Ability Tree', icon: <Swords size={16} /> },
-    { type: 'inventory', label: 'Inventory', icon: <Backpack size={16} /> },
-    { type: 'rich_text', label: 'Rich Text', icon: <FileText size={16} /> },
-];
-
-const BlockRenderer: FC<{
-    block: SheetBlock;
-    characterClass: CharacterClass;
-    onContentChange: (blockId: string, newContent: any) => void;
-}> = ({ block, characterClass, onContentChange }) => {
-    // This component's logic remains the same
-    switch (block.type) {
-        case 'details':
-            return <DetailsBlock characterClass={characterClass} />;
-        case 'stats':
-            return <StatsBlock baseStats={characterClass.baseStats} />;
-        case 'ability_tree':
-            return (
-                <AbilityTreeBlock
-                    content={block.content}
-                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
-                />
-            );
-        case 'rich_text':
-            return (
-                <RichTextBlock
-                    content={block.content}
-                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
-                />
-            );
-        case 'inventory':
-            return (
-                <InventoryBlock
-                    content={block.content}
-                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
-                />
-            );
-        default:
-            return (
-                <div className="sheet-block__header">
-                    <span className="sheet-block__type">{block.type.replace('_', ' ')}</span>
-                </div>
-            );
-    }
-};
-
+// --- COMPONENT DEFINITION ---
 export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, onBack }) => {
-    // FIX: Ensure the sheet state is always a valid array, even if the prop is null/undefined.
+    // --- STATE ---
+    // The main state for the sheet layout, initialized from the prop.
     const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet || []);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Dnd Kit sensors for pointer (mouse, touch) and keyboard interactions
+    // --- DND-KIT SETUP ---
+    // Sets up sensors for pointer (mouse/touch) and keyboard interactions.
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, {
@@ -128,16 +69,20 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         }),
     );
 
+    // --- EVENT HANDLERS ---
+
+    // Adds a new block of a given type to the first page of the sheet.
     const handleAddBlock = (blockType: SheetBlock['type']) => {
         const newBlock: SheetBlock = {
             id: crypto.randomUUID(),
             type: blockType,
+            width: 'half', // Default to half-width for new blocks.
             content: blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
         };
 
         setSheet((currentSheet) => {
             const newSheet = JSON.parse(JSON.stringify(currentSheet));
-            // If there are no pages, create one.
+            // If there are no pages, create one first.
             if (newSheet.length === 0) {
                 newSheet.push({ id: crypto.randomUUID(), name: 'Main Page', blocks: [] });
             }
@@ -146,6 +91,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         });
     };
 
+    // Removes a block from the sheet by its ID.
     const handleRemoveBlock = (blockId: string) => {
         setSheet((currentSheet) => {
             const newSheet = JSON.parse(JSON.stringify(currentSheet));
@@ -158,6 +104,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         });
     };
 
+    // Updates the content of a specific block (e.g., text in a RichTextBlock).
     const handleBlockContentChange = (blockId: string, newContent: any) => {
         setSheet((currentSheet) => {
             const newSheet = JSON.parse(JSON.stringify(currentSheet));
@@ -173,17 +120,20 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         });
     };
 
+    // Persists the current sheet layout to the database.
     const handleSaveSheet = async () => {
         setIsSaving(true);
         try {
             await updateClass(characterClass.id!, { characterSheet: sheet });
         } catch (error) {
             console.error('Failed to save sheet layout:', error);
+            // In a real app, show a user-facing error notification here.
         } finally {
             setIsSaving(false);
         }
     };
 
+    // Handles the end of a drag-and-drop operation to reorder blocks.
     function handleDragEnd(event: DragEndEvent) {
         const { active, over } = event;
 
@@ -194,15 +144,18 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 const oldIndex = blocks.findIndex((b: SheetBlock) => b.id === active.id);
                 const newIndex = blocks.findIndex((b: SheetBlock) => b.id === over.id);
 
+                // Use the arrayMove utility from dnd-kit to reorder the blocks.
                 newSheet[0].blocks = arrayMove(blocks, oldIndex, newIndex);
                 return newSheet;
             });
         }
     }
 
-    // FIX: Add a guard clause to handle cases where there are no pages in the sheet.
+    // --- RENDER LOGIC ---
+    // A safeguard to get the current page, handling cases where the sheet might be empty.
     const currentPage = sheet && sheet.length > 0 ? sheet[0] : null;
 
+    // --- JSX ---
     return (
         <div className="panel sheet-editor">
             <div className="panel__header-actions">
@@ -217,7 +170,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     className="button button--primary"
                     disabled={isSaving}
                 >
-                    {isSaving ? 'Saving...' : 'Save Sheet Layout'}
+                    <Save size={16} /> {isSaving ? 'Saving...' : 'Save Sheet Layout'}
                 </button>
             </div>
 
@@ -234,22 +187,17 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                                 strategy={verticalListSortingStrategy}
                             >
                                 {currentPage.blocks.map((block) => (
-                                    <SortableBlockItem key={block.id} block={block}>
-                                        <div className="sheet-block__content">
-                                            <BlockRenderer
-                                                block={block}
-                                                characterClass={characterClass}
-                                                onContentChange={handleBlockContentChange}
-                                            />
-                                        </div>
-                                        <button
-                                            onClick={() => handleRemoveBlock(block.id)}
-                                            className="sheet-block__remove-button"
-                                            title="Remove Block"
-                                        >
-                                            <X size={16} />
-                                        </button>
-                                    </SortableBlockItem>
+                                    <SortableSheetBlock
+                                        key={block.id}
+                                        block={block}
+                                        onRemove={handleRemoveBlock}
+                                    >
+                                        <SheetBlockRenderer
+                                            block={block}
+                                            characterClass={characterClass}
+                                            onContentChange={handleBlockContentChange}
+                                        />
+                                    </SortableSheetBlock>
                                 ))}
                             </SortableContext>
                         ) : (
