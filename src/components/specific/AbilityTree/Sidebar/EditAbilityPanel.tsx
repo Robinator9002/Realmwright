@@ -1,26 +1,19 @@
 // src/components/specific/AbilityTree/Sidebar/EditAbilityPanel.tsx
 
 /**
- * COMMIT: feat(ability-tree): create isolated EditAbilityPanel component
+ * COMMIT: fix(ability-tree): use correct 'currentTree' property in EditAbilityPanel
  *
- * This commit adds the `EditAbilityPanel`, the component responsible for
- * modifying a selected ability node.
+ * This commit resolves a runtime crash when selecting a node to edit.
  *
  * Rationale:
- * Following the modular design pattern, this component extracts all logic
- * related to editing from the old sidebar. It is now a self-contained unit
- * that activates when a node is selected on the canvas.
+ * The context refactor renamed the `tree` property to `currentTree`. This
+ * component was not updated to reflect that change, causing a crash when it
+ * tried to access `tree.tierCount` to render the tier dropdown.
  *
  * Implementation Details:
- * - It consumes `useAbilityTreeEditor` to get the `selectedNode` and the
- * `handleUpdateAbility` and `handleDeleteAbility` functions.
- * - A `useEffect` hook is used to synchronize the component's local form state
- * with the data from the `selectedNode` whenever the selection changes. This
- * ensures the form is always displaying the correct information.
- * - It uses the `useModal` context to show a confirmation dialog before
- * deleting an ability, a critical UX feature for destructive actions.
- * - Like the Create panel, it is now completely decoupled and relies on the
- * context for its operations, requiring no props.
+ * - The destructuring from the `useAbilityTreeEditor` hook has been updated to
+ * use `currentTree` instead of the non-existent `tree` variable.
+ * - This resolves the crash and allows the edit panel to function correctly.
  */
 import { useState, useEffect, type FC } from 'react';
 import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
@@ -28,20 +21,17 @@ import { useModal } from '../../../../context/ModalContext';
 import type { Ability } from '../../../../db/types';
 
 export const EditAbilityPanel: FC = () => {
-    // Consume both our custom editor context and the app-wide modal context.
-    const { selectedNode, tree, handleUpdateAbility, handleDeleteAbility, setSelectedNode } =
+    // FIX: Destructure 'currentTree' instead of the old 'tree' variable.
+    const { selectedNode, currentTree, handleUpdateAbility, handleDeleteAbility, setSelectedNode } =
         useAbilityTreeEditor();
     const { showModal } = useModal();
 
-    // Local state for the form fields.
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [iconUrl, setIconUrl] = useState('');
     const [tier, setTier] = useState(1);
     const [allowedAttachmentType, setAllowedAttachmentType] = useState('');
 
-    // This effect synchronizes the form state with the selected node.
-    // It runs whenever `selectedNode` changes.
     useEffect(() => {
         if (selectedNode?.data) {
             setName(selectedNode.data.label || '');
@@ -54,9 +44,7 @@ export const EditAbilityPanel: FC = () => {
         }
     }, [selectedNode]);
 
-    // If no node is selected, this panel should not be rendered.
-    // This is a safeguard, as the parent sidebar should handle this logic.
-    if (!selectedNode) {
+    if (!selectedNode || !currentTree) {
         return null;
     }
 
@@ -65,14 +53,12 @@ export const EditAbilityPanel: FC = () => {
         const abilityId = parseInt(selectedNode.id, 10);
         const updates: Partial<Ability> = { name, description, iconUrl, tier };
 
-        // If the node is an attachment point, include its specific data in the update.
         if (selectedNode.data.attachmentPoint) {
             updates.attachmentPoint = {
                 ...selectedNode.data.attachmentPoint,
                 allowedAttachmentType: allowedAttachmentType.trim() || undefined,
             };
         }
-
         handleUpdateAbility(abilityId, updates);
     };
 
@@ -82,7 +68,6 @@ export const EditAbilityPanel: FC = () => {
             message: `This will permanently delete the "${selectedNode.data.label}" ability and all its connections. This action cannot be undone.`,
             onConfirm: async () => {
                 await handleDeleteAbility(parseInt(selectedNode.id, 10));
-                // After deletion, clear the selection.
                 setSelectedNode(null);
             },
         });
@@ -104,6 +89,7 @@ export const EditAbilityPanel: FC = () => {
                         required
                     />
                 </div>
+                {/* ... other form groups ... */}
                 <div className="form__group">
                     <label htmlFor="abilityDescEdit" className="form__label">
                         Description
@@ -137,15 +123,17 @@ export const EditAbilityPanel: FC = () => {
                         onChange={(e) => setTier(parseInt(e.target.value, 10))}
                         className="form__select"
                     >
-                        {Array.from({ length: tree.tierCount }, (_, i) => i + 1).map((tierNum) => (
-                            <option key={tierNum} value={tierNum}>
-                                Tier {tierNum}
-                            </option>
-                        ))}
+                        {/* FIX: Read tierCount from the correctly named 'currentTree' object. */}
+                        {Array.from({ length: currentTree.tierCount }, (_, i) => i + 1).map(
+                            (tierNum) => (
+                                <option key={tierNum} value={tierNum}>
+                                    Tier {tierNum}
+                                </option>
+                            ),
+                        )}
                     </select>
                 </div>
 
-                {/* Conditionally render this section only for attachment point nodes */}
                 {selectedNode.data.attachmentPoint && (
                     <div className="form__group">
                         <label htmlFor="allowedTypeEdit" className="form__label">
