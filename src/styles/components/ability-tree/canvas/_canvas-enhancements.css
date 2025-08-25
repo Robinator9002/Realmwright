@@ -1,49 +1,21 @@
-/* src/styles/components/ability-tree/_canvas-enhancements.css */
+/* src/styles/components/ability-tree/canvas/_canvas-enhancements.css */
 
-/* --- Snap Target Indicator --- */
-/* This is the new primary indicator. It's a larger, circular target that shows
-   the exact center point where the dragged node will snap. It's designed to be
-   unambiguous and easy to see. */
-.snap-target {
-    background-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
-    border: 2px solid var(--color-accent);
-    border-radius: 50%; /* A perfect circle */
-    width: 100px; /* Larger than the node for clear visibility */
-    height: 100px;
-    box-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 50%, transparent);
-    position: absolute;
-    z-index: 0;
-    pointer-events: none;
-    /* This transform ensures the circle's center is at the snap point */
-    transform: translate(-50%, -50%);
-    transition: transform 0.1s ease-out, opacity 0.2s ease;
+/* --- VISUAL CLARITY: De-emphasize the background pattern --- */
+.react-flow__background {
+    opacity: 0.5; /* Reduce the visibility of the dot pattern */
 }
 
-/* --- Tier Highlight --- */
-/* This is the horizontal bar that highlights the entire tier the user is
-   currently targeting. It provides clear vertical context. */
-.snap-tier-highlight {
-    position: absolute;
-    left: 0;
-    width: 100%; /* Stretches the full width of the canvas */
-    background-color: var(--color-accent);
-    opacity: 0.05; /* Very subtle highlight */
-    z-index: 0;
-    pointer-events: none;
-    transition: transform 0.1s ease-out, opacity 0.2s ease;
-}
-
-/* --- Minor Style Polish --- */
-
-/* Add a smooth transition to the node selection outline to make it less jarring. */
-.react-flow__node.selected .ability-node {
-    transition: outline 0.15s ease-out, box-shadow 0.15s ease-out;
-}
-
-/* Refine the look of the grid lines to be slightly less prominent. */
+/* --- VISUAL CLARITY: Emphasize the grid lines --- */
 .ability-editor-canvas__grid-lines .tier-line,
 .ability-editor-canvas__grid-lines .column-line {
     stroke: var(--color-border);
-    stroke-width: 1; /* Make lines a bit thinner */
+    stroke-width: 2px; /* Make lines thicker and more visible */
     opacity: 0.75;
+    stroke-dasharray: 4 8; /* A more pronounced dash pattern */
+}
+
+/* --- Minor Style Polish --- */
+/* Add a smooth transition to the node selection outline to make it less jarring. */
+.react-flow__node.selected .ability-node {
+    transition: outline 0.15s ease-out, box-shadow 0.15s ease-out;
 }
