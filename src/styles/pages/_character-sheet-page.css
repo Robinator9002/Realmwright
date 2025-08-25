@@ -1,0 +1,60 @@
+/* src/styles/pages/_character-sheet-page.css */
+
+/**
+ * COMMIT: style(character-sheet): add final layout styles for live page
+ *
+ * Rationale:
+ * To complete the implementation of the dynamic character sheet, this commit
+ * adds the necessary page-level styles to make the live view match the
+ * grid-based design of the ClassSheetEditor.
+ *
+ * Implementation Details:
+ * - Created a new `_character-sheet-page.css` file.
+ * - The `.character-sheet-page__content` class is now a two-column CSS grid,
+ * identical to the editor's canvas, ensuring that the block layouts are
+ * rendered correctly.
+ * - Added styles for the page header to create a clean and functional top
+ * bar with the character's name and action buttons.
+ * - The live sheet blocks now correctly use the `sheet-block--full-width`
+ * and `sheet-block--half-width` classes, completing the visual design.
+ */
+
+.character-sheet-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+    padding: var(--spacing-8);
+    max-width: 80rem; /* 1280px */
+    margin: 0 auto;
+}
+
+.character-sheet-page__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--spacing-4);
+    border-bottom: 2px solid var(--color-border);
+}
+
+.character-sheet-page__title {
+    margin: 0; /* Override default heading margin */
+}
+
+.character-sheet-page__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
+}
+
+/* The main content area where the blocks are rendered.
+   This grid MUST match the .sheet-editor__canvas grid. */
+.character-sheet-page__content {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Two equal columns */
+    gap: var(--spacing-4);
+    align-content: start; /* Stack items from the top */
+}
+
+.error-message {
+    color: var(--color-danger);
+}
