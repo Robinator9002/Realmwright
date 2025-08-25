@@ -1,4 +1,103 @@
-/* src/styles/components/_sheet-blocks.css */
+/* src/styles/components/class-sheet/_sheet-blocks.css */
+
+/**
+ * COMMIT: style(class-sheet): add grid layout and interaction styles for blocks
+ *
+ * Rationale:
+ * To complete the visual implementation of the new grid-based editor, this
+ * commit adds the necessary styles for the sheet blocks themselves.
+ *
+ * Implementation Details:
+ * - **Grid Sizing:** Added `.sheet-block--half-width` and
+ * `.sheet-block--full-width` classes. The full-width class uses
+ * `grid-column: span 2` to occupy the entire row of the grid.
+ * - **Interaction Chrome:** Added styles for the `.sheet-block__drag-handle`
+ * and `.sheet-block__remove-button`. These elements are positioned absolutely
+ * within the block and appear on hover, providing a clean and intuitive UI
+ * for managing blocks.
+ * - **Content Wrapper:** A new `.sheet-block__content` class ensures that the
+ * actual block content has the correct padding and layout, separate from the
+ * main block container.
+ */
+
+/* --- Base Block Container --- */
+/* REWORK: The base block is now a relative container for its UI elements. */
+.sheet-block {
+    position: relative;
+    background-color: var(--color-panel-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    display: flex; /* Use flexbox for internal alignment */
+    transition: box-shadow 0.2s ease;
+}
+
+.sheet-block:hover {
+    box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+/* NEW: A wrapper for the actual block content to handle padding. */
+.sheet-block__content {
+    padding: var(--spacing-4);
+    width: 100%;
+}
+
+/* NEW: Styles for half-width blocks (default) */
+.sheet-block--half-width {
+    grid-column: span 1;
+}
+
+/* NEW: Styles for full-width blocks */
+.sheet-block--full-width {
+    grid-column: span 2;
+}
+
+/* --- Block Interaction "Chrome" --- */
+
+/* NEW: Style for the drag handle */
+.sheet-block__drag-handle {
+    position: absolute;
+    top: 50%;
+    left: -12px;
+    transform: translateY(-50%);
+    color: var(--color-muted-foreground);
+    cursor: grab;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.sheet-block:hover .sheet-block__drag-handle {
+    opacity: 1; /* Show on hover */
+}
+
+.sheet-block__drag-handle:hover {
+    color: var(--color-accent);
+}
+
+/* NEW: Style for the remove button */
+.sheet-block__remove-button {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: none;
+    border: none;
+    color: var(--color-muted-foreground);
+    cursor: pointer;
+    padding: var(--spacing-1);
+    border-radius: 999px;
+    line-height: 1;
+    opacity: 0; /* Hidden by default */
+    transition: all 0.2s ease;
+}
+
+.sheet-block:hover .sheet-block__remove-button {
+    opacity: 1; /* Show on hover */
+}
+
+.sheet-block__remove-button:hover {
+    background-color: var(--color-danger);
+    color: white;
+    transform: scale(1.1);
+}
 
 /* --- Stats Block --- */
 .stats-block {
@@ -163,7 +262,7 @@
     align-self: flex-end; /* Position save button to the right */
 }
 
-/* --- NEW: Inventory Block --- */
+/* --- Inventory Block --- */
 .inventory-block {
     width: 100%;
     display: flex;
