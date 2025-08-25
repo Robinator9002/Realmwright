@@ -1,24 +1,24 @@
 // src/context/AbilityTreeEditorContext.tsx
 
 /**
- * COMMIT: feat(ability-tree): make tree state reactive within context
+ * COMMIT: feat(ability-tree): add edge management state to context
  *
- * This commit refactors the context to manage the `AbilityTree` object as a
- * reactive state, resolving the stale tier counter bug.
+ * This commit expands the editor context to support the selection, updating,
+ * and deletion of edges (connections).
  *
  * Rationale:
- * The previous implementation passed a static `tree` object to the provider,
- * which never updated. This caused UI components to display stale data (like
- * the tier count) until the entire editor was remounted.
+ * To fulfill the requirement for interactive edge management, the context needs
+ * to be the single source of truth for which edge is currently selected and
+ * must provide the actions to modify it.
  *
  * Implementation Details:
- * - The provider now initializes the `AbilityTree` in a `useState` hook,
- * making it a piece of reactive state (`currentTree`).
- * - The logic for `onAddTier` and `onRemoveTier` has been moved directly
- * into the provider. These functions now perform the database update and then
- * call `setCurrentTree` to publish the new state to all consumers.
- * - The context now exposes the reactive `currentTree` and the new handler
- * functions, ensuring the entire UI updates instantly when the tree changes.
+ * - Added `selectedEdge` and `setSelectedEdge` to the context state and actions
+ * to track the currently selected connection.
+ * - Added a new `handleDeleteEdge` function. This complex action finds the
+ * target ability of the selected edge and removes the corresponding
+ * prerequisite from its data, then refreshes the state.
+ * - Added a new `handleUpdateEdgeLogic` function to change the logic (AND/OR)
+ * of an existing prerequisite group.
  */
 import {
     createContext,
@@ -31,25 +31,29 @@ import {
 } from 'react';
 import { type Node, type Edge, type Connection } from 'reactflow';
 import { useAbilityTreeData } from '../hooks/useAbilityTreeData';
-import { updateAbilityTree } from '../db/queries/ability.queries'; // Import the query
-import type { Ability, AbilityTree } from '../db/types';
+import { updateAbilityTree, updateAbility } from '../db/queries/ability.queries';
+import type { Ability, AbilityTree, PrerequisiteGroup } from '../db/types';
 import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
 
 interface AbilityTreeEditorContextType {
     // STATE
-    currentTree: AbilityTree; // Changed from 'tree' to 'currentTree' for clarity
+    currentTree: AbilityTree;
     abilities: Ability[];
     isLoading: boolean;
     error: string | null;
     selectedNode: Node | null;
     pendingConnection: Connection | null;
+    selectedEdge: Edge | null; // NEW: Track the selected edge
 
     // ACTIONS
     setSelectedNode: (node: Node | null) => void;
     setPendingConnection: (connection: Connection | null) => void;
-    handleAddTier: () => Promise<void>; // New action
-    handleRemoveTier: () => Promise<void>; // New action
-    // ... other actions from useAbilityTreeData
+    setSelectedEdge: (edge: Edge | null) => void; // NEW: Action to set the edge
+    handleAddTier: () => Promise<void>;
+    handleRemoveTier: () => Promise<void>;
+    handleDeleteEdge: () => Promise<void>; // NEW: Action to delete the edge
+    handleUpdateEdgeLogic: (newLogic: PrerequisiteLogicType) => Promise<void>; // NEW: Action to update edge
+    // ... other actions
     refreshAbilities: () => Promise<void>;
     handleAddAbility: (
         name: string,
@@ -71,16 +75,15 @@ interface AbilityTreeEditorContextType {
 const AbilityTreeEditorContext = createContext<AbilityTreeEditorContextType | undefined>(undefined);
 
 export const AbilityTreeEditorProvider: FC<{
-    initialTree: AbilityTree; // Renamed for clarity
+    initialTree: AbilityTree;
     children: ReactNode;
 }> = ({ initialTree, children }) => {
-    // --- STATE MANAGEMENT ---
     const [currentTree, setCurrentTree] = useState<AbilityTree>(initialTree);
-    const abilityTreeData = useAbilityTreeData(currentTree); // The hook now depends on the reactive state
+    const abilityTreeData = useAbilityTreeData(currentTree);
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
+    const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null); // NEW state
 
-    // --- NEW TIER HANDLERS ---
     const handleAddTier = useCallback(async () => {
         const newTierCount = currentTree.tierCount + 1;
         await updateAbilityTree(currentTree.id!, { tierCount: newTierCount });
@@ -94,6 +97,53 @@ export const AbilityTreeEditorProvider: FC<{
         setCurrentTree((prevTree) => ({ ...prevTree, tierCount: newTierCount }));
     }, [currentTree]);
 
+    // NEW: Logic to delete a prerequisite connection
+    const handleDeleteEdge = useCallback(async () => {
+        if (!selectedEdge) return;
+
+        const targetAbilityId = parseInt(selectedEdge.target, 10);
+        const sourceAbilityId = parseInt(selectedEdge.source, 10);
+        const targetAbility = abilityTreeData.abilities.find((a) => a.id === targetAbilityId);
+
+        if (targetAbility) {
+            const updatedPrerequisites = targetAbility.prerequisites
+                .map((group) => ({
+                    ...group,
+                    abilityIds: group.abilityIds.filter((id) => id !== sourceAbilityId),
+                }))
+                .filter((group) => group.abilityIds.length > 0); // Remove empty groups
+
+            await updateAbility(targetAbilityId, { prerequisites: updatedPrerequisites });
+            await abilityTreeData.refreshAbilities();
+        }
+        setSelectedEdge(null); // Close modal
+    }, [selectedEdge, abilityTreeData.abilities, abilityTreeData.refreshAbilities]);
+
+    // NEW: Logic to update an existing prerequisite's logic type
+    const handleUpdateEdgeLogic = useCallback(
+        async (newLogic: PrerequisiteLogicType) => {
+            if (!selectedEdge) return;
+
+            const targetAbilityId = parseInt(selectedEdge.target, 10);
+            const sourceAbilityId = parseInt(selectedEdge.source, 10);
+            const targetAbility = abilityTreeData.abilities.find((a) => a.id === targetAbilityId);
+
+            if (targetAbility) {
+                const updatedPrerequisites = targetAbility.prerequisites.map((group) => {
+                    if (group.abilityIds.includes(sourceAbilityId)) {
+                        return { ...group, type: newLogic };
+                    }
+                    return group;
+                });
+
+                await updateAbility(targetAbilityId, { prerequisites: updatedPrerequisites });
+                await abilityTreeData.refreshAbilities();
+            }
+            setSelectedEdge(null); // Close modal
+        },
+        [selectedEdge, abilityTreeData.abilities, abilityTreeData.refreshAbilities],
+    );
+
     const value = useMemo(
         () => ({
             currentTree,
@@ -102,16 +152,23 @@ export const AbilityTreeEditorProvider: FC<{
             setSelectedNode,
             pendingConnection,
             setPendingConnection,
+            selectedEdge,
+            setSelectedEdge,
             handleAddTier,
             handleRemoveTier,
+            handleDeleteEdge,
+            handleUpdateEdgeLogic,
         }),
         [
             currentTree,
             abilityTreeData,
             selectedNode,
             pendingConnection,
+            selectedEdge,
             handleAddTier,
             handleRemoveTier,
+            handleDeleteEdge,
+            handleUpdateEdgeLogic,
         ],
     );
 
