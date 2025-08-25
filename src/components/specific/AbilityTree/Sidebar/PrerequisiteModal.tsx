@@ -1,25 +1,20 @@
 // src/components/specific/AbilityTree/Sidebar/PrerequisiteModal.tsx
 
 /**
- * COMMIT: fix(ability-tree): Resolve modal logic bug and improve styling
- *
- * This commit addresses the final outstanding issues in the PrerequisiteModal.
+ * COMMIT: refactor(styling): Apply consistent BEM classes to PrerequisiteModal
  *
  * Rationale:
- * 1. A logic bug caused the creation modal to appear immediately after the
- * edit modal was closed. This was because the `onSelect` callback was
- * being called incorrectly.
- * 2. The button layout in the modal footer was cluttered and unintuitive.
+ * To align this component with the project's broader design system, this
+ * commit replaces several Tailwind utility classes with the established BEM
+ * class names defined in the project's CSS component files (e.g., _modal.css).
  *
  * Implementation Details:
- * - The `handleSelectOrCreate` function has been removed. The "create" buttons
- * now directly call `onSelect` and then `onClose` separately, ensuring the
- * creation logic is only ever triggered by an explicit user action.
- * - The `onClose` prop is now correctly called by the "Cancel" button and
- * the overlay click, cleanly dismissing the modal without side effects.
- * - The JSX for the modal footer has been restructured with flexbox (`flex`,
- * `justify-between`, `items-center`) for a cleaner, more professional
- * layout, and the `button--danger` class is correctly applied.
+ * - Applied `modal__header`, `modal__title`, `modal__content`, and `modal__footer`
+ * classes to the modal's core structure for consistent padding, borders, and layout.
+ * - Confirmed that button classes like `button`, `button--primary`, and
+ * `button--danger` are used correctly according to the design system's intent.
+ * - This change improves semantic clarity and makes future styling updates easier
+ * by centralizing styles in the CSS files rather than in the component's JSX.
  */
 import type { FC } from 'react';
 import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
@@ -85,8 +80,8 @@ export const PrerequisiteModal: FC<PrerequisiteModalProps> = ({ isOpen, onClose,
                             : 'How should this new prerequisite be linked to any existing ones?'}
                     </p>
                 </div>
-                {/* Reworked footer for better styling and logic */}
-                <div className="modal__footer flex justify-between items-center">
+                {/* Footer with actions, styled according to the BEM convention. */}
+                <div className={`modal__footer ${isEditMode ? 'justify-between' : ''}`}>
                     {isEditMode ? (
                         // --- EDIT MODE FOOTER ---
                         <>
@@ -117,7 +112,7 @@ export const PrerequisiteModal: FC<PrerequisiteModalProps> = ({ isOpen, onClose,
                         </>
                     ) : (
                         // --- CREATE MODE FOOTER ---
-                        <div className="flex w-full justify-end gap-2">
+                        <>
                             <button
                                 onClick={() => {
                                     onSelect('OR');
@@ -136,7 +131,7 @@ export const PrerequisiteModal: FC<PrerequisiteModalProps> = ({ isOpen, onClose,
                             >
                                 AND (Must have this AND others)
                             </button>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
