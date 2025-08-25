@@ -1,68 +1,50 @@
 // src/pages/CharacterSheet/CharacterSheetPage.tsx
+
+/**
+ * COMMIT: refactor(character-sheet): implement dynamic grid layout rendering
+ *
+ * Rationale:
+ * This commit completes the "Persona Forge" overhaul by transforming the
+ * CharacterSheetPage into a dynamic renderer. It now reads the grid-based
+ * layout from a CharacterClass blueprint and populates it with live data
+ * from a specific Character instance.
+ *
+ * Implementation Details:
+ * - **Data Fetching:** The component now fetches both the character and their
+ * associated class blueprint on mount.
+ * - **Dynamic Layout:** The main content area is now a CSS grid that mirrors
+ * the ClassSheetEditor's canvas. It reads the `width` property from each
+ * block in the class blueprint to correctly apply `sheet-block--full-width`
+ * or `sheet-block--half-width` classes, rendering the designed layout.
+ * - **Data Hydration:** The page now passes the live `character` data down
+ * to the `SheetBlockRenderer`, which correctly displays instance-specific
+ * data (like inventory and notes) instead of the class defaults.
+ * - **In-Place Editing:** Implemented `handleInstanceDataChange` to update the
+ * component's state as the user edits fields, and a `handleSaveChanges`
+ * function to persist this `instanceData` back to the database.
+ */
 import { useState, useEffect, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useView } from '../../context/ViewContext';
 import { db } from '../../db/db';
 import { updateCharacter } from '../../db/queries/character.queries';
-import type { Character, CharacterClass, SheetBlock } from '../../db/types';
-import { DetailsBlock } from '../../components/specific/SheetBlocks/DetailsBlock';
-import { StatsBlock } from '../../components/specific/SheetBlocks/StatsBlock';
-import { AbilityTreeBlock } from '../../components/specific/SheetBlocks/AbilityTreeBlock';
-import { RichTextBlock } from '../../components/specific/SheetBlocks/RichTextBlock';
-import { InventoryBlock } from '../../components/specific/SheetBlocks/InventoryBlock';
-
-// A simple renderer component to display the correct block based on its type.
-const BlockRenderer: FC<{
-    block: SheetBlock;
-    character: Character;
-    characterClass: CharacterClass;
-    onInstanceDataChange: (blockId: string, newContent: any) => void;
-}> = ({ block, character, characterClass, onInstanceDataChange }) => {
-    switch (block.type) {
-        case 'details':
-            return <DetailsBlock characterClass={characterClass} />;
-        case 'stats':
-            return <StatsBlock baseStats={character.stats} />;
-        case 'ability_tree':
-            return (
-                <AbilityTreeBlock
-                    content={block.content}
-                    onContentChange={(newContent) => onInstanceDataChange(block.id, newContent)}
-                />
-            );
-        case 'rich_text':
-            return (
-                <RichTextBlock
-                    content={character.instanceData?.[block.id] || block.content || ''}
-                    onContentChange={(newContent) => onInstanceDataChange(block.id, newContent)}
-                />
-            );
-        case 'inventory':
-            return (
-                <InventoryBlock
-                    content={character.instanceData?.[block.id] || []}
-                    onContentChange={(newContent) => onInstanceDataChange(block.id, newContent)}
-                />
-            );
-        default:
-            return (
-                <div className="sheet-block__header">
-                    <span className="sheet-block__type">Unknown Block: {block.type}</span>
-                </div>
-            );
-    }
-};
+import type { Character, CharacterClass } from '../../db/types';
+import { SheetBlockRenderer } from '../../components/specific/Class/SheetBlockRenderer';
 
 // The main component for the character sheet view.
 export const CharacterSheetPage: FC = () => {
+    // --- HOOKS ---
     const { characterIdForSheet, setCurrentView } = useView();
+
+    // --- STATE ---
     const [character, setCharacter] = useState<Character | null>(null);
     const [characterClass, setCharacterClass] = useState<CharacterClass | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch initial data
+    // --- DATA FETCHING ---
+    // This effect fetches the core character and class data when the page loads.
     useEffect(() => {
         if (!characterIdForSheet) {
             setError('No character selected.');
@@ -90,6 +72,9 @@ export const CharacterSheetPage: FC = () => {
         fetchData();
     }, [characterIdForSheet]);
 
+    // --- EVENT HANDLERS ---
+
+    // Updates the character's instanceData in the local state.
     const handleInstanceDataChange = (blockId: string, newContent: any) => {
         setCharacter((prevCharacter) => {
             if (!prevCharacter) return null;
@@ -101,6 +86,7 @@ export const CharacterSheetPage: FC = () => {
         });
     };
 
+    // Persists changes made to the character sheet to the database.
     const handleSaveChanges = async () => {
         if (!character) return;
         setIsSaving(true);
@@ -109,7 +95,7 @@ export const CharacterSheetPage: FC = () => {
                 instanceData: character.instanceData,
                 stats: character.stats, // Also save stats in case they become editable
             });
-            // Optionally, show a success message
+            // In a real app, you would show a success toast notification here.
         } catch (err) {
             setError('Failed to save changes.');
         } finally {
@@ -117,9 +103,12 @@ export const CharacterSheetPage: FC = () => {
         }
     };
 
+    // Navigates back to the main world dashboard.
     const handleGoBack = () => {
         setCurrentView('world_dashboard');
     };
+
+    // --- RENDER LOGIC ---
 
     if (isLoading) {
         return <div className="character-sheet-page">Loading character sheet...</div>;
@@ -133,11 +122,13 @@ export const CharacterSheetPage: FC = () => {
         return <div className="character-sheet-page">No data to display.</div>;
     }
 
+    // Get the first page of the character sheet blueprint.
     const currentPage = characterClass.characterSheet?.[0];
 
+    // --- JSX ---
     return (
         <div className="character-sheet-page">
-            <div className="character-sheet-page__header">
+            <header className="character-sheet-page__header">
                 <button onClick={handleGoBack} className="button">
                     <ArrowLeft size={16} /> Back to Dashboard
                 </button>
@@ -152,20 +143,32 @@ export const CharacterSheetPage: FC = () => {
                         <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
-            </div>
-            <div className="character-sheet-page__content">
+            </header>
+
+            {/* REWORK: The content area is now a grid that mimics the editor's canvas. */}
+            <main className="character-sheet-page__content">
                 {currentPage &&
-                    currentPage.blocks.map((block) => (
-                        <div key={block.id} className="sheet-block">
-                            <BlockRenderer
-                                block={block}
-                                character={character}
-                                characterClass={characterClass}
-                                onInstanceDataChange={handleInstanceDataChange}
-                            />
-                        </div>
-                    ))}
-            </div>
+                    currentPage.blocks.map((block) => {
+                        // Determine the grid class based on the blueprint's layout property.
+                        const blockWidthClass =
+                            block.width === 'full'
+                                ? 'sheet-block--full-width'
+                                : 'sheet-block--half-width';
+
+                        return (
+                            <div key={block.id} className={`sheet-block ${blockWidthClass}`}>
+                                <div className="sheet-block__content">
+                                    <SheetBlockRenderer
+                                        block={block}
+                                        character={character}
+                                        characterClass={characterClass}
+                                        onContentChange={handleInstanceDataChange}
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })}
+            </main>
         </div>
     );
 };
