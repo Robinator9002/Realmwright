@@ -1,32 +1,34 @@
 // src/components/specific/Class/ClassSheetEditor.tsx
 
 /**
- * COMMIT: refactor(class-sheet): integrate PageCanvas into ClassSheetEditor
+ * COMMIT: feat(class-sheet): integrate PropertiesSidebar into editor
  *
  * Rationale:
- * This commit completes the pivot to the new WYSIWYG canvas editor by replacing
- * the old grid-based layout system in the ClassSheetEditor with the new
- * PageCanvas component.
+ * To make the block customization UI functional, this commit integrates the
+ * new PropertiesSidebar into the main ClassSheetEditor. The editor now
+- * manages the state for the selected block and orchestrates the data flow
+ * between the canvas and the properties panel.
  *
  * Implementation Details:
- * - Removed the previous `DndContext` and `SortableContext` implementation.
- * - The main content area now renders the `<PageCanvas />` component.
- * - A new `activePageIndex` state has been added to manage which page of the
- * character sheet is currently being edited.
- * - A `handleLayoutChange` handler has been implemented to receive layout
- * updates (position and size changes) from `react-grid-layout` within the
- * PageCanvas and update the main `sheet` state.
- * - The `handleAddBlock` function has been updated to create new blocks with a
- * default `layout` object, placing them at the top-left of the canvas.
+ * - The editor's main layout is now a three-column grid to accommodate the
+ * new sidebar, which is conditionally rendered.
+ * - Added `selectedBlockId` state to track the active block. A derived
+ * `selectedBlock` object is calculated from this ID.
+ * - Implemented handlers (`handleSelectBlock`, `handleUpdateBlockLayout`,
+ * `handleDeselect`) to manage the selection state and process updates
+ * from the sidebar.
+ * - The `PageCanvas` now receives the `selectedBlockId` and the
+ * `onSelectBlock` handler to enable block selection from the canvas.
  */
-import { useState, type FC } from 'react';
+import { useState, useMemo, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 import type { Layout } from 'react-grid-layout';
 
 import type { CharacterClass, SheetPage, SheetBlock } from '../../../db/types';
 import { updateClass } from '../../../db/queries/class.queries';
 import { blockTypes } from '../../../constants/sheetEditor.constants';
-import { PageCanvas } from './PageCanvas'; // NEW: Import the canvas component
+import { PageCanvas } from './PageCanvas';
+import { PropertiesSidebar } from './PropertiesSidebar'; // NEW: Import the sidebar
 
 // --- COMPONENT PROPS ---
 export interface ClassSheetEditorProps {
@@ -39,18 +41,24 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
     // --- STATE ---
     const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet || []);
     const [isSaving, setIsSaving] = useState(false);
-    // NEW: State to track the currently visible page.
-    const [activePageIndex, setActivePageIndex] = useState(0); // to be implemented
+    const [activePageIndex, setActivePageIndex] = useState(0);
+    // NEW: State to track the ID of the currently selected block.
+    const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+
+    // --- DERIVED STATE ---
+    // Find the full block object based on the selected ID.
+    const selectedBlock = useMemo(
+        () => sheet[activePageIndex]?.blocks.find((block) => block.id === selectedBlockId) || null,
+        [sheet, activePageIndex, selectedBlockId],
+    );
 
     // --- EVENT HANDLERS ---
 
-    // Adds a new block to the currently active page.
     const handleAddBlock = (blockType: SheetBlock['type']) => {
         const newBlock: SheetBlock = {
             id: crypto.randomUUID(),
             type: blockType,
-            // NEW: Provide a default layout for the new block.
-            layout: { x: 0, y: 0, w: 12, h: 4, zIndex: 1 },
+            layout: { x: 0, y: 0, w: 24, h: 8, zIndex: 1 }, // Default to half-width
             content: blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
         };
 
@@ -64,12 +72,10 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         });
     };
 
-    // NEW: Handles layout changes from the PageCanvas (drag, resize).
     const handleLayoutChange = (newLayout: Layout[]) => {
         setSheet((currentSheet) => {
             const newSheet = JSON.parse(JSON.stringify(currentSheet));
             const currentPage = newSheet[activePageIndex];
-
             currentPage.blocks.forEach((block: SheetBlock) => {
                 const layoutItem = newLayout.find((item) => item.i === block.id);
                 if (layoutItem) {
@@ -79,12 +85,24 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     block.layout.h = layoutItem.h;
                 }
             });
-
             return newSheet;
         });
     };
 
-    // Persists the current sheet layout to the database.
+    // NEW: Updates a block's layout from the PropertiesSidebar.
+    const handleUpdateBlockLayout = (blockId: string, newLayout: Partial<SheetBlock['layout']>) => {
+        setSheet((currentSheet) => {
+            const newSheet = JSON.parse(JSON.stringify(currentSheet));
+            const block = newSheet[activePageIndex].blocks.find(
+                (b: SheetBlock) => b.id === blockId,
+            );
+            if (block) {
+                block.layout = { ...block.layout, ...newLayout };
+            }
+            return newSheet;
+        });
+    };
+
     const handleSaveSheet = async () => {
         setIsSaving(true);
         try {
@@ -98,42 +116,31 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
 
     // --- RENDER LOGIC ---
     const currentPage = sheet[activePageIndex];
+    const editorLayoutClass = selectedBlock
+        ? 'sheet-editor__content--with-properties'
+        : 'sheet-editor__content';
 
     // --- JSX ---
     return (
         <div className="panel sheet-editor">
             <div className="panel__header-actions">
                 <button onClick={onBack} className="button">
-                    <ArrowLeft size={16} /> Back to Class List
+                    <ArrowLeft size={16} /> Back
                 </button>
                 <h2 className="panel__title" style={{ border: 'none', padding: 0 }}>
-                    Designing Sheet for: {characterClass.name}
+                    Designing: {characterClass.name}
                 </h2>
                 <button
                     onClick={handleSaveSheet}
                     className="button button--primary"
                     disabled={isSaving}
                 >
-                    <Save size={16} /> {isSaving ? 'Saving...' : 'Save Sheet Layout'}
+                    <Save size={16} /> {isSaving ? 'Saving...' : 'Save Sheet'}
                 </button>
             </div>
 
-            <div className="sheet-editor__content">
-                {/* REWORK: The main content is now our PageCanvas */}
-                {currentPage ? (
-                    <PageCanvas
-                        page={currentPage}
-                        characterClass={characterClass}
-                        onLayoutChange={handleLayoutChange}
-                    />
-                ) : (
-                    <div className="page-canvas__container">
-                        <p className="panel__empty-message">
-                            This sheet has no pages. Add a page to begin.
-                        </p>
-                    </div>
-                )}
-
+            {/* REWORK: The main content grid now adapts to show the properties sidebar. */}
+            <div className={editorLayoutClass}>
                 <div className="sheet-editor__sidebar">
                     <h3 className="sidebar__title">Add Blocks</h3>
                     {blockTypes.map(({ type, label, icon }) => (
@@ -146,6 +153,26 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                         </button>
                     ))}
                 </div>
+
+                {currentPage ? (
+                    <PageCanvas
+                        page={currentPage}
+                        characterClass={characterClass}
+                        onLayoutChange={handleLayoutChange}
+                        selectedBlockId={selectedBlockId}
+                        onSelectBlock={setSelectedBlockId}
+                    />
+                ) : (
+                    <div className="page-canvas__container">
+                        <p className="panel__empty-message">Add a page to begin.</p>
+                    </div>
+                )}
+
+                <PropertiesSidebar
+                    selectedBlock={selectedBlock}
+                    onUpdateBlock={handleUpdateBlockLayout}
+                    onDeselect={() => setSelectedBlockId(null)}
+                />
             </div>
         </div>
     );
