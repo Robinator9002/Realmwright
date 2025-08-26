@@ -37,6 +37,8 @@
 /* 3.2 Class Sheets */
 @import url('./components/class-sheet/_sheet-editor.css');
 @import url('./components/class-sheet/_sheet-blocks.css');
+@import url('./components/class-sheet/_page-canvas.css');
+@import url('./components/class-sheet/_properties-sidebar.css');
 
 /* 4. Page-specific styles that might override components. */
 @import url('./pages/_world-manager.css');
