@@ -1,31 +1,46 @@
 // src/db/types.ts
 
 /**
- * COMMIT: feat(class-sheet): add layout properties to SheetBlock type
+ * COMMIT: feat(class-sheet): overhaul SheetBlock type for canvas editor
  *
  * Rationale:
- * To support the new grid-based, multi-column character sheet editor, the
- * core `SheetBlock` type needs to be aware of layout. This commit introduces
- * an optional `width` property.
+ * To support the new free-form, WYSIWYG page canvas editor, the data model
+ * for a SheetBlock has been fundamentally changed. The previous grid-based
+ * `width` property is insufficient for tracking position, size, and style.
  *
  * Implementation Details:
- * - Added `width?: 'full' | 'half'` to the `SheetBlock` interface.
- * - This property will allow the `ClassSheetEditor` to render blocks that
- * span one or two columns, enabling much more flexible and visually
- * appealing character sheet designs.
- * - The property is optional to maintain backward compatibility and to allow
- * for a default behavior (e.g., defaulting to 'half' width).
+ * - Removed the `width?: 'full' | 'half'` property from `SheetBlock`.
+ * - Added a mandatory `layout` object to store the block's position (x, y),
+ * dimensions (w, h), and stacking order (zIndex). This data will be
+ * managed by the `react-grid-layout` library.
+ * - Added an optional `styles` object to store customizable visual
+ * properties like font size and text alignment, enabling deeper user
+ * customization.
  */
 
 // --- Character Sheet Structure Definition ---
+
+export interface SheetBlockLayout {
+    x: number; // Position from the left edge of the page
+    y: number; // Position from the top edge of the page
+    w: number; // Width of the block
+    h: number; // Height of the block
+    zIndex: number; // Stacking order
+}
+
+export interface SheetBlockStyles {
+    fontSize?: string;
+    textAlign?: 'left' | 'center' | 'right';
+    // Future style properties (e.g., color, backgroundColor) can be added here.
+}
 
 export type SheetBlock = {
     id: string;
     type: 'details' | 'stats' | 'ability_tree' | 'inventory' | 'rich_text' | 'notes';
     content?: any;
-    // NEW: Optional layout properties for the grid-based sheet editor.
-    // 'full' will span two columns, 'half' will span one.
-    width?: 'full' | 'half';
+    // NEW: Replaced `width` with a full layout and styling object.
+    layout: SheetBlockLayout;
+    styles?: SheetBlockStyles;
 };
 
 export type SheetPage = {
