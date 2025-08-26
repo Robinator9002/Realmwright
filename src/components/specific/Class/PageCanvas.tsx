@@ -1,23 +1,21 @@
 // src/components/specific/Class/PageCanvas.tsx
 
 /**
- * COMMIT: feat(class-sheet): create foundational PageCanvas component
+ * COMMIT: feat(class-sheet): enable block selection on PageCanvas
  *
  * Rationale:
- * As the centerpiece of the new WYSIWYG editor, this commit introduces the
- * PageCanvas component. It integrates the `react-grid-layout` library to
- * provide the core functionality for a draggable, resizable, and free-form
- * layout experience for sheet blocks.
+ * To allow users to select a block on the canvas to edit its properties,
+ * the PageCanvas component must be able to handle click events and visually
+ * indicate the currently selected block.
  *
  * Implementation Details:
- * - Added `react-grid-layout` as a dependency.
- * - Created the `PageCanvas` component, which wraps the `GridLayout` from the
- * new library.
- * - The component is styled to resemble an A4 page and is configured to be
- * a "free-form" canvas by setting a high column count and a small row height,
- * allowing for near-pixel-perfect positioning of blocks.
- * - It accepts the current page's blocks and layout change handlers as props,
- * serving as the interactive stage for the sheet editor.
+ * - The `PageCanvasProps` interface has been updated to accept the
+ * `selectedBlockId` and an `onSelectBlock` callback function.
+ * - An `onClick` handler has been added to the wrapper `div` for each block.
+ * This handler calls `onSelectBlock` with the block's ID, communicating the
+ * selection up to the parent ClassSheetEditor.
+ * - A dynamic CSS class, `sheet-block-wrapper--selected`, is now applied to
+ * the wrapper `div` of the selected block, allowing for visual highlighting.
  */
 import type { FC } from 'react';
 import GridLayout, { type Layout } from 'react-grid-layout';
@@ -25,22 +23,28 @@ import type { SheetPage, CharacterClass } from '../../../db/types';
 import { SheetBlockRenderer } from './SheetBlockRenderer';
 
 // --- CONSTANTS ---
-// These define the "granularity" of our canvas.
-// A high column count and small row height give the feeling of a free-form canvas.
 const PAGE_COLUMNS = 48;
-const PAGE_ROW_HEIGHT = 10; // in pixels
-const PAGE_WIDTH = 1000; // in pixels
+const PAGE_ROW_HEIGHT = 10;
+const PAGE_WIDTH = 1000;
 
 // --- COMPONENT PROPS ---
+// REWORK: Added props for handling block selection.
 interface PageCanvasProps {
     page: SheetPage;
     characterClass: CharacterClass;
     onLayoutChange: (newLayout: Layout[]) => void;
+    selectedBlockId: string | null;
+    onSelectBlock: (blockId: string) => void;
 }
 
 // --- COMPONENT DEFINITION ---
-export const PageCanvas: FC<PageCanvasProps> = ({ page, characterClass, onLayoutChange }) => {
-    // Convert our SheetBlock layout into the format react-grid-layout expects.
+export const PageCanvas: FC<PageCanvasProps> = ({
+    page,
+    characterClass,
+    onLayoutChange,
+    selectedBlockId,
+    onSelectBlock,
+}) => {
     const gridLayout = page.blocks.map((block) => ({
         i: block.id,
         x: block.layout.x,
@@ -58,16 +62,27 @@ export const PageCanvas: FC<PageCanvasProps> = ({ page, characterClass, onLayout
                     rowHeight={PAGE_ROW_HEIGHT}
                     width={PAGE_WIDTH}
                     onLayoutChange={onLayoutChange}
-                    // This prevents items from moving around when one is resized.
                     preventCollision={true}
-                    // This allows items to overlap, controlled by our zIndex.
                     allowOverlap={true}
                 >
-                    {page.blocks.map((block) => (
-                        <div key={block.id} className="sheet-block-wrapper">
-                            <SheetBlockRenderer block={block} characterClass={characterClass} />
-                        </div>
-                    ))}
+                    {page.blocks.map((block) => {
+                        // Determine if this block is the currently selected one.
+                        const isSelected = block.id === selectedBlockId;
+                        const wrapperClass = `sheet-block-wrapper ${
+                            isSelected ? 'sheet-block-wrapper--selected' : ''
+                        }`;
+
+                        return (
+                            <div
+                                key={block.id}
+                                className={wrapperClass}
+                                // Add the onClick handler to select the block.
+                                onClick={() => onSelectBlock(block.id)}
+                            >
+                                <SheetBlockRenderer block={block} characterClass={characterClass} />
+                            </div>
+                        );
+                    })}
                 </GridLayout>
             </div>
         </div>
