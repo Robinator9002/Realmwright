@@ -1,0 +1,90 @@
+/* src/styles/components/class-sheet/_properties-sidebar.css */
+
+/**
+ * COMMIT: style(class-sheet): add styles for PropertiesSidebar
+ *
+ * Rationale:
+ * To visually support the new contextual properties editor, this commit
+ * introduces a dedicated stylesheet for the PropertiesSidebar component.
+ *
+ * Implementation Details:
+ * - The sidebar is styled as a fixed-width panel that will occupy the far
+ * right of the editor grid.
+ * - A flexbox header with a title and a close button is implemented for
+ * clear user interaction.
+ * - The main content area is scrollable to accommodate future properties.
+ * - A two-column grid (`.properties-sidebar__grid`) is used to neatly
+ * arrange the layout input fields (X, Y, W, H), making the UI compact
+ * and easy to read.
+ */
+
+.properties-sidebar {
+    background-color: var(--color-background);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-4);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+    border-left: 1px solid var(--color-border);
+}
+
+.properties-sidebar__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: var(--spacing-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.properties-sidebar__close-button {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-muted-foreground);
+    background: none;
+    border: none;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 var(--spacing-1);
+}
+
+.properties-sidebar__close-button:hover {
+    color: var(--color-foreground);
+}
+
+.properties-sidebar__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+}
+
+.properties-sidebar__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+}
+
+.properties-sidebar__section-title {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+/* A compact grid for layout properties like X, Y, W, H */
+.properties-sidebar__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-4);
+}
+
+/* A smaller version of the empty message for the sidebar */
+.panel__empty-message--small {
+    font-size: var(--font-size-sm);
+    font-style: italic;
+    color: var(--color-muted-foreground);
+    text-align: center;
+    padding: var(--spacing-2);
+}
