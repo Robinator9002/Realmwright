@@ -1,0 +1,67 @@
+/* src/styles/components/class-sheet/_page-canvas.css */
+
+/**
+ * COMMIT: style(class-sheet): add styles for the new PageCanvas component
+ *
+ * Rationale:
+ * To visually represent the free-form editor's canvas as a sheet of paper,
+ * this commit introduces a dedicated stylesheet for the PageCanvas component.
+ *
+ * Implementation Details:
+ * - The `.page-canvas__container` provides a scrollable, dark background
+ * area that centers the page.
+ * - The `.page-canvas__page` is styled with a fixed aspect-ratio similar to
+ * an A4 sheet, a paper-like background color, and a box-shadow to lift it
+ * off the background.
+ * - The `.sheet-block-wrapper` ensures that the content inside each grid
+ * item fills the entire space.
+ * - Custom styles are provided for the `react-grid-layout` resize handle
+ * to match the application's accent color, ensuring a cohesive look.
+ */
+
+.page-canvas__container {
+    width: 100%;
+    height: 100%;
+    overflow: auto; /* Allow scrolling if the page is zoomed */
+    background-color: var(--color-background);
+    padding: var(--spacing-8);
+    display: flex;
+    justify-content: center;
+}
+
+.page-canvas__page {
+    background-color: var(--color-panel-bg);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    /* A4-ish aspect ratio: 210 / 297 = 0.707 */
+    /* We use padding-top to maintain this ratio based on the width */
+    width: 1000px;
+    height: 1414px; /* 1000px * 1.414 */
+    flex-shrink: 0; /* Prevent the page from shrinking in the flex container */
+}
+
+.sheet-block-wrapper {
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    overflow: hidden; /* Hide anything that might spill out of the block */
+}
+
+/* --- React Grid Layout Overrides --- */
+
+.react-grid-item > .react-resizable-handle {
+    background-image: none; /* Remove the default SVG background */
+    border: 2px solid var(--color-accent);
+    background-color: var(--color-background);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    bottom: -7px;
+    right: -7px;
+}
+
+.react-grid-item.react-grid-placeholder {
+    background: var(--color-accent) !important;
+    opacity: 0.2 !important;
+    border-radius: var(--border-radius);
+}
