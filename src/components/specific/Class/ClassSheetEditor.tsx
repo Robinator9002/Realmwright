@@ -1,24 +1,20 @@
 // src/components/specific/Class/ClassSheetEditor.tsx
 
 /**
- * COMMIT: feat(class-sheet): integrate PropertiesSidebar into editor
+ * COMMIT: feat(class-sheet): integrate PageControls for multi-page functionality
  *
  * Rationale:
- * To make the block customization UI functional, this commit integrates the
- * new PropertiesSidebar into the main ClassSheetEditor. The editor now
-- * manages the state for the selected block and orchestrates the data flow
- * between the canvas and the properties panel.
+ * To complete the multi-page feature, the new PageControls component must be
+ * integrated into the main editor. This commit wires up the UI to the editor's
+ * state, allowing users to add, delete, and navigate between pages.
  *
  * Implementation Details:
- * - The editor's main layout is now a three-column grid to accommodate the
- * new sidebar, which is conditionally rendered.
- * - Added `selectedBlockId` state to track the active block. A derived
- * `selectedBlock` object is calculated from this ID.
- * - Implemented handlers (`handleSelectBlock`, `handleUpdateBlockLayout`,
- * `handleDeselect`) to manage the selection state and process updates
- * from the sidebar.
- * - The `PageCanvas` now receives the `selectedBlockId` and the
- * `onSelectBlock` handler to enable block selection from the canvas.
+ * - The `<PageControls />` component is now rendered at the bottom of the editor.
+ * - Implemented the `handleSelectPage`, `handleAddPage`, and `handleDeletePage`
+ * functions to manipulate the `sheet` state array.
+ * - The `handleAddPage` function now automatically switches the view to the
+ * newly created page for a seamless user experience.
+ * - The editor's grid layout has been updated to accommodate the new controls bar.
  */
 import { useState, useMemo, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -28,7 +24,8 @@ import type { CharacterClass, SheetPage, SheetBlock } from '../../../db/types';
 import { updateClass } from '../../../db/queries/class.queries';
 import { blockTypes } from '../../../constants/sheetEditor.constants';
 import { PageCanvas } from './PageCanvas';
-import { PropertiesSidebar } from './PropertiesSidebar'; // NEW: Import the sidebar
+import { PropertiesSidebar } from './PropertiesSidebar';
+import { PageControls } from './PageControls'; // NEW: Import page controls
 
 // --- COMPONENT PROPS ---
 export interface ClassSheetEditorProps {
@@ -42,11 +39,9 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
     const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet || []);
     const [isSaving, setIsSaving] = useState(false);
     const [activePageIndex, setActivePageIndex] = useState(0);
-    // NEW: State to track the ID of the currently selected block.
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
     // --- DERIVED STATE ---
-    // Find the full block object based on the selected ID.
     const selectedBlock = useMemo(
         () => sheet[activePageIndex]?.blocks.find((block) => block.id === selectedBlockId) || null,
         [sheet, activePageIndex, selectedBlockId],
@@ -58,7 +53,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         const newBlock: SheetBlock = {
             id: crypto.randomUUID(),
             type: blockType,
-            layout: { x: 0, y: 0, w: 24, h: 8, zIndex: 1 }, // Default to half-width
+            layout: { x: 0, y: 0, w: 24, h: 8, zIndex: 1 },
             content: blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
         };
 
@@ -79,17 +74,13 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             currentPage.blocks.forEach((block: SheetBlock) => {
                 const layoutItem = newLayout.find((item) => item.i === block.id);
                 if (layoutItem) {
-                    block.layout.x = layoutItem.x;
-                    block.layout.y = layoutItem.y;
-                    block.layout.w = layoutItem.w;
-                    block.layout.h = layoutItem.h;
+                    block.layout = { ...block.layout, ...layoutItem };
                 }
             });
             return newSheet;
         });
     };
 
-    // NEW: Updates a block's layout from the PropertiesSidebar.
     const handleUpdateBlockLayout = (blockId: string, newLayout: Partial<SheetBlock['layout']>) => {
         setSheet((currentSheet) => {
             const newSheet = JSON.parse(JSON.stringify(currentSheet));
@@ -101,6 +92,29 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             }
             return newSheet;
         });
+    };
+
+    // NEW: Adds a new blank page to the end of the sheet.
+    const handleAddPage = () => {
+        const newPage: SheetPage = {
+            id: crypto.randomUUID(),
+            name: `Page ${sheet.length + 1}`,
+            blocks: [],
+        };
+        const newSheet = [...sheet, newPage];
+        setSheet(newSheet);
+        // Automatically switch to the new page.
+        setActivePageIndex(newSheet.length - 1);
+    };
+
+    // NEW: Deletes a page at a specific index.
+    const handleDeletePage = (indexToDelete: number) => {
+        const newSheet = sheet.filter((_, index) => index !== indexToDelete);
+        setSheet(newSheet);
+        // If the deleted page was the active one, move to the previous page.
+        if (activePageIndex >= indexToDelete) {
+            setActivePageIndex(Math.max(0, activePageIndex - 1));
+        }
     };
 
     const handleSaveSheet = async () => {
@@ -120,7 +134,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         ? 'sheet-editor__content--with-properties'
         : 'sheet-editor__content';
 
-    // --- JSX ---
     return (
         <div className="panel sheet-editor">
             <div className="panel__header-actions">
@@ -139,7 +152,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 </button>
             </div>
 
-            {/* REWORK: The main content grid now adapts to show the properties sidebar. */}
             <div className={editorLayoutClass}>
                 <div className="sheet-editor__sidebar">
                     <h3 className="sidebar__title">Add Blocks</h3>
@@ -164,7 +176,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     />
                 ) : (
                     <div className="page-canvas__container">
-                        <p className="panel__empty-message">Add a page to begin.</p>
+                        <p className="panel__empty-message">This sheet has no pages.</p>
                     </div>
                 )}
 
@@ -174,6 +186,15 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     onDeselect={() => setSelectedBlockId(null)}
                 />
             </div>
+
+            {/* NEW: Render the page controls at the bottom. */}
+            <PageControls
+                pages={sheet}
+                activePageIndex={activePageIndex}
+                onSelectPage={setActivePageIndex}
+                onAddPage={handleAddPage}
+                onDeletePage={handleDeletePage}
+            />
         </div>
     );
 };
