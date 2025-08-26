@@ -1,24 +1,21 @@
 // src/pages/CharacterSheet/CharacterSheetPage.tsx
 
 /**
- * COMMIT: refactor(character-sheet): implement multi-page canvas rendering
+ * COMMIT: fix(character-sheet): resolve TypeScript error for style prop
  *
  * Rationale:
- * To complete the WYSIWYG editor feature, the live character sheet must now
- * render the multi-page, free-form layouts designed in the ClassSheetEditor.
- * This commit overhauls the page to function as a read-only canvas renderer.
+ * A TypeScript error (ts2322) was occurring because the `style` object for
+ * absolutely positioned blocks was not explicitly typed. TypeScript's inferred
+ * type for `position: 'absolute'` was `string`, which is not specific
+ * enough for React's CSSProperties type.
  *
  * Implementation Details:
- * - The component now manages an `activePageIndex` state to track the visible page.
- * - It renders the `<PageControls />` component, providing the UI for page navigation.
- * - The main content area has been replaced with a `.page-canvas__page` container.
- * - Blocks are now rendered using absolute positioning, with their `top`, `left`,
- * `width`, and `height` styles calculated directly from the `layout` object
- * stored in the class blueprint. This perfectly recreates the designed layout.
- * - The `SheetBlockRenderer` continues to hydrate these positioned blocks with
- * live character data.
+ * - Imported the `CSSProperties` type from React.
+ * - Explicitly cast the `style` object for each rendered block as
+ * `CSSProperties`. This informs TypeScript that the provided values (like
+ * 'absolute') are valid, resolving the type mismatch error.
  */
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, type FC, type CSSProperties } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useView } from '../../context/ViewContext';
 import { db } from '../../db/db';
@@ -30,7 +27,6 @@ import { PageControls } from '../../components/specific/Class/PageControls';
 // Constants for converting grid units to pixels, matching the editor's canvas.
 const PAGE_COLUMNS = 48;
 const PAGE_ROW_HEIGHT = 10;
-const PAGE_WIDTH = 1000;
 
 // The main component for the character sheet view.
 export const CharacterSheetPage: FC = () => {
@@ -43,7 +39,6 @@ export const CharacterSheetPage: FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    // NEW: State to track the currently visible page.
     const [activePageIndex, setActivePageIndex] = useState(0);
 
     // --- DATA FETCHING ---
@@ -125,12 +120,11 @@ export const CharacterSheetPage: FC = () => {
                 </div>
             </header>
 
-            {/* REWORK: Render a read-only canvas for the current page */}
             <main className="page-canvas__container">
                 <div className="page-canvas__page">
                     {currentPage?.blocks.map((block) => {
-                        // Convert grid units to pixel values for absolute positioning.
-                        const style = {
+                        // FIX: Explicitly type the style object as CSSProperties.
+                        const style: CSSProperties = {
                             position: 'absolute',
                             left: `${(block.layout.x / PAGE_COLUMNS) * 100}%`,
                             top: `${block.layout.y * PAGE_ROW_HEIGHT}px`,
@@ -154,13 +148,11 @@ export const CharacterSheetPage: FC = () => {
                 </div>
             </main>
 
-            {/* Render page controls if there is more than one page */}
             {sheet.length > 1 && (
                 <PageControls
                     pages={sheet}
                     activePageIndex={activePageIndex}
                     onSelectPage={setActivePageIndex}
-                    // Add/Delete are disabled in the read-only view
                     onAddPage={() => {}}
                     onDeletePage={() => {}}
                 />
