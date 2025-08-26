@@ -1,14 +1,27 @@
 // src/components/specific/Class/ManageClassModal.tsx
+
+/**
+ * COMMIT: fix(class-sheet): resolve uncontrolled input warning in ManageClassModal
+ *
+ * Rationale:
+ * When creating a new class, the modal was being passed a placeholder object.
+ * This caused the form's state to be initialized with `undefined` values,
+ * leading to the "uncontrolled input to be controlled" warning when the user
+ * started typing.
+ *
+ * Implementation Details:
+ * - In the `useEffect` hook that populates the form, nullish coalescing
+ * operators (`??`) have been added.
+ * - `setName(classToEdit.name ?? '')` and `setDescription(classToEdit.description ?? '')`
+ * now ensure that the state is always initialized with a defined value (an
+ * empty string), even when creating a new class. This satisfies React's
+ * requirement for controlled components and resolves the warning.
+ */
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../context/WorldContext';
 import { getStatDefinitionsForWorld } from '../../../db/queries/stat.queries';
 import type { CharacterClass, StatDefinition } from '../../../db/types';
 
-/**
- * The shape of the data that this modal will save.
- * It's a clean subset of the full CharacterClass type.
- * FIX: Removed abilityTreeIds as it no longer exists on CharacterClass.
- */
 export type ClassSaveData = {
     name: string;
     description: string;
@@ -22,10 +35,6 @@ export interface ManageClassModalProps {
     classToEdit: CharacterClass | null;
 }
 
-/**
- * A specialized modal for creating and editing Character Classes,
- * including their base stats.
- */
 export const ManageClassModal: FC<ManageClassModalProps> = ({
     isOpen,
     onClose,
@@ -33,19 +42,14 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
     classToEdit,
 }) => {
     const { selectedWorld } = useWorld();
-    const isEditMode = !!classToEdit;
+    const isEditMode = !!classToEdit?.id; // More robust check for edit mode
 
-    // --- Form State ---
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [baseStats, setBaseStats] = useState<{ [statId: number]: number }>({});
-    // FIX: Removed abilityTreeIds state.
-
-    // --- Data Loading State ---
     const [statDefs, setStatDefs] = useState<StatDefinition[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Effect to fetch all necessary definition data (stats) when the modal opens.
     useEffect(() => {
         if (isOpen && selectedWorld?.id) {
             setIsLoading(true);
@@ -56,19 +60,16 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
         }
     }, [isOpen, selectedWorld]);
 
-    // Effect to populate the form once data is loaded, either for editing or creation.
     useEffect(() => {
         if (isOpen && !isLoading) {
             if (isEditMode && classToEdit) {
-                setName(classToEdit.name);
-                setDescription(classToEdit.description);
+                // FIX: Use nullish coalescing to prevent undefined state.
+                setName(classToEdit.name ?? '');
+                setDescription(classToEdit.description ?? '');
                 setBaseStats(classToEdit.baseStats || {});
-                // FIX: Removed logic for setting abilityTreeIds.
             } else {
-                // Reset for a new class
                 setName('');
                 setDescription('');
-                // Initialize stats with their default values
                 const defaultStats: { [statId: number]: number } = {};
                 for (const def of statDefs) {
                     defaultStats[def.id!] = def.defaultValue;
@@ -82,10 +83,7 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
         setBaseStats((prev) => ({ ...prev, [statId]: parseInt(value, 10) || 0 }));
     };
 
-    // FIX: Removed handleAbilityTreeToggle function.
-
     const handleSave = async () => {
-        // FIX: Removed abilityTreeIds from the save payload.
         const saveData: ClassSaveData = { name, description, baseStats };
         await onSave(saveData);
         onClose();
@@ -97,7 +95,6 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
         <div className="modal-overlay" onClick={onClose}>
             <div
                 className="modal"
-                // FIX: Simplified to a single column layout.
                 style={{ maxWidth: '500px' }}
                 onClick={(e) => e.stopPropagation()}
             >
@@ -109,7 +106,6 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
                         &times;
                     </button>
                 </div>
-
                 <div className="modal__content">
                     {isLoading ? (
                         <p>Loading definitions...</p>
@@ -168,7 +164,6 @@ export const ManageClassModal: FC<ManageClassModalProps> = ({
                         </form>
                     )}
                 </div>
-
                 <div className="modal__footer">
                     <button onClick={onClose} className="button">
                         Cancel
