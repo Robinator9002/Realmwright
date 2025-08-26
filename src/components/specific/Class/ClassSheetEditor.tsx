@@ -40,7 +40,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
     const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet || []);
     const [isSaving, setIsSaving] = useState(false);
     // NEW: State to track the currently visible page.
-    const [activePageIndex, setActivePageIndex] = useState(0);
+    const [activePageIndex, setActivePageIndex] = useState(0); // to be implemented
 
     // --- EVENT HANDLERS ---
 
