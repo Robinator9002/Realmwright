@@ -1,51 +1,55 @@
 /* src/styles/components/class-sheet/_sheet-editor.css */
 
 /**
- * COMMIT: style(class-sheet): implement grid layout for editor canvas
+ * COMMIT: fix(class-sheet): correct editor layout for properties sidebar
  *
  * Rationale:
- * To support the new modular, multi-column character sheet design, the core
- * layout of the editor's canvas has been changed from a flexbox column to a
- * CSS grid.
+ * The editor's layout was still configured for a two-column system, which
+ * prevented the properties sidebar from appearing and caused incorrect
+ * column proportions.
  *
  * Implementation Details:
- * - The `.sheet-editor__canvas` class now uses `display: grid` with two
- * equal-fraction columns (`grid-template-columns: 1fr 1fr`).
- * - `align-content: start` is used to ensure that blocks stack neatly from
- * the top of the canvas, preventing any unwanted vertical centering.
- * - This change provides the structural foundation for placing half-width and
- * full-width blocks, enabling the intended free-form design experience.
+ * - The `.sheet-editor__content` class now defines the base two-column layout
+ * with corrected proportions (a fixed sidebar and a flexible canvas).
+ * - A new `.sheet-editor__content--with-properties` class is introduced. This
+ * class modifies the grid to a three-column layout, making space for the
+ * properties sidebar when a block is selected.
+ * - This change fixes both the layout proportions and the bug where the
+ * properties sidebar was not appearing on block selection.
  */
 
 .sheet-editor {
-    /* This allows the editor to take up the full space of its container */
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 20; /* Ensures it renders above other dashboard panels */
+    z-index: 20;
+    /* NEW: Use a grid for the overall editor layout */
+    display: grid;
+    grid-template-rows: auto 1fr auto; /* Header, Content, Footer */
 }
 
+/* REWORK: This is now a grid container for the sidebars and canvas. */
 .sheet-editor__content {
     display: grid;
-    grid-template-columns: 1fr 280px; /* Main canvas and a fixed-width sidebar */
+    /* Give the "Add Blocks" sidebar a fixed width and let the canvas take the rest. */
+    grid-template-columns: 280px 1fr;
     gap: var(--spacing-6);
-    flex-grow: 1; /* Allows the content to fill the panel's height */
-    height: 100%;
-    overflow: hidden; /* Prevent scrolling on the main editor body */
+    overflow: hidden;
 }
 
-/* REWORK: Switched from flexbox to a two-column grid layout */
+/* NEW: This modifier class activates a three-column layout when a block is selected. */
+.sheet-editor__content--with-properties {
+    /* Add Blocks | Canvas | Properties */
+    grid-template-columns: 280px 1fr 320px;
+}
+
 .sheet-editor__canvas {
     background-color: var(--color-background);
     border-radius: var(--border-radius);
     padding: var(--spacing-4);
-    overflow-y: auto; /* Allow the canvas itself to scroll */
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* Create two equal columns */
-    gap: var(--spacing-4);
-    align-content: start; /* Stack items from the top */
+    overflow-y: auto;
 }
 
 .sheet-editor__sidebar {
@@ -71,5 +75,5 @@
 
 .sidebar__block-button {
     width: 100%;
-    justify-content: flex-start; /* Align button content to the left */
+    justify-content: flex-start;
 }
