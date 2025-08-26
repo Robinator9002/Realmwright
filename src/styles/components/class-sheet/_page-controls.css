@@ -1,0 +1,71 @@
+/* src/styles/components/class-sheet/_page-controls.css */
+
+/**
+ * COMMIT: style(class-sheet): add styles for PageControls component
+ *
+ * Rationale:
+ * To visually support the new multi-page management UI, this commit adds a
+ * dedicated stylesheet for the PageControls component.
+ *
+ * Implementation Details:
+ * - The `.page-controls` container is styled as a flexbox bar, positioned
+ * below the main editor content.
+ * - The `.page-controls__tab` buttons are styled to look like file tabs,
+ * with a distinct visual state (`.page-controls__tab--active`) for the
+ * currently selected page.
+ * - The `.page-controls__actions` section is separated by a border, creating
+ * a clear distinction between navigation and management actions.
+ * - A `button--icon` modifier is used for a compact, clean look for the
+ * add and delete buttons.
+ */
+
+.page-controls {
+    grid-column: 1 / -1; /* Make it span all columns of the editor grid */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--color-background);
+    border-top: 1px solid var(--color-border);
+    padding: var(--spacing-2) var(--spacing-4);
+}
+
+.page-controls__tabs {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.page-controls__tab {
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--border-radius);
+    background-color: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--color-muted-foreground);
+}
+
+.page-controls__tab:hover {
+    background-color: var(--color-panel-bg);
+    color: var(--color-foreground);
+}
+
+.page-controls__tab--active {
+    background-color: var(--color-accent);
+    color: white;
+}
+
+.page-controls__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding-left: var(--spacing-4);
+    border-left: 1px solid var(--color-border);
+}
+
+/* A simple modifier for buttons that only contain an icon */
+.button--icon {
+    padding: var(--spacing-2);
+}
