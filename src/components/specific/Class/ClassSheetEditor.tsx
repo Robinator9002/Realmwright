@@ -1,20 +1,21 @@
 // src/components/specific/Class/ClassSheetEditor.tsx
 
 /**
- * COMMIT: feat(class-sheet): integrate PageControls for multi-page functionality
+ * COMMIT: fix(class-sheet): correct layout class application to show sidebar
  *
  * Rationale:
- * To complete the multi-page feature, the new PageControls component must be
- * integrated into the main editor. This commit wires up the UI to the editor's
- * state, allowing users to add, delete, and navigate between pages.
+ * A logical error in how the layout's CSS class was being applied prevented
+ * the properties sidebar from ever appearing. The modifier class was
+ * replacing the base class instead of augmenting it, causing the component
+ * to lose its `display: grid` property on block selection.
  *
  * Implementation Details:
- * - The `<PageControls />` component is now rendered at the bottom of the editor.
- * - Implemented the `handleSelectPage`, `handleAddPage`, and `handleDeletePage`
- * functions to manipulate the `sheet` state array.
- * - The `handleAddPage` function now automatically switches the view to the
- * newly created page for a seamless user experience.
- * - The editor's grid layout has been updated to accommodate the new controls bar.
+ * - The `editorLayoutClass` variable has been removed.
+ * - The `className` on the main content `div` has been changed to a template
+ * literal that conditionally includes the `--with-properties` modifier class
+ * alongside the base `sheet-editor__content` class.
+ * - This ensures the grid layout properties are always present and correctly
+ * modified, fixing the bug and allowing the properties sidebar to render.
  */
 import { useState, useMemo, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -25,29 +26,23 @@ import { updateClass } from '../../../db/queries/class.queries';
 import { blockTypes } from '../../../constants/sheetEditor.constants';
 import { PageCanvas } from './PageCanvas';
 import { PropertiesSidebar } from './PropertiesSidebar';
-import { PageControls } from './PageControls'; // NEW: Import page controls
+import { PageControls } from './PageControls';
 
-// --- COMPONENT PROPS ---
 export interface ClassSheetEditorProps {
     characterClass: CharacterClass;
     onBack: () => void;
 }
 
-// --- COMPONENT DEFINITION ---
 export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, onBack }) => {
-    // --- STATE ---
     const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet || []);
     const [isSaving, setIsSaving] = useState(false);
     const [activePageIndex, setActivePageIndex] = useState(0);
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
-    // --- DERIVED STATE ---
     const selectedBlock = useMemo(
         () => sheet[activePageIndex]?.blocks.find((block) => block.id === selectedBlockId) || null,
         [sheet, activePageIndex, selectedBlockId],
     );
-
-    // --- EVENT HANDLERS ---
 
     const handleAddBlock = (blockType: SheetBlock['type']) => {
         const newBlock: SheetBlock = {
@@ -94,7 +89,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         });
     };
 
-    // NEW: Adds a new blank page to the end of the sheet.
     const handleAddPage = () => {
         const newPage: SheetPage = {
             id: crypto.randomUUID(),
@@ -103,15 +97,12 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         };
         const newSheet = [...sheet, newPage];
         setSheet(newSheet);
-        // Automatically switch to the new page.
         setActivePageIndex(newSheet.length - 1);
     };
 
-    // NEW: Deletes a page at a specific index.
     const handleDeletePage = (indexToDelete: number) => {
         const newSheet = sheet.filter((_, index) => index !== indexToDelete);
         setSheet(newSheet);
-        // If the deleted page was the active one, move to the previous page.
         if (activePageIndex >= indexToDelete) {
             setActivePageIndex(Math.max(0, activePageIndex - 1));
         }
@@ -128,11 +119,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         }
     };
 
-    // --- RENDER LOGIC ---
     const currentPage = sheet[activePageIndex];
-    const editorLayoutClass = selectedBlock
-        ? 'sheet-editor__content--with-properties'
-        : 'sheet-editor__content';
 
     return (
         <div className="panel sheet-editor">
@@ -152,7 +139,12 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 </button>
             </div>
 
-            <div className={editorLayoutClass}>
+            {/* FIX: Use a template literal to conditionally apply the modifier class. */}
+            <div
+                className={`sheet-editor__content ${
+                    selectedBlock ? 'sheet-editor__content--with-properties' : ''
+                }`}
+            >
                 <div className="sheet-editor__sidebar">
                     <h3 className="sidebar__title">Add Blocks</h3>
                     {blockTypes.map(({ type, label, icon }) => (
@@ -176,7 +168,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     />
                 ) : (
                     <div className="page-canvas__container">
-                        <p className="panel__empty-message">This sheet has no pages.</p>
+                        <p className="panel__empty-message">Add a page to begin.</p>
                     </div>
                 )}
 
@@ -187,7 +179,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 />
             </div>
 
-            {/* NEW: Render the page controls at the bottom. */}
             <PageControls
                 pages={sheet}
                 activePageIndex={activePageIndex}
