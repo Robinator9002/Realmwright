@@ -1,4 +1,5 @@
-// src/components/specific/AbilityTree/LogicEdge.tsx
+// src/components/specific/AbilityTree/controls/LogicEdge.tsx
+
 import type { FC } from 'react';
 import { getStraightPath, EdgeLabelRenderer, type EdgeProps } from 'reactflow';
 

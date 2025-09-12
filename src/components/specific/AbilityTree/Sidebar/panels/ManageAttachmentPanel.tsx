@@ -1,4 +1,4 @@
-// src/components/specific/AbilityTree/Sidebar/ManageAttachmentPanel.tsx
+// src/components/specific/AbilityTree/Sidebar/panels/ManageAttachmentPanel.tsx
 
 /**
  * COMMIT: feat(ability-tree): create isolated ManageAttachmentPanel component
@@ -24,9 +24,9 @@
  */
 import { useState, useEffect, useMemo, type FC } from 'react';
 import { Trash2 } from 'lucide-react';
-import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
-import { useModal } from '../../../../context/global/ModalContext';
-import type { AbilityTree } from '../../../../db/types';
+import { useAbilityTreeEditor } from '../../../../../context/feature/AbilityTreeEditorContext';
+import { useModal } from '../../../../../context/global/ModalContext';
+import type { AbilityTree } from '../../../../../db/types';
 
 interface ManageAttachmentPanelProps {
     availableTrees: AbilityTree[];

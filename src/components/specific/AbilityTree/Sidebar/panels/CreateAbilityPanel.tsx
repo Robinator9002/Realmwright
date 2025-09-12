@@ -1,4 +1,4 @@
-// src/components/specific/AbilityTree/Sidebar/CreateAbilityPanel.tsx
+// src/components/specific/AbilityTree/Sidebar/panels/CreateAbilityPanel.tsx
 
 /**
  * COMMIT: fix(ability-tree): use correct 'currentTree' property from context
@@ -19,7 +19,7 @@
  * `currentTree` object, resolving the error.
  */
 import { useState, type FC } from 'react';
-import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
+import { useAbilityTreeEditor } from '../../../../../context/feature/AbilityTreeEditorContext';
 
 export const CreateAbilityPanel: FC = () => {
     // FIX: Destructure 'currentTree' instead of the old 'tree' variable.

@@ -1,4 +1,4 @@
-// src/components/specific/AbilityTree/Sidebar/AbilityTreeTierControls.tsx
+// src/components/specific/AbilityTree/Sidebar/controls/AbilityTreeTierControls.tsx
 
 /**
  * COMMIT: refactor(ability-tree): connect TierControls to reactive context
@@ -20,7 +20,7 @@
  */
 import type { FC } from 'react';
 import { Plus, Minus } from 'lucide-react';
-import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
+import { useAbilityTreeEditor } from '../../../../../context/feature/AbilityTreeEditorContext';
 
 // The component no longer needs to accept any props.
 export const AbilityTreeTierControls: FC = () => {

@@ -20,10 +20,10 @@ import type { FC } from 'react';
 import type { AbilityTree } from '../../../../db/types';
 import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
 
-import { CreateAbilityPanel } from './CreateAbilityPanel';
-import { EditAbilityPanel } from './EditAbilityPanel';
-import { ManageAttachmentPanel } from './ManageAttachmentPanel';
-import { AbilityTreeTierControls } from './AbilityTreeTierControls';
+import { CreateAbilityPanel } from './panels/CreateAbilityPanel';
+import { EditAbilityPanel } from './panels/EditAbilityPanel';
+import { ManageAttachmentPanel } from './panels/ManageAttachmentPanel';
+import { AbilityTreeTierControls } from './controls/AbilityTreeTierControls';
 
 interface AbilityTreeSidebarProps {
     availableTrees: AbilityTree[];

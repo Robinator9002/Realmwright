@@ -1,4 +1,4 @@
-// src/components/specific/AbilityTree/Sidebar/EditAbilityPanel.tsx
+// src/components/specific/AbilityTree/Sidebar/panels/EditAbilityPanel.tsx
 
 /**
  * COMMIT: fix(ability-tree): use correct 'currentTree' property in EditAbilityPanel
@@ -17,9 +17,9 @@
  * - This resolves the crash and allows the edit panel to function correctly.
  */
 import { useState, useEffect, type FC } from 'react';
-import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
-import { useModal } from '../../../../context/global/ModalContext';
-import type { Ability } from '../../../../db/types';
+import { useAbilityTreeEditor } from '../../../../../context/feature/AbilityTreeEditorContext';
+import { useModal } from '../../../../../context/global/ModalContext';
+import type { Ability } from '../../../../../db/types';
 
 export const EditAbilityPanel: FC = () => {
     // FIX: Destructure 'currentTree' instead of the old 'tree' variable.
