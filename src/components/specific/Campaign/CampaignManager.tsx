@@ -9,7 +9,7 @@ import {
     getCampaignsForWorld,
     updateCampaign,
     deleteCampaign,
-} from '../../../db/queries/campaign.queries';
+} from '../../../db/queries/world/campaign.queries';
 // REFACTOR: We no longer need to import World here.
 import type { Campaign } from '../../../db/types';
 import { ManageModal } from '../../modal/ManageModal';

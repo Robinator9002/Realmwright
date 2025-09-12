@@ -10,7 +10,7 @@ import {
     getCharactersForWorld,
     updateCharacter,
     deleteCharacter,
-} from '../../../db/queries/character.queries';
+} from '../../../db/queries/character/character.queries';
 import type { Character } from '../../../db/types';
 import { ManageCharacterModal, type CharacterSaveData } from './ManageCharacterModal';
 

@@ -31,7 +31,7 @@ import {
 } from 'react';
 import { type Node, type Edge, type Connection } from 'reactflow';
 import { useAbilityTreeData } from '../../hooks/useAbilityTreeData';
-import { updateAbilityTree, updateAbility } from '../../db/queries/ability.queries';
+import { updateAbilityTree, updateAbility } from '../../db/queries/character/ability.queries';
 import type { Ability, AbilityTree, PrerequisiteGroup } from '../../db/types';
 import type { PrerequisiteLogicType } from '../../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
 

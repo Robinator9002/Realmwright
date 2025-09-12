@@ -9,7 +9,7 @@ import {
     getLoreForWorld,
     updateLoreEntry,
     deleteLoreEntry,
-} from '../../../db/queries/lore.queries';
+} from '../../../db/queries/world/lore.queries';
 import type { LoreEntry } from '../../../db/types';
 import { ManageModal } from '../../modal/ManageModal';
 

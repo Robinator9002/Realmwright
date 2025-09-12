@@ -25,7 +25,7 @@ import {
     getAbilitiesForTree,
     updateAbility,
     deleteAbility,
-} from '../db/queries/ability.queries';
+} from '../db/queries/character/ability.queries';
 import type { Ability, AbilityTree, PrerequisiteGroup, AttachmentPoint } from '../db/types';
 import type { PrerequisiteLogicType } from '../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
 import { TIER_HEIGHT, NODE_HEIGHT, NODE_START_X } from '../constants/abilityTree.constants';

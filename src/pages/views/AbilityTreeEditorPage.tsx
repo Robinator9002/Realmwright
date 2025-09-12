@@ -25,7 +25,7 @@
 import { useState, useEffect, type FC, useCallback } from 'react';
 import { useWorld } from '../../context/feature/WorldContext';
 import type { AbilityTree } from '../../db/types';
-import { getAbilityTreesForWorld } from '../../db/queries/ability.queries';
+import { getAbilityTreesForWorld } from '../../db/queries/character/ability.queries';
 import { ReactFlowProvider } from 'reactflow';
 
 import {

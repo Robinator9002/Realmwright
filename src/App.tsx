@@ -20,9 +20,9 @@
 import { useState, useEffect } from 'react';
 import { AppLayout } from './components/layout/AppLayout/AppLayout';
 import { useView } from './context/global/ViewContext';
-import { getAbilityTreeById } from './db/queries/ability.queries';
+import { getAbilityTreeById } from './db/queries/character/ability.queries';
 // NEW: Import the query to fetch a class by its ID.
-import { getClassById } from './db/queries/class.queries';
+import { getClassById } from './db/queries/character/class.queries';
 import type { AbilityTree, CharacterClass } from './db/types';
 
 // Page Imports

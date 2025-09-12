@@ -10,7 +10,7 @@ import {
     updateAbilityTree,
     deleteAbilityTree,
     type UpdateAbilityTreePayload,
-} from '../../../db/queries/ability.queries';
+} from '../../../db/queries/character/ability.queries';
 import type { AbilityTree } from '../../../db/types';
 
 /**

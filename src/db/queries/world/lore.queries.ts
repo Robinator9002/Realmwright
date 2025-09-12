@@ -1,6 +1,6 @@
 // src/db/queries/lore.queries.ts
-import { db } from '../db';
-import type { LoreEntry } from '../types';
+import { db } from '../../db';
+import type { LoreEntry } from '../../types';
 
 /**
  * Adds a new Lore Entry to the database, linked to a specific World.

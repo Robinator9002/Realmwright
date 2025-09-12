@@ -2,7 +2,7 @@
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../context/feature/WorldContext';
 import { useModal } from '../../../context/global/ModalContext'; // NEW: For confirmation
-import { getClassesForWorld } from '../../../db/queries/class.queries';
+import { getClassesForWorld } from '../../../db/queries/character/class.queries';
 import type { Character, CharacterClass } from '../../../db/types';
 
 // The save data is now much simpler.

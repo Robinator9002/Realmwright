@@ -1,6 +1,6 @@
 // src/db/queries/campaign.queries.ts
-import { db } from '../db';
-import type { Campaign } from '../types';
+import { db } from '../../db';
+import type { Campaign } from '../../types';
 
 /**
  * Adds a new Campaign to the database, linked to a specific World.

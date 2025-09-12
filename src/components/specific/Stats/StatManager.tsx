@@ -10,7 +10,7 @@ import {
     updateStatDefinition,
     deleteStatDefinition,
     type UpdateStatPayload,
-} from '../../../db/queries/stat.queries';
+} from '../../../db/queries/character/stat.queries';
 import type { StatDefinition } from '../../../db/types';
 // NEW: Import the specialized modal
 import { ManageStatModal } from './ManageStatModal';

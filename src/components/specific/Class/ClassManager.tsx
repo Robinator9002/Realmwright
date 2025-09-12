@@ -29,7 +29,7 @@ import {
     deleteClass,
     addClass,
     updateClass,
-} from '../../../db/queries/class.queries';
+} from '../../../db/queries/character/class.queries';
 import type { CharacterClass } from '../../../db/types';
 import { ManageClassModal, type ClassSaveData } from './ManageClassModal';
 

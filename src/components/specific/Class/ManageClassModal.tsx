@@ -19,7 +19,7 @@
  */
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../context/feature/WorldContext';
-import { getStatDefinitionsForWorld } from '../../../db/queries/stat.queries';
+import { getStatDefinitionsForWorld } from '../../../db/queries/character/stat.queries';
 import type { CharacterClass, StatDefinition } from '../../../db/types';
 
 export type ClassSaveData = {

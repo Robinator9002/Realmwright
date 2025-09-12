@@ -1,6 +1,6 @@
 // src/db/queries/stat.queries.ts
-import { db } from '../db';
-import type { StatDefinition } from '../types';
+import { db } from '../../db';
+import type { StatDefinition } from '../../types';
 
 // A dedicated type for the creation payload to ensure `type` is included.
 type CreateStatData = {

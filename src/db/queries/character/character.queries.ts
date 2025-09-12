@@ -1,6 +1,6 @@
 // src/db/queries/character.queries.ts
-import { db } from '../db';
-import type { Character } from '../types';
+import { db } from '../../db';
+import type { Character } from '../../types';
 
 // The creation data now requires a classId.
 type CreateCharacterData = {

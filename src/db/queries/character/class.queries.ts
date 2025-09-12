@@ -13,8 +13,8 @@
  * - This function uses `db.characterClasses.get(classId)` for efficient,
  * direct lookup of a class record.
  */
-import { db } from '../db';
-import type { CharacterClass, SheetPage } from '../types';
+import { db } from '../../db';
+import type { CharacterClass, SheetPage } from '../../types';
 
 /**
  * Adds a new, empty Character Class to the database.

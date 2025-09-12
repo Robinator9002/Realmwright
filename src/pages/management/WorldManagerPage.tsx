@@ -1,7 +1,7 @@
 // src/pages/management/WorldManagerPage.tsx
 
 import { useState, useEffect } from 'react';
-import { addWorld, getAllWorlds, updateWorld, deleteWorld } from '../../db/queries/world.queries';
+import { addWorld, getAllWorlds, updateWorld, deleteWorld } from '../../db/queries/world/world.queries';
 import { useWorld } from '../../context/feature/WorldContext';
 import { useView } from '../../context/global/ViewContext';
 import { useModal } from '../../context/global/ModalContext';

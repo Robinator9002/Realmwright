@@ -21,7 +21,7 @@
  */
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../context/feature/WorldContext';
-import { getStatDefinitionsForWorld } from '../../../db/queries/stat.queries';
+import { getStatDefinitionsForWorld } from '../../../db/queries/character/stat.queries';
 import type { StatDefinition } from '../../../db/types';
 
 export interface StatsBlockProps {

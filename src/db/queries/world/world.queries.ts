@@ -1,6 +1,6 @@
 // src/db/queries/world.queries.ts
-import { db } from '../db';
-import type { World } from '../types';
+import { db } from '../../db';
+import type { World } from '../../types';
 
 /**
  * Adds a new World to the database.
