@@ -1,21 +1,26 @@
-// src/components/specific/Class/ClassSheetEditor.tsx
+// src/components/specific/Class/editor/ClassSheetEditor.tsx
 
 /**
- * COMMIT: fix(class-sheet): correct layout class application to show sidebar
+ * COMMIT: refactor(class-sheet): centralize state management in ClassSheetEditor
  *
  * Rationale:
- * A logical error in how the layout's CSS class was being applied prevented
- * the properties sidebar from ever appearing. The modifier class was
- * replacing the base class instead of augmenting it, causing the component
- * to lose its `display: grid` property on block selection.
+ * To support editing properties outside the character sheet itself (e.g.,
+ * base stats), the editor's state management has been refactored. The
+ * component now holds the entire CharacterClass object in its state, rather
+ * than just the `characterSheet` array. This makes the editor the single
+ * source of truth for all class-related data during an editing session.
  *
  * Implementation Details:
- * - The `editorLayoutClass` variable has been removed.
- * - The `className` on the main content `div` has been changed to a template
- * literal that conditionally includes the `--with-properties` modifier class
- * alongside the base `sheet-editor__content` class.
- * - This ensures the grid layout properties are always present and correctly
- * modified, fixing the bug and allowing the properties sidebar to render.
+ * - A new state, `editableClass`, has been introduced to hold the class object.
+ * - The previous `sheet` state has been removed. All functions that modified
+ * the sheet now create a deep copy of `editableClass`, modify its
+ * `characterSheet` property, and update the state via `setEditableClass`.
+ * - New handler functions, `handleUpdateBlockContent` and `handleUpdateBaseStat`,
+ * have been added to manage content and base stat changes respectively.
+ * - These new handlers are passed down to the PropertiesSidebar, enabling the
+ * next phase of development.
+ * - The `handleSaveSheet` function was renamed to `handleSaveChanges` and now
+ * saves both the `characterSheet` and `baseStats` to the database.
  */
 import { useState, useMemo, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -34,16 +39,21 @@ export interface ClassSheetEditorProps {
 }
 
 export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, onBack }) => {
-    const [sheet, setSheet] = useState<SheetPage[]>(characterClass.characterSheet || []);
+    // REFACTOR: The entire class object is now managed in state.
+    const [editableClass, setEditableClass] = useState<CharacterClass>(characterClass);
     const [isSaving, setIsSaving] = useState(false);
     const [activePageIndex, setActivePageIndex] = useState(0);
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+
+    // The character sheet is now derived directly from the stateful class object.
+    const sheet = editableClass.characterSheet || [];
 
     const selectedBlock = useMemo(
         () => sheet[activePageIndex]?.blocks.find((block) => block.id === selectedBlockId) || null,
         [sheet, activePageIndex, selectedBlockId],
     );
 
+    // All handlers now update the `editableClass` state object.
     const handleAddBlock = (blockType: SheetBlock['type']) => {
         const newBlock: SheetBlock = {
             id: crypto.randomUUID(),
@@ -52,40 +62,67 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             content: blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
         };
 
-        setSheet((currentSheet) => {
-            const newSheet = JSON.parse(JSON.stringify(currentSheet));
-            if (newSheet.length === 0) {
-                newSheet.push({ id: crypto.randomUUID(), name: 'Main Page', blocks: [] });
+        setEditableClass((currentClass) => {
+            const newClass = JSON.parse(JSON.stringify(currentClass));
+            if (newClass.characterSheet.length === 0) {
+                newClass.characterSheet.push({
+                    id: crypto.randomUUID(),
+                    name: 'Main Page',
+                    blocks: [],
+                });
             }
-            newSheet[activePageIndex].blocks.push(newBlock);
-            return newSheet;
+            newClass.characterSheet[activePageIndex].blocks.push(newBlock);
+            return newClass;
         });
     };
 
     const handleLayoutChange = (newLayout: Layout[]) => {
-        setSheet((currentSheet) => {
-            const newSheet = JSON.parse(JSON.stringify(currentSheet));
-            const currentPage = newSheet[activePageIndex];
+        setEditableClass((currentClass) => {
+            const newClass = JSON.parse(JSON.stringify(currentClass));
+            const currentPage = newClass.characterSheet[activePageIndex];
             currentPage.blocks.forEach((block: SheetBlock) => {
                 const layoutItem = newLayout.find((item) => item.i === block.id);
                 if (layoutItem) {
                     block.layout = { ...block.layout, ...layoutItem };
                 }
             });
-            return newSheet;
+            return newClass;
         });
     };
 
     const handleUpdateBlockLayout = (blockId: string, newLayout: Partial<SheetBlock['layout']>) => {
-        setSheet((currentSheet) => {
-            const newSheet = JSON.parse(JSON.stringify(currentSheet));
-            const block = newSheet[activePageIndex].blocks.find(
+        setEditableClass((currentClass) => {
+            const newClass = JSON.parse(JSON.stringify(currentClass));
+            const block = newClass.characterSheet[activePageIndex].blocks.find(
                 (b: SheetBlock) => b.id === blockId,
             );
             if (block) {
                 block.layout = { ...block.layout, ...newLayout };
             }
-            return newSheet;
+            return newClass;
+        });
+    };
+
+    // NEW: Handler for block-specific content changes.
+    const handleUpdateBlockContent = (blockId: string, newContent: any) => {
+        setEditableClass((currentClass) => {
+            const newClass = JSON.parse(JSON.stringify(currentClass));
+            const block = newClass.characterSheet[activePageIndex].blocks.find(
+                (b: SheetBlock) => b.id === blockId,
+            );
+            if (block) {
+                block.content = newContent;
+            }
+            return newClass;
+        });
+    };
+
+    // NEW: Handler for updating the class's base stats.
+    const handleUpdateBaseStat = (statId: number, value: number) => {
+        setEditableClass((currentClass) => {
+            const newClass = JSON.parse(JSON.stringify(currentClass));
+            newClass.baseStats[statId] = value;
+            return newClass;
         });
     };
 
@@ -95,25 +132,36 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             name: `Page ${sheet.length + 1}`,
             blocks: [],
         };
-        const newSheet = [...sheet, newPage];
-        setSheet(newSheet);
-        setActivePageIndex(newSheet.length - 1);
+        setEditableClass((currentClass) => {
+            const newClass = JSON.parse(JSON.stringify(currentClass));
+            newClass.characterSheet.push(newPage);
+            setActivePageIndex(newClass.characterSheet.length - 1);
+            return newClass;
+        });
     };
 
     const handleDeletePage = (indexToDelete: number) => {
-        const newSheet = sheet.filter((_, index) => index !== indexToDelete);
-        setSheet(newSheet);
-        if (activePageIndex >= indexToDelete) {
-            setActivePageIndex(Math.max(0, activePageIndex - 1));
-        }
+        setEditableClass((currentClass) => {
+            const newClass = JSON.parse(JSON.stringify(currentClass));
+            newClass.characterSheet = newClass.characterSheet.filter(
+                (_: any, index: number) => index !== indexToDelete,
+            );
+            if (activePageIndex >= indexToDelete) {
+                setActivePageIndex(Math.max(0, activePageIndex - 1));
+            }
+            return newClass;
+        });
     };
 
-    const handleSaveSheet = async () => {
+    const handleSaveChanges = async () => {
         setIsSaving(true);
         try {
-            await updateClass(characterClass.id!, { characterSheet: sheet });
+            await updateClass(editableClass.id!, {
+                characterSheet: editableClass.characterSheet,
+                baseStats: editableClass.baseStats,
+            });
         } catch (error) {
-            console.error('Failed to save sheet layout:', error);
+            console.error('Failed to save changes:', error);
         } finally {
             setIsSaving(false);
         }
@@ -128,18 +176,17 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     <ArrowLeft size={16} /> Back
                 </button>
                 <h2 className="panel__title" style={{ border: 'none', padding: 0 }}>
-                    Designing: {characterClass.name}
+                    Designing: {editableClass.name}
                 </h2>
                 <button
-                    onClick={handleSaveSheet}
+                    onClick={handleSaveChanges}
                     className="button button--primary"
                     disabled={isSaving}
                 >
-                    <Save size={16} /> {isSaving ? 'Saving...' : 'Save Sheet'}
+                    <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
             </div>
 
-            {/* FIX: Use a template literal to conditionally apply the modifier class. */}
             <div
                 className={`sheet-editor__content ${
                     selectedBlock ? 'sheet-editor__content--with-properties' : ''
@@ -161,7 +208,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 {currentPage ? (
                     <PageCanvas
                         page={currentPage}
-                        characterClass={characterClass}
+                        characterClass={editableClass}
                         onLayoutChange={handleLayoutChange}
                         selectedBlockId={selectedBlockId}
                         onSelectBlock={setSelectedBlockId}
@@ -174,7 +221,11 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
 
                 <PropertiesSidebar
                     selectedBlock={selectedBlock}
-                    onUpdateBlock={handleUpdateBlockLayout}
+                    onUpdateBlockLayout={handleUpdateBlockLayout}
+                    // NEW: Pass the new handlers to the sidebar.
+                    onUpdateBlockContent={handleUpdateBlockContent}
+                    onUpdateBaseStat={handleUpdateBaseStat}
+                    characterClass={editableClass}
                     onDeselect={() => setSelectedBlockId(null)}
                 />
             </div>
