@@ -1,4 +1,4 @@
-// src/db/queries/world.queries.ts
+// src/db/queries/character/world.queries.ts
 import { db } from '../../db';
 import type { World } from '../../types';
 

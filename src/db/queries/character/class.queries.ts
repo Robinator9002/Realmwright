@@ -1,4 +1,4 @@
-// src/db/queries/class.queries.ts
+// src/db/queries/character/class.queries.ts
 
 /**
  * COMMIT: feat(class-sheet): add getClassById query function

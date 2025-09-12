@@ -1,4 +1,5 @@
-// src/db/queries/ability.queries.ts
+// src/db/queries/character/ability.queries.ts
+
 import { db } from '../../db';
 import type { Ability, AbilityTree, PrerequisiteGroup, AttachmentPoint } from '../../types';
 

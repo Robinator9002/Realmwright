@@ -1,4 +1,5 @@
-// src/db/queries/lore.queries.ts
+// src/db/queries/world/lore.queries.ts
+
 import { db } from '../../db';
 import type { LoreEntry } from '../../types';
 

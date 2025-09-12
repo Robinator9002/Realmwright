@@ -1,4 +1,5 @@
-// src/db/queries/stat.queries.ts
+// src/db/queries/character/stat.queries.ts
+
 import { db } from '../../db';
 import type { StatDefinition } from '../../types';
 

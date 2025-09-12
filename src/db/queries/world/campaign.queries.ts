@@ -1,4 +1,5 @@
-// src/db/queries/campaign.queries.ts
+// src/db/queries/world/campaign.queries.ts
+
 import { db } from '../../db';
 import type { Campaign } from '../../types';
 
