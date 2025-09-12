@@ -1,4 +1,4 @@
-// src/components/common/Modal/ConfirmationModal.tsx
+// src/components/Modal/ConfirmationModal.tsx
 import type { FC, ReactNode } from 'react';
 
 export interface ConfirmationModalProps {

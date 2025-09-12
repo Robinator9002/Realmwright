@@ -1,4 +1,4 @@
-// src/components/common/Modal/ModalManager.tsx
+// src/components/Modal/ModalManager.tsx
 import type { FC } from 'react';
 import { useModal } from '../../context/ModalContext';
 import { ConfirmationModal } from './ConfirmationModal';

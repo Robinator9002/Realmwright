@@ -1,4 +1,4 @@
-// src/components/common/Modal/AlertModal.tsx
+// src/components/Modal/AlertModal.tsx
 import type { FC, ReactNode } from 'react';
 
 export interface AlertModalProps {

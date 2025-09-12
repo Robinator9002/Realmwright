@@ -1,4 +1,4 @@
-// src/components/common/Modal/ManageModal.tsx
+// src/components/Modal/ManageModal.tsx
 import { useState, useEffect } from 'react';
 // REFACTOR: Import our new base interface. We no longer need to import specific types like World or Campaign.
 import type { BaseManageable } from '../../db/types';
