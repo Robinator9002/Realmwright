@@ -21,7 +21,7 @@
  */
 import type { FC } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import type { SheetPage } from '../../../db/types';
+import type { SheetPage } from '../../../../db/types';
 
 // --- COMPONENT PROPS ---
 interface PageControlsProps {

@@ -20,17 +20,17 @@
  */
 import { useState, useEffect, useCallback, type FC } from 'react';
 import { Settings, PlusCircle, Trash2, Edit } from 'lucide-react';
-import { useWorld } from '../../../context/feature/WorldContext';
-import { useModal } from '../../../context/global/ModalContext';
+import { useWorld } from '../../../../context/feature/WorldContext';
+import { useModal } from '../../../../context/global/ModalContext';
 // NEW: Import useView to control navigation to the editor.
-import { useView } from '../../../context/global/ViewContext';
+import { useView } from '../../../../context/global/ViewContext';
 import {
     getClassesForWorld,
     deleteClass,
     addClass,
     updateClass,
-} from '../../../db/queries/character/class.queries';
-import type { CharacterClass } from '../../../db/types';
+} from '../../../../db/queries/character/class.queries';
+import type { CharacterClass } from '../../../../db/types';
 import { ManageClassModal, type ClassSaveData } from './ManageClassModal';
 
 /**

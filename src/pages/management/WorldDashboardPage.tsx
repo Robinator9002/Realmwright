@@ -8,7 +8,7 @@ import { LoreManager } from '../../components/specific/Lore/LoreManager';
 import { StatManager } from '../../components/specific/Stats/StatManager';
 import { AbilityManager } from '../../components/specific/AbilityTree/AbilityManager';
 // NEW: Import the ClassManager component.
-import { ClassManager } from '../../components/specific/Class/ClassManager';
+import { ClassManager } from '../../components/specific/Class/management/ClassManager';
 
 /**
  * Acts as a content switcher for the main world dashboard area.

@@ -33,7 +33,7 @@ import { ModalManager } from './components/modal/ModalManager';
 import { CharacterSheetPage } from './pages/views/CharacterSheetPage';
 import { AbilityTreeEditorPage } from './pages/views/AbilityTreeEditorPage';
 // NEW: Import the ClassSheetEditor component itself.
-import { ClassSheetEditor } from './components/specific/Class/ClassSheetEditor';
+import { ClassSheetEditor } from './components/specific/Class/editor/ClassSheetEditor';
 
 /**
  * This helper component is responsible for fetching data needed for specific

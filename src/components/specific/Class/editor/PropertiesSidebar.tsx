@@ -19,7 +19,7 @@
  * expansion.
  */
 import type { FC } from 'react';
-import type { SheetBlock } from '../../../db/types';
+import type { SheetBlock } from '../../../../db/types';
 
 // --- COMPONENT PROPS ---
 interface PropertiesSidebarProps {

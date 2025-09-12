@@ -21,8 +21,8 @@ import { useView } from '../../context/global/ViewContext';
 import { db } from '../../db/db';
 import { updateCharacter } from '../../db/queries/character/character.queries';
 import type { Character, CharacterClass } from '../../db/types';
-import { SheetBlockRenderer } from '../../components/specific/Class/SheetBlockRenderer';
-import { PageControls } from '../../components/specific/Class/PageControls';
+import { SheetBlockRenderer } from '../../components/specific/Class/blocks/SheetBlockRenderer';
+import { PageControls } from '../../components/specific/Class/editor/PageControls';
 
 // Constants for converting grid units to pixels, matching the editor's canvas.
 const PAGE_COLUMNS = 48;

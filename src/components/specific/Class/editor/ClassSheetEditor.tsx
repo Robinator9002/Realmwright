@@ -21,9 +21,9 @@ import { useState, useMemo, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 import type { Layout } from 'react-grid-layout';
 
-import type { CharacterClass, SheetPage, SheetBlock } from '../../../db/types';
-import { updateClass } from '../../../db/queries/character/class.queries';
-import { blockTypes } from '../../../constants/sheetEditor.constants';
+import type { CharacterClass, SheetPage, SheetBlock } from '../../../../db/types';
+import { updateClass } from '../../../../db/queries/character/class.queries';
+import { blockTypes } from '../../../../constants/sheetEditor.constants';
 import { PageCanvas } from './PageCanvas';
 import { PropertiesSidebar } from './PropertiesSidebar';
 import { PageControls } from './PageControls';

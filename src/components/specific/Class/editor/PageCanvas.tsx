@@ -19,8 +19,8 @@
  */
 import type { FC } from 'react';
 import GridLayout, { type Layout } from 'react-grid-layout';
-import type { SheetPage, CharacterClass } from '../../../db/types';
-import { SheetBlockRenderer } from './SheetBlockRenderer';
+import type { SheetPage, CharacterClass } from '../../../../db/types';
+import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer';
 
 // --- CONSTANTS ---
 const PAGE_COLUMNS = 48;
