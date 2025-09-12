@@ -1,47 +1,97 @@
 /* src/styles/main.css */
 
-/* This is the main entry point for all of our application's styles.
-   It imports all other CSS files in a specific, cascading order. */
+/*
+|--------------------------------------------------------------------------
+| Realmwright Style Entry Point
+|--------------------------------------------------------------------------
+|
+| This file serves as the central manifest for all CSS in the application.
+| It imports stylesheets in a carefully managed, cascading order to ensure
+| that foundational styles are loaded first, followed by layouts,
+| generic components, feature-specific components, and finally,
+| page-level overrides.
+|
+*/
 
-/* 1. Foundational styles that everything else depends on. */
+/*
+|--------------------------------------------------------------------------
+| 1. Base & Foundational Styles
+|--------------------------------------------------------------------------
+|
+| These are the core files that establish the application's design
+| language. They include CSS variables, a reset to normalize browser
+| defaults, and fundamental styles for the body and typography.
+|
+*/
 @import url('./base/_variables.css');
 @import url('./base/_reset.css');
 @import url('./base/_base.css');
 
-/* 2. Layout styles for major application containers. */
+/*
+|--------------------------------------------------------------------------
+| 2. Application Layouts
+|--------------------------------------------------------------------------
+|
+| Styles for the main structural containers of the application, such as
+| the overall app layout, sidebars, and top navigation bars.
+|
+*/
 @import url('./layouts/_app-layout.css');
 @import url('./layouts/_topbar.css');
 
-/* 3. Reusable component styles. */
+/*
+|--------------------------------------------------------------------------
+| 3. Generic, Reusable Components
+|--------------------------------------------------------------------------
+|
+| Styles for common, shared UI elements that are used across multiple
+| features, such as buttons, forms, panels, and modals.
+|
+*/
 @import url('./components/_button.css');
 @import url('./components/_form.css');
 @import url('./components/_panel.css');
 @import url('./components/modal/_modal.css');
 @import url('./components/badges/_status-badge.css');
 
-/* 3.1 Ability Tree */
-/* Manager */
+/*
+|--------------------------------------------------------------------------
+| 4. Feature-Specific Components
+|--------------------------------------------------------------------------
+|
+| This section contains styles for components that belong to a single,
+| discrete feature of the application, such as the Ability Tree or the
+| Class Sheet editor.
+|
+*/
+
+/* --- 4.1 Ability Tree --- */
 @import url('./components/ability-tree/_ability-manager.css');
 @import url('./components/ability-tree/_reactflow-overrides.css');
-/* Nodes */
+@import url('./components/ability-tree/canvas/_canvas-enhancements.css');
 @import url('./components/ability-tree/node/_ability-node.css');
 @import url('./components/ability-tree/node/_attachment-node.css');
-/* Sidebar */
 @import url('./components/ability-tree/sidebar/controls/_tier-controls.css');
 @import url('./components/ability-tree/sidebar/controls/_tier-bar.css');
 @import url('./components/ability-tree/sidebar/components/_logic-edge.css');
 @import url('./components/ability-tree/sidebar/components/_sidebar-panels.css');
-/* NEW: Import the styles for our canvas UX enhancements */
-@import url('./components/ability-tree/canvas/_canvas-enhancements.css');
 
-/* 3.2 Class Sheets */
+/* --- 4.2 Class Sheet Editor --- */
 @import url('./components/class-sheet/core/_sheet-editor.css');
 @import url('./components/class-sheet/core/_sheet-blocks.css');
 @import url('./components/class-sheet/components/_page-canvas.css');
 @import url('./components/class-sheet/components/_page-controls.css');
 @import url('./components/class-sheet/components/_properties-sidebar.css');
 
-/* 4. Page-specific styles that might override components. */
+/*
+|--------------------------------------------------------------------------
+| 5. Page-Level Overrides
+|--------------------------------------------------------------------------
+|
+| The final layer in the cascade. These stylesheets contain overrides
+| and layout adjustments that are specific to a single page or view.
+|
+*/
 @import url('./pages/management/_world-manager.css');
 @import url('./pages/management/_world-dashboard.css');
 @import url('./pages/management/_settings-page.css');
