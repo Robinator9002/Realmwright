@@ -23,19 +23,19 @@
  * preventing stale state and ensuring the modal behaves predictably.
  */
 import { useState, useEffect, type FC, useCallback } from 'react';
-import { useWorld } from '../../context/WorldContext';
-import type { AbilityTree } from '../../db/types';
-import { getAbilityTreesForWorld } from '../../db/queries/ability.queries';
+import { useWorld } from '../context/WorldContext';
+import type { AbilityTree } from '../db/types';
+import { getAbilityTreesForWorld } from '../db/queries/ability.queries';
 import { ReactFlowProvider } from 'reactflow';
 
 import {
     AbilityTreeEditorProvider,
     useAbilityTreeEditor,
-} from '../../context/AbilityTreeEditorContext';
-import { AbilityTreeSidebar } from '../../components/specific/AbilityTree/Sidebar/AbilityTreeSidebar';
-import { AbilityTreeCanvas } from '../../components/specific/AbilityTree/Canvas/AbilityTreeCanvas';
-import { TierBar } from '../../components/specific/AbilityTree/Canvas/TierBar';
-import { PrerequisiteModal } from '../../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
+} from '../context/AbilityTreeEditorContext';
+import { AbilityTreeSidebar } from '../components/specific/AbilityTree/Sidebar/AbilityTreeSidebar';
+import { AbilityTreeCanvas } from '../components/specific/AbilityTree/Canvas/AbilityTreeCanvas';
+import { TierBar } from '../components/specific/AbilityTree/Canvas/TierBar';
+import { PrerequisiteModal } from '../components/specific/AbilityTree/Sidebar/PrerequisiteModal';
 
 type ViewportState = {
     y: number;

@@ -26,12 +26,12 @@ import { getClassById } from './db/queries/class.queries';
 import type { AbilityTree, CharacterClass } from './db/types';
 
 // Page Imports
-import WorldManagerPage from './pages/WorldManager/WorldManagerPage';
-import { WorldDashboardPage } from './pages/WorldDashboard/WorldDashboardPage';
-import { SettingsPage } from './pages/SettingsPage/SettingsPage';
+import WorldManagerPage from './pages/WorldManagerPage';
+import { WorldDashboardPage } from './pages/WorldDashboardPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { ModalManager } from './components/common/Modal/ModalManager';
-import { CharacterSheetPage } from './pages/CharacterSheet/CharacterSheetPage';
-import { AbilityTreeEditorPage } from './pages/AbiltyTree/AbilityTreeEditorPage';
+import { CharacterSheetPage } from './pages/CharacterSheetPage';
+import { AbilityTreeEditorPage } from './pages/AbilityTreeEditorPage';
 // NEW: Import the ClassSheetEditor component itself.
 import { ClassSheetEditor } from './components/specific/Class/ClassSheetEditor';
 
