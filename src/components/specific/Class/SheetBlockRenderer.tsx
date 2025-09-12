@@ -19,11 +19,11 @@ import type { FC } from 'react';
 import type { Character, CharacterClass, SheetBlock } from '../../../db/types';
 
 // Import all the specific block components
-import { DetailsBlock } from '../SheetBlocks/DetailsBlock';
-import { StatsBlock } from '../SheetBlocks/StatsBlock';
-import { AbilityTreeBlock } from '../SheetBlocks/AbilityTreeBlock';
-import { RichTextBlock } from '../SheetBlocks/RichTextBlock';
-import { InventoryBlock } from '../SheetBlocks/InventoryBlock';
+import { DetailsBlock } from '../SheetBlocks/character/DetailsBlock';
+import { StatsBlock } from '../SheetBlocks/character/StatsBlock';
+import { AbilityTreeBlock } from '../SheetBlocks/content/AbilityTreeBlock';
+import { RichTextBlock } from '../SheetBlocks/content/RichTextBlock';
+import { InventoryBlock } from '../SheetBlocks/character/InventoryBlock';
 
 // --- COMPONENT PROPS ---
 // Consolidates all props needed to render any type of block,

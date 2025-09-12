@@ -1,6 +1,7 @@
-// src/components/specific/SheetBlocks/DetailsBlock.tsx
+// src/components/specific/SheetBlocks/character/DetailsBlock.tsx
+
 import type { FC } from 'react';
-import type { CharacterClass } from '../../../db/types';
+import type { CharacterClass } from '../../../../db/types';
 
 export interface DetailsBlockProps {
     characterClass: CharacterClass;

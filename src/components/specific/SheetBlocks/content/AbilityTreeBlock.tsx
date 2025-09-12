@@ -1,4 +1,4 @@
-// src/components/specific/SheetBlocks/AbilityTreeBlock.tsx
+// src/components/specific/SheetBlocks/content/AbilityTreeBlock.tsx
 
 /**
  * COMMIT: fix(react-flow): resolve performance and layout bugs in AbilityTreeBlock
@@ -27,11 +27,11 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { useWorld } from '../../../context/feature/WorldContext';
-import { getAbilityTreesForWorld, getAbilitiesForTree } from '../../../db/queries/character/ability.queries';
-import type { AbilityTree, Ability } from '../../../db/types';
+import { useWorld } from '../../../../context/feature/WorldContext';
+import { getAbilityTreesForWorld, getAbilitiesForTree } from '../../../../db/queries/character/ability.queries';
+import type { AbilityTree, Ability } from '../../../../db/types';
 import { Settings } from 'lucide-react';
-import { AbilityNode } from '../AbilityTree/Node/AbilityNode';
+import { AbilityNode } from '../../AbilityTree/Node/AbilityNode';
 
 // PERFORMANCE FIX: Define the custom node types outside the component.
 // This ensures the object is not recreated on every render.

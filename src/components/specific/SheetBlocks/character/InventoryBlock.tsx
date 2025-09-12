@@ -1,4 +1,5 @@
-// src/components/specific/SheetBlocks/InventoryBlock.tsx
+// src/components/specific/SheetBlocks/character/InventoryBlock.tsx
+
 import { useState, type FC } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 

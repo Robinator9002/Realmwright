@@ -1,4 +1,5 @@
-// src/components/specific/SheetBlocks/RichTextBlock.tsx
+// src/components/specific/SheetBlocks/content/RichTextBlock.tsx
+
 import { useState, type FC } from 'react';
 import { Edit, Save } from 'lucide-react';
 // NEW: Import the safe Markdown renderer.

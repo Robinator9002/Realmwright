@@ -1,4 +1,4 @@
-// src/components/specific/SheetBlocks/StatsBlock.tsx
+// src/components/specific/SheetBlocks/character/StatsBlock.tsx
 
 /**
  * COMMIT: fix(character-sheet): correct StatsBlock rendering logic
@@ -20,9 +20,9 @@
  * accurately reflects the world's current ruleset.
  */
 import { useState, useEffect, type FC } from 'react';
-import { useWorld } from '../../../context/feature/WorldContext';
-import { getStatDefinitionsForWorld } from '../../../db/queries/character/stat.queries';
-import type { StatDefinition } from '../../../db/types';
+import { useWorld } from '../../../../context/feature/WorldContext';
+import { getStatDefinitionsForWorld } from '../../../../db/queries/character/stat.queries';
+import type { StatDefinition } from '../../../../db/types';
 
 export interface StatsBlockProps {
     baseStats: { [statId: number]: number };
