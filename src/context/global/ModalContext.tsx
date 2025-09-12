@@ -1,4 +1,4 @@
-// src/context/ModalContext.tsx
+// src/context/global/ModalContext.tsx
 import { createContext, useState, useContext, useMemo } from 'react';
 import type { ReactNode, FC } from 'react';
 

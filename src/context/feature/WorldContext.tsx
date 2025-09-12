@@ -1,4 +1,4 @@
-// src/context/WorldContext.tsx
+// src/feature/global/WorldContext.tsx
 import React, { createContext, useState, useContext, type ReactNode } from 'react';
 import type { World } from '../../db/types';
 

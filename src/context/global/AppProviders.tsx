@@ -1,4 +1,4 @@
-// src/context/AppProviders.tsx
+// src/context/global/AppProviders.tsx
 import type { FC, ReactNode } from 'react';
 import { WorldProvider } from '../feature/WorldContext';
 import { SettingsProvider } from './SettingsContext';

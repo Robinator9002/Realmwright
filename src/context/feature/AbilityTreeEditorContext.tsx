@@ -1,4 +1,4 @@
-// src/context/AbilityTreeEditorContext.tsx
+// src/context/feature/AbilityTreeEditorContext.tsx
 
 /**
  * COMMIT: feat(ability-tree): add edge management state to context

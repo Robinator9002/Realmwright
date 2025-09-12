@@ -1,4 +1,4 @@
-// src/context/ViewContext.tsx
+// src/context/global/ViewContext.tsx
 
 /**
  * COMMIT: feat(class-sheet): add view state for ClassSheetEditor

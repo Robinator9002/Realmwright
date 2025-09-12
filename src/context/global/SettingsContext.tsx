@@ -1,4 +1,4 @@
-// src/context/SettingsContext.tsx
+// src/context/global/SettingsContext.tsx
 import { createContext, useState, useContext, useMemo, useEffect } from 'react';
 import type { ReactNode, FC } from 'react';
 
