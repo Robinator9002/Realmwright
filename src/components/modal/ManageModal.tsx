@@ -1,7 +1,7 @@
 // src/components/common/Modal/ManageModal.tsx
 import { useState, useEffect } from 'react';
 // REFACTOR: Import our new base interface. We no longer need to import specific types like World or Campaign.
-import type { BaseManageable } from '../../../db/types';
+import type { BaseManageable } from '../../db/types';
 
 // REFACTOR: The props interface is now generic.
 // It accepts a type `T` that MUST extend our BaseManageable interface.

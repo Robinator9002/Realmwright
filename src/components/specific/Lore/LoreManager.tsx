@@ -11,7 +11,7 @@ import {
     deleteLoreEntry,
 } from '../../../db/queries/lore.queries';
 import type { LoreEntry } from '../../../db/types';
-import { ManageModal } from '../../common/Modal/ManageModal';
+import { ManageModal } from '../../modal/ManageModal';
 
 /**
  * A component for creating, listing, and managing lore entries for the active world.

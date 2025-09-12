@@ -5,7 +5,7 @@ import { useWorld } from '../context/WorldContext';
 import { useView } from '../context/ViewContext';
 import { useModal } from '../context/ModalContext';
 import type { World } from '../db/types';
-import { ManageModal } from '../components/common/Modal/ManageModal';
+import { ManageModal } from '../components/modal/ManageModal';
 import { Settings } from 'lucide-react';
 
 const WorldManagerPage = () => {

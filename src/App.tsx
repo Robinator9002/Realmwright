@@ -29,7 +29,7 @@ import type { AbilityTree, CharacterClass } from './db/types';
 import WorldManagerPage from './pages/WorldManagerPage';
 import { WorldDashboardPage } from './pages/WorldDashboardPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { ModalManager } from './components/common/Modal/ModalManager';
+import { ModalManager } from './components/modal/ModalManager';
 import { CharacterSheetPage } from './pages/CharacterSheetPage';
 import { AbilityTreeEditorPage } from './pages/AbilityTreeEditorPage';
 // NEW: Import the ClassSheetEditor component itself.

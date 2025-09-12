@@ -12,7 +12,7 @@ import {
 } from '../../../db/queries/campaign.queries';
 // REFACTOR: We no longer need to import World here.
 import type { Campaign } from '../../../db/types';
-import { ManageModal } from '../../common/Modal/ManageModal';
+import { ManageModal } from '../../modal/ManageModal';
 
 // REFACTOR: This local type alias is no longer necessary.
 // type ManageableItem = World | Campaign;
