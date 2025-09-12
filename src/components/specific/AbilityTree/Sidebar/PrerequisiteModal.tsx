@@ -17,7 +17,7 @@
  * by centralizing styles in the CSS files rather than in the component's JSX.
  */
 import type { FC } from 'react';
-import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
+import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
 import type { PrerequisiteLogicType } from '../../../../db/types';
 
 // --- INTERFACE DEFINITION ---

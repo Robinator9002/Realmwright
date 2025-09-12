@@ -19,7 +19,7 @@
  */
 import { useState, useCallback, useEffect } from 'react';
 import { type Node, type Edge, type Connection } from 'reactflow';
-import { useWorld } from '../context/WorldContext';
+import { useWorld } from '../context/feature/WorldContext';
 import {
     addAbility,
     getAbilitiesForTree,

@@ -1,9 +1,9 @@
 // src/components/layout/Topbar/Topbar.tsx
 import type { FC } from 'react';
 import { Sun, Moon, Settings } from 'lucide-react';
-import { useWorld } from '../../../context/WorldContext';
-import { useView } from '../../../context/ViewContext';
-import { useSettings } from '../../../context/SettingsContext';
+import { useWorld } from '../../../context/feature/WorldContext';
+import { useView } from '../../../context/global/ViewContext';
+import { useSettings } from '../../../context/global/SettingsContext';
 import { TabButton } from './TabButton';
 
 export const Topbar: FC = () => {

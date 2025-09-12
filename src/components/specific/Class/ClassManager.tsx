@@ -20,10 +20,10 @@
  */
 import { useState, useEffect, useCallback, type FC } from 'react';
 import { Settings, PlusCircle, Trash2, Edit } from 'lucide-react';
-import { useWorld } from '../../../context/WorldContext';
-import { useModal } from '../../../context/ModalContext';
+import { useWorld } from '../../../context/feature/WorldContext';
+import { useModal } from '../../../context/global/ModalContext';
 // NEW: Import useView to control navigation to the editor.
-import { useView } from '../../../context/ViewContext';
+import { useView } from '../../../context/global/ViewContext';
 import {
     getClassesForWorld,
     deleteClass,

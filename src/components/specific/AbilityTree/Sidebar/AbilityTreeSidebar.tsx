@@ -18,7 +18,7 @@
  */
 import type { FC } from 'react';
 import type { AbilityTree } from '../../../../db/types';
-import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
+import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
 
 import { CreateAbilityPanel } from './CreateAbilityPanel';
 import { EditAbilityPanel } from './EditAbilityPanel';

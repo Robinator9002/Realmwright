@@ -17,7 +17,7 @@
  */
 import { useState, useEffect, type FC, type CSSProperties } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
-import { useView } from '../../context/ViewContext';
+import { useView } from '../../context/global/ViewContext';
 import { db } from '../../db/db';
 import { updateCharacter } from '../../db/queries/character.queries';
 import type { Character, CharacterClass } from '../../db/types';

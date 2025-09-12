@@ -19,7 +19,7 @@
  * `currentTree` object, resolving the error.
  */
 import { useState, type FC } from 'react';
-import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
+import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
 
 export const CreateAbilityPanel: FC = () => {
     // FIX: Destructure 'currentTree' instead of the old 'tree' variable.

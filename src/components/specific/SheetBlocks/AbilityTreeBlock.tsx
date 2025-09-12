@@ -27,7 +27,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { useWorld } from '../../../context/WorldContext';
+import { useWorld } from '../../../context/feature/WorldContext';
 import { getAbilityTreesForWorld, getAbilitiesForTree } from '../../../db/queries/ability.queries';
 import type { AbilityTree, Ability } from '../../../db/types';
 import { Settings } from 'lucide-react';

@@ -1,7 +1,7 @@
 // src/components/specific/Character/ManageCharacterModal.tsx
 import { useState, useEffect, type FC } from 'react';
-import { useWorld } from '../../../context/WorldContext';
-import { useModal } from '../../../context/ModalContext'; // NEW: For confirmation
+import { useWorld } from '../../../context/feature/WorldContext';
+import { useModal } from '../../../context/global/ModalContext'; // NEW: For confirmation
 import { getClassesForWorld } from '../../../db/queries/class.queries';
 import type { Character, CharacterClass } from '../../../db/types';
 

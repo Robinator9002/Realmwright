@@ -23,7 +23,7 @@
  * preventing stale state and ensuring the modal behaves predictably.
  */
 import { useState, useEffect, type FC, useCallback } from 'react';
-import { useWorld } from '../../context/WorldContext';
+import { useWorld } from '../../context/feature/WorldContext';
 import type { AbilityTree } from '../../db/types';
 import { getAbilityTreesForWorld } from '../../db/queries/ability.queries';
 import { ReactFlowProvider } from 'reactflow';
@@ -31,7 +31,7 @@ import { ReactFlowProvider } from 'reactflow';
 import {
     AbilityTreeEditorProvider,
     useAbilityTreeEditor,
-} from '../../context/AbilityTreeEditorContext';
+} from '../../context/feature/AbilityTreeEditorContext';
 import { AbilityTreeSidebar } from '../../components/specific/AbilityTree/Sidebar/AbilityTreeSidebar';
 import { AbilityTreeCanvas } from '../../components/specific/AbilityTree/Canvas/AbilityTreeCanvas';
 import { TierBar } from '../../components/specific/AbilityTree/Canvas/TierBar';

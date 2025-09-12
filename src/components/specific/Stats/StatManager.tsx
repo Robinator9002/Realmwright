@@ -2,8 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { Settings, Trash2 } from 'lucide-react';
-import { useWorld } from '../../../context/WorldContext';
-import { useModal } from '../../../context/ModalContext';
+import { useWorld } from '../../../context/feature/WorldContext';
+import { useModal } from '../../../context/global/ModalContext';
 import {
     addStatDefinition,
     getStatDefinitionsForWorld,

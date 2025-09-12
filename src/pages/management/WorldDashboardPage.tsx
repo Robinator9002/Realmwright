@@ -1,7 +1,7 @@
 // src/pages/management/WorldDashboardPage.tsx
 
 import type { FC } from 'react';
-import { useView } from '../../context/ViewContext';
+import { useView } from '../../context/global/ViewContext';
 import { CampaignManager } from '../../components/specific/Campaign/CampaignManager';
 import { CharacterManager } from '../../components/specific/Character/CharacterManager';
 import { LoreManager } from '../../components/specific/Lore/LoreManager';

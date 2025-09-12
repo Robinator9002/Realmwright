@@ -20,7 +20,7 @@
  */
 import type { FC } from 'react';
 import { Plus, Minus } from 'lucide-react';
-import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
+import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
 
 // The component no longer needs to accept any props.
 export const AbilityTreeTierControls: FC = () => {

@@ -20,7 +20,7 @@
  * accurately reflects the world's current ruleset.
  */
 import { useState, useEffect, type FC } from 'react';
-import { useWorld } from '../../../context/WorldContext';
+import { useWorld } from '../../../context/feature/WorldContext';
 import { getStatDefinitionsForWorld } from '../../../db/queries/stat.queries';
 import type { StatDefinition } from '../../../db/types';
 

@@ -1,6 +1,6 @@
 // src/context/WorldContext.tsx
 import React, { createContext, useState, useContext, type ReactNode } from 'react';
-import type { World } from '../db/types';
+import type { World } from '../../db/types';
 
 // Define the shape of the context data.
 // This includes the currently selected world and functions to change it.

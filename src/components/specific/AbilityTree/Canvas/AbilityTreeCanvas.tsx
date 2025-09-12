@@ -39,7 +39,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
+import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
 import { AbilityNode } from '../Node/AbilityNode';
 import { AttachmentNode } from '../Node/AttachmentNode';
 import { LogicEdge } from '../Edge/LogicEdge';

@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './styles/main.css';
-import { AppProviders } from './context/AppProviders.tsx';
+import { AppProviders } from './context/global/AppProviders.tsx';
 
 // Get the root element from the HTML
 const rootElement = document.getElementById('root')!;

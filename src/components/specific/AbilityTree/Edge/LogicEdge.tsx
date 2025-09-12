@@ -22,7 +22,7 @@
  */
 import type { FC } from 'react';
 import { getStraightPath, EdgeLabelRenderer, type EdgeProps } from 'reactflow';
-import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
+import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
 
 export const LogicEdge: FC<EdgeProps> = (props) => {
     const { id, sourceX, sourceY, targetX, targetY, data } = props;

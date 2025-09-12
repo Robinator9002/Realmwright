@@ -1,9 +1,9 @@
 // src/components/specific/AbilityTree/AbilityManager.tsx
 import { useState, useEffect, useCallback, type FC } from 'react';
 import { Settings } from 'lucide-react';
-import { useWorld } from '../../../context/WorldContext';
-import { useModal } from '../../../context/ModalContext';
-import { useView } from '../../../context/ViewContext';
+import { useWorld } from '../../../context/feature/WorldContext';
+import { useModal } from '../../../context/global/ModalContext';
+import { useView } from '../../../context/global/ViewContext';
 import {
     addAbilityTree,
     getAbilityTreesForWorld,

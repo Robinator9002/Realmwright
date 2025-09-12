@@ -17,8 +17,8 @@
  * - This resolves the crash and allows the edit panel to function correctly.
  */
 import { useState, useEffect, type FC } from 'react';
-import { useAbilityTreeEditor } from '../../../../context/AbilityTreeEditorContext';
-import { useModal } from '../../../../context/ModalContext';
+import { useAbilityTreeEditor } from '../../../../context/feature/AbilityTreeEditorContext';
+import { useModal } from '../../../../context/global/ModalContext';
 import type { Ability } from '../../../../db/types';
 
 export const EditAbilityPanel: FC = () => {
