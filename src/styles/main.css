@@ -27,22 +27,23 @@
 @import url('./components/ability-tree/node/_ability-node.css');
 @import url('./components/ability-tree/node/_attachment-node.css');
 /* Sidebar */
-@import url('./components/ability-tree/sidebar/_tier-controls.css');
-@import url('./components/ability-tree/sidebar/_tier-bar.css');
-@import url('./components/ability-tree/sidebar/_logic-edge.css');
-@import url('./components/ability-tree/sidebar/_sidebar-panels.css');
+@import url('./components/ability-tree/sidebar/controls/_tier-controls.css');
+@import url('./components/ability-tree/sidebar/controls/_tier-bar.css');
+@import url('./components/ability-tree/sidebar/components/_logic-edge.css');
+@import url('./components/ability-tree/sidebar/components/_sidebar-panels.css');
 /* NEW: Import the styles for our canvas UX enhancements */
 @import url('./components/ability-tree/canvas/_canvas-enhancements.css');
 
 /* 3.2 Class Sheets */
-@import url('./components/class-sheet/_sheet-editor.css');
-@import url('./components/class-sheet/_sheet-blocks.css');
-@import url('./components/class-sheet/_page-canvas.css');
-@import url('./components/class-sheet/_page-controls.css');
-@import url('./components/class-sheet/_properties-sidebar.css');
+@import url('./components/class-sheet/core/_sheet-editor.css');
+@import url('./components/class-sheet/core/_sheet-blocks.css');
+@import url('./components/class-sheet/components/_page-canvas.css');
+@import url('./components/class-sheet/components/_page-controls.css');
+@import url('./components/class-sheet/components/_properties-sidebar.css');
 
 /* 4. Page-specific styles that might override components. */
-@import url('./pages/_world-manager.css');
-@import url('./pages/_world-dashboard.css');
-@import url('./pages/_settings-page.css');
-@import url('./pages/_ability-editor-page.css');
+@import url('./pages/management/_world-manager.css');
+@import url('./pages/management/_world-dashboard.css');
+@import url('./pages/management/_settings-page.css');
+@import url('./pages/views/_ability-editor-page.css');
+@import url('./pages/views/_character-sheet-page.css');
