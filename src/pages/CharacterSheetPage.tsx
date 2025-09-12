@@ -1,4 +1,4 @@
-// src/pages/CharacterSheet/CharacterSheetPage.tsx
+// src/pages/CharacterSheetPage.tsx
 
 /**
  * COMMIT: fix(character-sheet): resolve TypeScript error for style prop

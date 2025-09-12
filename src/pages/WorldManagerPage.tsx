@@ -1,4 +1,5 @@
-// src/pages/WorldManager/WorldManagerPage.tsx
+// src/pages/WorldManagerPage.tsx
+
 import { useState, useEffect } from 'react';
 import { addWorld, getAllWorlds, updateWorld, deleteWorld } from '../db/queries/world.queries';
 import { useWorld } from '../context/WorldContext';

@@ -1,4 +1,5 @@
-// src/pages/SettingsPage/SettingsPage.tsx
+// src/pages/SettingsPage.tsx
+
 import type { FC } from 'react';
 import { useView } from '../context/ViewContext';
 import { useSettings, type Theme } from '../context/SettingsContext';
