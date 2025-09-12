@@ -1,12 +1,12 @@
 // src/pages/WorldManagerPage.tsx
 
 import { useState, useEffect } from 'react';
-import { addWorld, getAllWorlds, updateWorld, deleteWorld } from '../db/queries/world.queries';
-import { useWorld } from '../context/WorldContext';
-import { useView } from '../context/ViewContext';
-import { useModal } from '../context/ModalContext';
-import type { World } from '../db/types';
-import { ManageModal } from '../components/modal/ManageModal';
+import { addWorld, getAllWorlds, updateWorld, deleteWorld } from '../../db/queries/world.queries';
+import { useWorld } from '../../context/WorldContext';
+import { useView } from '../../context/ViewContext';
+import { useModal } from '../../context/ModalContext';
+import type { World } from '../../db/types';
+import { ManageModal } from '../../components/modal/ManageModal';
 import { Settings } from 'lucide-react';
 
 const WorldManagerPage = () => {

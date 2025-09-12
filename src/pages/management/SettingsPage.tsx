@@ -1,9 +1,9 @@
 // src/pages/SettingsPage.tsx
 
 import type { FC } from 'react';
-import { useView } from '../context/ViewContext';
-import { useSettings, type Theme } from '../context/SettingsContext';
-import { useWorld } from '../context/WorldContext';
+import { useView } from '../../context/ViewContext';
+import { useSettings, type Theme } from '../../context/SettingsContext';
+import { useWorld } from '../../context/WorldContext';
 
 // An array to define our theme options for easy mapping
 const themeOptions: { id: Theme; name: string; description: string }[] = [
