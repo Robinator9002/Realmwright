@@ -1,26 +1,23 @@
 // src/components/specific/Class/editor/ClassSheetEditor.tsx
 
 /**
- * COMMIT: refactor(class-sheet): centralize state management in ClassSheetEditor
+ * COMMIT: fix(class-sheet): implement smart placement for new blocks
  *
  * Rationale:
- * To support editing properties outside the character sheet itself (e.g.,
- * base stats), the editor's state management has been refactored. The
- * component now holds the entire CharacterClass object in its state, rather
- * than just the `characterSheet` array. This makes the editor the single
- * source of truth for all class-related data during an editing session.
+ * A critical UX bug was causing existing blocks to shift when a new block was
+ * added, due to the new block being created at a default (0,0) position that
+ * might already be occupied. This fix implements an intelligent placement
+ * algorithm to resolve the issue.
  *
  * Implementation Details:
- * - A new state, `editableClass`, has been introduced to hold the class object.
- * - The previous `sheet` state has been removed. All functions that modified
- * the sheet now create a deep copy of `editableClass`, modify its
- * `characterSheet` property, and update the state via `setEditableClass`.
- * - New handler functions, `handleUpdateBlockContent` and `handleUpdateBaseStat`,
- * have been added to manage content and base stat changes respectively.
- * - These new handlers are passed down to the PropertiesSidebar, enabling the
- * next phase of development.
- * - The `handleSaveSheet` function was renamed to `handleSaveChanges` and now
- * saves both the `characterSheet` and `baseStats` to the database.
+ * - The `handleAddBlock` function has been overhauled.
+ * - It now inspects the layout of all existing blocks on the active page to
+ * find the maximum `y + h` value (the bottom-most edge of any block).
+ * - New blocks are now created at `y = max(y + h)`, ensuring they always
+ * appear in the next available vertical space without causing collisions or
+ * shifting existing content.
+ * - This provides a stable, predictable, and user-friendly experience when
+ * adding new elements to the character sheet.
  */
 import { useState, useMemo, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -39,13 +36,11 @@ export interface ClassSheetEditorProps {
 }
 
 export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, onBack }) => {
-    // REFACTOR: The entire class object is now managed in state.
     const [editableClass, setEditableClass] = useState<CharacterClass>(characterClass);
     const [isSaving, setIsSaving] = useState(false);
     const [activePageIndex, setActivePageIndex] = useState(0);
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
 
-    // The character sheet is now derived directly from the stateful class object.
     const sheet = editableClass.characterSheet || [];
 
     const selectedBlock = useMemo(
@@ -53,17 +48,11 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         [sheet, activePageIndex, selectedBlockId],
     );
 
-    // All handlers now update the `editableClass` state object.
+    // REWORK: Implemented smart placement logic.
     const handleAddBlock = (blockType: SheetBlock['type']) => {
-        const newBlock: SheetBlock = {
-            id: crypto.randomUUID(),
-            type: blockType,
-            layout: { x: 0, y: 0, w: 24, h: 8, zIndex: 1 },
-            content: blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
-        };
-
         setEditableClass((currentClass) => {
             const newClass = JSON.parse(JSON.stringify(currentClass));
+
             if (newClass.characterSheet.length === 0) {
                 newClass.characterSheet.push({
                     id: crypto.randomUUID(),
@@ -71,7 +60,26 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     blocks: [],
                 });
             }
-            newClass.characterSheet[activePageIndex].blocks.push(newBlock);
+
+            const currentPageBlocks = newClass.characterSheet[activePageIndex].blocks;
+
+            // --- SMART PLACEMENT LOGIC ---
+            // Find the lowest point (y + h) among all existing blocks.
+            const nextY =
+                currentPageBlocks.length > 0
+                    ? Math.max(...currentPageBlocks.map((b: SheetBlock) => b.layout.y + b.layout.h))
+                    : 0;
+
+            const newBlock: SheetBlock = {
+                id: crypto.randomUUID(),
+                type: blockType,
+                // Place the new block at x:0 and below the last block.
+                layout: { x: 0, y: nextY, w: 24, h: 8, zIndex: 1 },
+                content:
+                    blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
+            };
+
+            currentPageBlocks.push(newBlock);
             return newClass;
         });
     };
@@ -103,7 +111,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         });
     };
 
-    // NEW: Handler for block-specific content changes.
     const handleUpdateBlockContent = (blockId: string, newContent: any) => {
         setEditableClass((currentClass) => {
             const newClass = JSON.parse(JSON.stringify(currentClass));
@@ -117,7 +124,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         });
     };
 
-    // NEW: Handler for updating the class's base stats.
     const handleUpdateBaseStat = (statId: number, value: number) => {
         setEditableClass((currentClass) => {
             const newClass = JSON.parse(JSON.stringify(currentClass));
@@ -222,7 +228,6 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 <PropertiesSidebar
                     selectedBlock={selectedBlock}
                     onUpdateBlockLayout={handleUpdateBlockLayout}
-                    // NEW: Pass the new handlers to the sidebar.
                     onUpdateBlockContent={handleUpdateBlockContent}
                     onUpdateBaseStat={handleUpdateBaseStat}
                     characterClass={editableClass}
