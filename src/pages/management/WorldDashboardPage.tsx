@@ -1,4 +1,4 @@
-// src/pages/WorldDashboardPage.tsx
+// src/pages/management/WorldDashboardPage.tsx
 
 import type { FC } from 'react';
 import { useView } from '../../context/ViewContext';

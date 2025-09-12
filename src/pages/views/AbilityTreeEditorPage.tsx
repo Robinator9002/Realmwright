@@ -1,4 +1,4 @@
-// src/pages/AbilityTreeEditorPage.tsx
+// src/pages/views/AbilityTreeEditorPage.tsx
 
 /**
  * COMMIT: fix(ability-tree): ensure edge click correctly triggers edit modal
