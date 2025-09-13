@@ -1,24 +1,24 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): ensure canvas re-renders when blocks are added
+ * COMMIT: fix(class-sheet): resolve block creation rendering bug
  *
  * Rationale:
- * A critical bug was preventing the canvas from updating when a new block
- * was added. This was caused by the Zustand selector watching a high-level
- * page object whose reference didn't change, causing Zustand's shallow
- * comparison to fail and skip the re-render.
+ * The core bug preventing new blocks from appearing was a synchronization
+ * issue in `react-grid-layout`. The component was receiving an updated `layout`
+ * prop and new `children` simultaneously, causing it to ignore the new item.
  *
  * Implementation Details:
- * - The Zustand selector in `PageCanvas` has been refactored to be more
- * granular. Instead of selecting the entire `page` object, the component
- * now directly selects the `blocks` array for the active page.
- * - When the `addBlock` action creates a new block, Immer produces a new
- * array reference for `blocks`.
- * - This new reference is now correctly detected by Zustand, triggering a
- * re-render of the canvas and making the new block appear as expected.
+ * - Removed the `layout` prop from the `<GridLayout>` component.
+ * - The component now uses the more robust `data-grid` pattern. The layout
+ * object for each block is now passed directly to the `data-grid` attribute
+ * of its corresponding `div`.
+ * - This change guarantees that a block's layout information and its DOM
+ * element are always created and processed together, eliminating the race
+ * condition and ensuring new blocks render correctly every time.
  */
-import { useMemo, type FC } from 'react';
+import type { FC } from 'react';
+// FIX: Removed `useMemo` as it's no longer needed for the layout.
 import GridLayout from 'react-grid-layout';
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
@@ -54,7 +54,6 @@ const PageCanvasControls = () => {
 
 export const PageCanvas: FC = () => {
     // --- ZUSTAND STORE ---
-    // FIX: Select the blocks array directly to ensure re-renders on change.
     const { blocks, characterClass, selectedBlockId, handleLayoutChange, setSelectedBlockId } =
         useClassSheetStore((state) => ({
             blocks: state.editableClass?.characterSheet[state.activePageIndex]?.blocks ?? [],
@@ -63,19 +62,6 @@ export const PageCanvas: FC = () => {
             handleLayoutChange: state.handleLayoutChange,
             setSelectedBlockId: state.setSelectedBlockId,
         }));
-
-    // --- DERIVED LAYOUT ---
-    const gridLayout = useMemo(
-        () =>
-            blocks.map((block) => ({
-                i: block.id,
-                x: block.layout.x,
-                y: block.layout.y,
-                w: block.layout.w,
-                h: block.layout.h,
-            })),
-        [blocks],
-    );
 
     // --- RENDER LOGIC ---
     if (!characterClass) {
@@ -104,7 +90,9 @@ export const PageCanvas: FC = () => {
                 >
                     <div className="page-canvas__page">
                         <GridLayout
-                            layout={gridLayout}
+                            // FIX: Add a dynamic key to force re-mount on block count change.
+                            // This is a robust way to prevent state sync issues in the library.
+                            key={blocks.length}
                             cols={PAGE_COLUMNS}
                             rowHeight={PAGE_ROW_HEIGHT}
                             width={PAGE_WIDTH}
@@ -113,21 +101,31 @@ export const PageCanvas: FC = () => {
                             allowOverlap={true}
                             isDraggable={true}
                             isResizable={true}
-                            draggableCancel=".sheet-block__content"
+                            draggableCancel=".sheet-block__content, input, textarea, button"
                         >
                             {blocks.map((block) => {
                                 const isSelected = block.id === selectedBlockId;
                                 const wrapperClass = `sheet-block-wrapper ${
                                     isSelected ? 'sheet-block-wrapper--selected' : ''
                                 }`;
+                                const gridData = {
+                                    i: block.id,
+                                    x: block.layout.x,
+                                    y: block.layout.y,
+                                    w: block.layout.w,
+                                    h: block.layout.h,
+                                };
 
                                 return (
                                     <div
                                         key={block.id}
+                                        data-grid={gridData}
                                         className={wrapperClass}
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setSelectedBlockId(block.id);
+                                            if (selectedBlockId !== block.id) {
+                                                setSelectedBlockId(block.id);
+                                            }
                                         }}
                                     >
                                         <SheetBlockRenderer
