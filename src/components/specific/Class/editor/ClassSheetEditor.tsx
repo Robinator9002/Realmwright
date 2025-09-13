@@ -1,21 +1,26 @@
 // src/components/specific/Class/editor/ClassSheetEditor.tsx
 
 /**
- * COMMIT: feat(class-sheet): implement page renaming logic
+ * COMMIT: refactor(class-sheet): implement Immer for efficient state updates
  *
  * Rationale:
- * To complete the page renaming feature, this commit introduces the
- * `handleRenamePage` function. This function connects the `onRenamePage`
- * callback from the `PageControls` component to the editor's main state.
+ * This commit addresses a major performance bottleneck identified in the
+ * technical plan (Phase 1.1). Previously, every state update relied on a
+ * deep clone using `JSON.parse(JSON.stringify())`, which is computationally
+ * expensive and can lead to data loss.
  *
  * Implementation Details:
- * - A new `handleRenamePage` function has been created. It finds the correct
- * page by its index and updates its `name` property within the
- * `editableClass` state.
- * - This handler is now passed as the `onRenamePage` prop to the
- * `<PageControls />` component, making the feature fully functional.
+ * - The `immer` library has been introduced to handle immutable state updates.
+ * - All state-mutating handler functions (e.g., `handleLayoutChange`,
+ * `handleAddBlock`, `handleDeleteBlock`) have been refactored.
+ * - Instead of manually cloning the state, these functions now use Immer's
+ * `produce()` function, which allows for direct, "mutative" syntax while
+ * ensuring efficient and correct immutable updates under the hood.
+ * - This change significantly improves the editor's performance and makes the
+ * state update logic cleaner and more maintainable.
  */
 import { useState, useMemo, type FC } from 'react';
+import { produce } from 'immer';
 import { ArrowLeft, Save } from 'lucide-react';
 import type { Layout } from 'react-grid-layout';
 
@@ -45,92 +50,92 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
     );
 
     const handleAddBlock = (blockType: SheetBlock['type']) => {
-        setEditableClass((currentClass) => {
-            const newClass = JSON.parse(JSON.stringify(currentClass));
-            if (newClass.characterSheet.length === 0) {
-                newClass.characterSheet.push({
+        setEditableClass(
+            produce((draft) => {
+                if (draft.characterSheet.length === 0) {
+                    draft.characterSheet.push({
+                        id: crypto.randomUUID(),
+                        name: 'Main Page',
+                        blocks: [],
+                    });
+                }
+                const currentPageBlocks = draft.characterSheet[activePageIndex].blocks;
+                const nextY =
+                    currentPageBlocks.length > 0
+                        ? Math.max(...currentPageBlocks.map((b) => b.layout.y + b.layout.h))
+                        : 0;
+                const newBlock: SheetBlock = {
                     id: crypto.randomUUID(),
-                    name: 'Main Page',
-                    blocks: [],
-                });
-            }
-            const currentPageBlocks = newClass.characterSheet[activePageIndex].blocks;
-            const nextY =
-                currentPageBlocks.length > 0
-                    ? Math.max(...currentPageBlocks.map((b: SheetBlock) => b.layout.y + b.layout.h))
-                    : 0;
-            const newBlock: SheetBlock = {
-                id: crypto.randomUUID(),
-                type: blockType,
-                layout: { x: 0, y: nextY, w: 24, h: 8, zIndex: 1 },
-                content:
-                    blockType === 'rich_text' || blockType === 'notes'
-                        ? ''
-                        : blockType === 'inventory'
-                        ? []
-                        : undefined,
-            };
-            currentPageBlocks.push(newBlock);
-            return newClass;
-        });
+                    type: blockType,
+                    layout: { x: 0, y: nextY, w: 24, h: 8, zIndex: 1 },
+                    content:
+                        blockType === 'rich_text' || blockType === 'notes'
+                            ? ''
+                            : blockType === 'inventory'
+                            ? []
+                            : undefined,
+                };
+                currentPageBlocks.push(newBlock);
+            }),
+        );
     };
 
     const handleDeleteBlock = (blockId: string) => {
-        setEditableClass((currentClass) => {
-            const newClass = JSON.parse(JSON.stringify(currentClass));
-            const currentPage = newClass.characterSheet[activePageIndex];
-            currentPage.blocks = currentPage.blocks.filter((b: SheetBlock) => b.id !== blockId);
-            return newClass;
-        });
+        setEditableClass(
+            produce((draft) => {
+                const currentPage = draft.characterSheet[activePageIndex];
+                currentPage.blocks = currentPage.blocks.filter((b) => b.id !== blockId);
+            }),
+        );
         setSelectedBlockId(null);
     };
 
     const handleLayoutChange = (newLayout: Layout[]) => {
-        setEditableClass((currentClass) => {
-            const newClass = JSON.parse(JSON.stringify(currentClass));
-            const currentPage = newClass.characterSheet[activePageIndex];
-            currentPage.blocks.forEach((block: SheetBlock) => {
-                const layoutItem = newLayout.find((item) => item.i === block.id);
-                if (layoutItem) {
-                    block.layout = { ...block.layout, ...layoutItem };
-                }
-            });
-            return newClass;
-        });
+        setEditableClass(
+            produce((draft) => {
+                const currentPage = draft.characterSheet[activePageIndex];
+                currentPage.blocks.forEach((block) => {
+                    const layoutItem = newLayout.find((item) => item.i === block.id);
+                    if (layoutItem) {
+                        block.layout = { ...block.layout, ...layoutItem };
+                    }
+                });
+            }),
+        );
     };
 
     const handleUpdateBlockLayout = (blockId: string, newLayout: Partial<SheetBlock['layout']>) => {
-        setEditableClass((currentClass) => {
-            const newClass = JSON.parse(JSON.stringify(currentClass));
-            const block = newClass.characterSheet[activePageIndex].blocks.find(
-                (b: SheetBlock) => b.id === blockId,
-            );
-            if (block) {
-                block.layout = { ...block.layout, ...newLayout };
-            }
-            return newClass;
-        });
+        setEditableClass(
+            produce((draft) => {
+                const block = draft.characterSheet[activePageIndex].blocks.find(
+                    (b) => b.id === blockId,
+                );
+                if (block) {
+                    block.layout = { ...block.layout, ...newLayout };
+                }
+            }),
+        );
     };
 
     const handleUpdateBlockContent = (blockId: string, newContent: any) => {
-        setEditableClass((currentClass) => {
-            const newClass = JSON.parse(JSON.stringify(currentClass));
-            const block = newClass.characterSheet[activePageIndex].blocks.find(
-                (b: SheetBlock) => b.id === blockId,
-            );
-            if (block) {
-                block.content = newContent;
-            }
-            return newClass;
-        });
+        setEditableClass(
+            produce((draft) => {
+                const block = draft.characterSheet[activePageIndex].blocks.find(
+                    (b) => b.id === blockId,
+                );
+                if (block) {
+                    block.content = newContent;
+                }
+            }),
+        );
     };
 
     const handleUpdateBaseStat = (statId: number, value: number) => {
-        setEditableClass((currentClass) => {
-            const newClass = JSON.parse(JSON.stringify(currentClass));
-            newClass.baseStats[statId] = value;
-            return newClass;
-        });
+        setEditableClass(
+            produce((draft) => {
+                draft.baseStats[statId] = value;
+            }),
+        );
     };
 
     const handleAddPage = () => {
@@ -139,36 +144,36 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             name: `Page ${sheet.length + 1}`,
             blocks: [],
         };
-        setEditableClass((currentClass) => {
-            const newClass = JSON.parse(JSON.stringify(currentClass));
-            newClass.characterSheet.push(newPage);
-            setActivePageIndex(newClass.characterSheet.length - 1);
-            return newClass;
-        });
+        setEditableClass(
+            produce((draft) => {
+                draft.characterSheet.push(newPage);
+            }),
+        );
+        setActivePageIndex(sheet.length); // Set index to the new page
     };
 
     const handleDeletePage = (indexToDelete: number) => {
-        setEditableClass((currentClass) => {
-            const newClass = JSON.parse(JSON.stringify(currentClass));
-            newClass.characterSheet = newClass.characterSheet.filter(
-                (_: any, index: number) => index !== indexToDelete,
-            );
-            if (activePageIndex >= indexToDelete) {
-                setActivePageIndex(Math.max(0, activePageIndex - 1));
-            }
-            return newClass;
-        });
+        setEditableClass(
+            produce((draft) => {
+                draft.characterSheet = draft.characterSheet.filter(
+                    (_, index) => index !== indexToDelete,
+                );
+            }),
+        );
+        if (activePageIndex >= indexToDelete) {
+            setActivePageIndex(Math.max(0, activePageIndex - 1));
+        }
     };
 
     const handleRenamePage = (pageIndex: number, newName: string) => {
-        setEditableClass((currentClass) => {
-            const newClass = JSON.parse(JSON.stringify(currentClass));
-            const pageToRename = newClass.characterSheet[pageIndex];
-            if (pageToRename) {
-                pageToRename.name = newName;
-            }
-            return newClass;
-        });
+        setEditableClass(
+            produce((draft) => {
+                const pageToRename = draft.characterSheet[pageIndex];
+                if (pageToRename) {
+                    pageToRename.name = newName;
+                }
+            }),
+        );
     };
 
     const handleSaveChanges = async () => {
