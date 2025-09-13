@@ -1,24 +1,22 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: feat(class-sheet): implement canvas zoom and pan
+ * COMMIT: fix(class-sheet): ensure canvas re-renders when blocks are added
  *
  * Rationale:
- * To enhance the user experience and make the editor feel more like a
- * dynamic canvas, this commit introduces zoom and pan functionality as per
- * Phase 2.1 of the development plan.
+ * A critical bug was preventing the canvas from updating when a new block
+ * was added. This was caused by the Zustand selector watching a high-level
+ * page object whose reference didn't change, causing Zustand's shallow
+ * comparison to fail and skip the re-render.
  *
  * Implementation Details:
- * - Added the `react-zoom-pan-pinch` library as a dependency.
- * - Wrapped the entire page layout within the `TransformWrapper` and
- * `TransformComponent` components from the library.
- * - The wrapper is configured to allow panning with the middle mouse button
- * and zooming with the scroll wheel.
- * - A new `PageCanvasControls` component has been added to provide users
- * with explicit on-screen buttons for zooming in, zooming out, and
- * resetting the view to its default state.
- * - This makes navigating large or complex character sheets significantly
- * more intuitive and efficient.
+ * - The Zustand selector in `PageCanvas` has been refactored to be more
+ * granular. Instead of selecting the entire `page` object, the component
+ * now directly selects the `blocks` array for the active page.
+ * - When the `addBlock` action creates a new block, Immer produces a new
+ * array reference for `blocks`.
+ * - This new reference is now correctly detected by Zustand, triggering a
+ * re-render of the canvas and making the new block appear as expected.
  */
 import { useMemo, type FC } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -33,9 +31,6 @@ const PAGE_COLUMNS = 48;
 const PAGE_ROW_HEIGHT = 10;
 const PAGE_WIDTH = 1000;
 
-/**
- * A dedicated component for the zoom controls UI.
- */
 const PageCanvasControls = () => {
     const { zoomIn, zoomOut, resetTransform } = useControls();
     return (
@@ -59,9 +54,10 @@ const PageCanvasControls = () => {
 
 export const PageCanvas: FC = () => {
     // --- ZUSTAND STORE ---
-    const { page, characterClass, selectedBlockId, handleLayoutChange, setSelectedBlockId } =
+    // FIX: Select the blocks array directly to ensure re-renders on change.
+    const { blocks, characterClass, selectedBlockId, handleLayoutChange, setSelectedBlockId } =
         useClassSheetStore((state) => ({
-            page: state.editableClass?.characterSheet[state.activePageIndex] ?? null,
+            blocks: state.editableClass?.characterSheet[state.activePageIndex]?.blocks ?? [],
             characterClass: state.editableClass,
             selectedBlockId: state.selectedBlockId,
             handleLayoutChange: state.handleLayoutChange,
@@ -71,19 +67,23 @@ export const PageCanvas: FC = () => {
     // --- DERIVED LAYOUT ---
     const gridLayout = useMemo(
         () =>
-            page?.blocks.map((block) => ({
+            blocks.map((block) => ({
                 i: block.id,
                 x: block.layout.x,
                 y: block.layout.y,
                 w: block.layout.w,
                 h: block.layout.h,
-            })) || [],
-        [page?.blocks],
+            })),
+        [blocks],
     );
 
     // --- RENDER LOGIC ---
-    if (!page || !characterClass) {
-        return null;
+    if (!characterClass) {
+        return (
+            <div className="page-canvas__container">
+                <p className="panel__empty-message">Add a page to begin.</p>
+            </div>
+        );
     }
 
     return (
@@ -93,7 +93,7 @@ export const PageCanvas: FC = () => {
                 limitToBounds={false}
                 panning={{
                     activationKeys: ['Meta', 'Shift'],
-                    excluded: ['input', 'button', 'textarea'],
+                    excluded: ['input', 'button', 'textarea', 'react-resizable-handle'],
                 }}
                 doubleClick={{ disabled: true }}
             >
@@ -111,10 +111,11 @@ export const PageCanvas: FC = () => {
                             onLayoutChange={handleLayoutChange}
                             preventCollision={true}
                             allowOverlap={true}
-                            isDraggable={false} /* Disable grid drag, pan handles it */
-                            isResizable={false} /* Disable grid resize for now */
+                            isDraggable={true}
+                            isResizable={true}
+                            draggableCancel=".sheet-block__content"
                         >
-                            {page.blocks.map((block) => {
+                            {blocks.map((block) => {
                                 const isSelected = block.id === selectedBlockId;
                                 const wrapperClass = `sheet-block-wrapper ${
                                     isSelected ? 'sheet-block-wrapper--selected' : ''
@@ -124,7 +125,10 @@ export const PageCanvas: FC = () => {
                                     <div
                                         key={block.id}
                                         className={wrapperClass}
-                                        onClick={() => setSelectedBlockId(block.id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedBlockId(block.id);
+                                        }}
                                     >
                                         <SheetBlockRenderer
                                             block={block}
