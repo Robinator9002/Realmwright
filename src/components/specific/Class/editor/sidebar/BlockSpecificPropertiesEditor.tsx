@@ -1,72 +1,55 @@
 // src/components/specific/Class/editor/sidebar/BlockSpecificPropertiesEditor.tsx
 
 /**
- * COMMIT: feat(class-sheet): extract BlockSpecificPropertiesEditor component
+ * COMMIT: feat(class-sheet): create contextual property editor component
  *
  * Rationale:
- * To continue the modularization of the PropertiesSidebar, this commit
- * extracts the dynamic `switch` statement responsible for rendering the
- * correct property editor into its own dedicated component.
+ * To fulfill Phase 3.1 of the plan, this commit introduces a new "router"
+ * component. Its sole responsibility is to render the correct property
+ * editor UI based on the type of the currently selected sheet block.
  *
  * Implementation Details:
- * - This component serves as a "router" for the properties section,
- * consuming the selected block and rendering the appropriate editor.
- * - It imports specialized editor components (e.g., StatsPropsEditor),
- * which will be created in subsequent steps.
- * - This change further decouples the main sidebar from the specific logic
- * of each block type, making the system easier to maintain and extend.
+ * - The component consumes the `useClassSheetStore` to get the selected block.
+ * - A `switch` statement is used to determine which specific property editor
+ * component (e.g., StatsPropsEditor, RichTextPropsEditor) to render.
+ * - It provides a default message for block types that do not have any
+ * specific properties to edit.
+ * - This acts as the central hub for the sidebar's contextual content.
  */
 import type { FC } from 'react';
-import type { PropertiesSidebarProps } from '../PropertiesSidebar';
-
-// Import individual property editor components (to be created)
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
 import { StatsPropsEditor } from '../property-editors/StatsPropsEditor';
-import { AbilityTreePropsEditor } from '../property-editors/AbilityTreePropsEditor';
 import { RichTextPropsEditor } from '../property-editors/RichTextPropsEditor';
+import { AbilityTreePropsEditor } from '../property-editors/AbilityTreePropsEditor';
 import { InventoryPropsEditor } from '../property-editors/InventoryPropsEditor';
 
-type BlockSpecificPropertiesEditorProps = Omit<
-    PropertiesSidebarProps,
-    'onUpdateBlockLayout' | 'onDeselect'
->;
+export const BlockSpecificPropertiesEditor: FC = () => {
+    // This component no longer needs props; it gets everything from the store.
+    const selectedBlock = useClassSheetStore((state) => state.selectedBlock);
 
-export const BlockSpecificPropertiesEditor: FC<BlockSpecificPropertiesEditorProps> = (props) => {
-    if (!props.selectedBlock) return null;
+    // If no block is selected, render nothing.
+    if (!selectedBlock) {
+        return null;
+    }
 
-    const editorSwitch = () => {
-        switch (props.selectedBlock?.type) {
+    // This component acts as a router, rendering the correct editor
+    // based on the selected block's type.
+    const renderEditorForBlockType = () => {
+        switch (selectedBlock.type) {
             case 'stats':
-                return (
-                    <StatsPropsEditor
-                        characterClass={props.characterClass}
-                        onUpdateBaseStat={props.onUpdateBaseStat}
-                    />
-                );
-            case 'ability_tree':
-                return (
-                    <AbilityTreePropsEditor
-                        selectedBlock={props.selectedBlock}
-                        onUpdateBlockContent={props.onUpdateBlockContent}
-                    />
-                );
+                return <StatsPropsEditor />;
             case 'rich_text':
-                return (
-                    <RichTextPropsEditor
-                        selectedBlock={props.selectedBlock}
-                        onUpdateBlockContent={props.onUpdateBlockContent}
-                    />
-                );
+            case 'notes': // Notes and Rich Text use the same editor
+                return <RichTextPropsEditor />;
+            case 'ability_tree':
+                return <AbilityTreePropsEditor />;
             case 'inventory':
-                return (
-                    <InventoryPropsEditor
-                        selectedBlock={props.selectedBlock}
-                        onUpdateBlockContent={props.onUpdateBlockContent}
-                    />
-                );
+                return <InventoryPropsEditor />;
             default:
+                // For blocks with no specific properties (like 'details')
                 return (
                     <p className="panel__empty-message--small">
-                        This block type has no specific properties to edit.
+                        This block has no specific properties to edit.
                     </p>
                 );
         }
@@ -74,8 +57,8 @@ export const BlockSpecificPropertiesEditor: FC<BlockSpecificPropertiesEditorProp
 
     return (
         <div className="properties-sidebar__section">
-            <h4 className="properties-sidebar__section-title">Component Properties</h4>
-            {editorSwitch()}
+            <h4 className="properties-sidebar__section-title">Block Properties</h4>
+            {renderEditorForBlockType()}
         </div>
     );
 };
