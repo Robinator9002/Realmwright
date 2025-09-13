@@ -1,42 +1,54 @@
 // src/components/specific/Class/editor/PropertiesSidebar.tsx
 
 /**
- * COMMIT: feat(class-sheet): add block deletion functionality to sidebar
+ * COMMIT: refactor(class-sheet): connect PropertiesSidebar to Zustand store
  *
  * Rationale:
- * To fulfill a core requirement of the editor, this commit introduces the
- * ability for users to delete a selected block via the properties sidebar.
+ * This commit completes Phase 1.3 by refactoring the final child component,
+ * the PropertiesSidebar, to connect directly to the Zustand store.
  *
  * Implementation Details:
- * - A new `onDeleteBlock` callback prop has been added to the component's
- * interface.
- * - A "Delete Block" button is now rendered in the footer of the sidebar.
- * - The button's `onClick` handler invokes the `onDeleteBlock` callback,
- * passing up the ID of the currently selected block to be deleted.
- * - This provides the essential UI hook for the deletion logic, which will be
- * handled by the parent ClassSheetEditor.
+ * - The component's props interface has been completely removed.
+ * - It now uses the `useClassSheetStore` hook to select the `selectedBlock`,
+ * `editableClass`, and all necessary update/delete actions.
+ * - Since the specific property editors (`StatsPropsEditor`, etc.) are not
+ * yet refactored to use the store, the necessary state and actions are
+ * still passed down to them as props from this component. They will be
+ * refactored in a subsequent step.
+ * - This change finalizes the decoupling of the main editor components,
+ * making the entire system more modular and maintainable.
  */
 import type { FC } from 'react';
-import type { SheetBlock, CharacterClass, SheetBlockLayout } from '../../../../db/types';
+import { Trash2 } from 'lucide-react';
+import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 import { BlockLayoutEditor } from './sidebar/BlockLayoutEditor';
 import { BlockSpecificPropertiesEditor } from './sidebar/BlockSpecificPropertiesEditor';
-import { Trash2 } from 'lucide-react';
 
-export interface PropertiesSidebarProps {
-    selectedBlock: SheetBlock | null;
-    characterClass: CharacterClass;
-    onUpdateBlockLayout: (blockId: string, newLayout: Partial<SheetBlockLayout>) => void;
-    onUpdateBlockContent: (blockId: string, newContent: any) => void;
-    onUpdateBaseStat: (statId: number, value: number) => void;
-    onDeselect: () => void;
-    // NEW: Add a prop for the delete handler.
-    onDeleteBlock: (blockId: string) => void;
-}
+// This component no longer needs to receive any props.
+export const PropertiesSidebar: FC = () => {
+    // --- ZUSTAND STORE ---
+    const {
+        selectedBlock,
+        characterClass,
+        updateBlockLayout,
+        updateBlockContent,
+        updateBaseStat,
+        setSelectedBlockId,
+        deleteBlock,
+    } = useClassSheetStore((state) => ({
+        selectedBlock:
+            state.editableClass?.characterSheet[state.activePageIndex]?.blocks.find(
+                (b) => b.id === state.selectedBlockId,
+            ) || null,
+        characterClass: state.editableClass,
+        updateBlockLayout: state.updateBlockLayout,
+        updateBlockContent: state.updateBlockContent,
+        updateBaseStat: state.updateBaseStat,
+        setSelectedBlockId: state.setSelectedBlockId,
+        deleteBlock: state.deleteBlock,
+    }));
 
-export const PropertiesSidebar: FC<PropertiesSidebarProps> = (props) => {
-    const { selectedBlock, onDeselect, onDeleteBlock } = props;
-
-    if (!selectedBlock) {
+    if (!selectedBlock || !characterClass) {
         return null;
     }
 
@@ -44,23 +56,32 @@ export const PropertiesSidebar: FC<PropertiesSidebarProps> = (props) => {
         <aside className="properties-sidebar">
             <div className="properties-sidebar__header">
                 <h3 className="sidebar__title">Properties</h3>
-                <button onClick={onDeselect} className="properties-sidebar__close-button">
+                <button
+                    onClick={() => setSelectedBlockId(null)}
+                    className="properties-sidebar__close-button"
+                >
                     &times;
                 </button>
             </div>
 
             <div className="properties-sidebar__content">
+                {/* BlockLayoutEditor can be refactored next to also use the store */}
                 <BlockLayoutEditor
                     selectedBlock={selectedBlock}
-                    onUpdateBlockLayout={props.onUpdateBlockLayout}
+                    onUpdateBlockLayout={updateBlockLayout}
                 />
-                <BlockSpecificPropertiesEditor {...props} />
+                {/* BlockSpecificPropertiesEditor will pass these props down for now */}
+                <BlockSpecificPropertiesEditor
+                    selectedBlock={selectedBlock}
+                    characterClass={characterClass}
+                    onUpdateBlockContent={updateBlockContent}
+                    onUpdateBaseStat={updateBaseStat}
+                />
             </div>
 
-            {/* NEW: Added a footer with a delete button. */}
             <div className="properties-sidebar__footer">
                 <button
-                    onClick={() => onDeleteBlock(selectedBlock.id)}
+                    onClick={() => deleteBlock(selectedBlock.id)}
                     className="button button--danger w-full"
                 >
                     <Trash2 size={16} /> Delete Block
