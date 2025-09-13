@@ -1,34 +1,37 @@
 // src/components/specific/Class/editor/property-editors/AbilityTreePropsEditor.tsx
 
 /**
- * COMMIT: feat(class-sheet): extract AbilityTreePropsEditor component
+ * COMMIT: refactor(class-sheet): connect AbilityTreePropsEditor to Zustand store
  *
  * Rationale:
- * To continue the modularization of the PropertiesSidebar, this commit
- * extracts the UI for editing the properties of an AbilityTreeBlock into
- * its own dedicated component.
+ * Following the pattern of Phase 3.2, this commit refactors the
+ * AbilityTreePropsEditor to connect directly to the `useClassSheetStore`.
  *
  * Implementation Details:
- * - This component is responsible for fetching all available ability trees
- * in the current world.
- * - It renders a dropdown select menu, allowing the user to link a specific
- * ability tree to the sheet block by saving the tree's ID to the block's
- * `content` property.
+ * - The component's props interface has been removed.
+ * - It now uses the `useClassSheetStore` hook to select the `selectedBlock`
+ * (leveraging the derived state from the store) and the
+ * `updateBlockContent` action.
+ * - This resolves the final TypeScript error in the parent component and
+ * completes the decoupling of the property editors.
  */
 import { useState, useEffect, type FC } from 'react';
 import { useWorld } from '../../../../../context/feature/WorldContext';
 import { getAbilityTreesForWorld } from '../../../../../db/queries/character/ability.queries';
-import type { SheetBlock, AbilityTree } from '../../../../../db/types';
+import type { AbilityTree } from '../../../../../db/types';
+// NEW: Import the Zustand store.
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
 
-interface AbilityTreePropsEditorProps {
-    selectedBlock: SheetBlock;
-    onUpdateBlockContent: (blockId: string, content: any) => void;
-}
+// This component no longer needs props.
+export const AbilityTreePropsEditor: FC = () => {
+    // --- ZUSTAND STORE ---
+    const { selectedBlock, updateBlockContent } = useClassSheetStore((state) => ({
+        // Use the derived selectedBlock from the store.
+        selectedBlock: state.selectedBlock,
+        updateBlockContent: state.updateBlockContent,
+    }));
 
-export const AbilityTreePropsEditor: FC<AbilityTreePropsEditorProps> = ({
-    selectedBlock,
-    onUpdateBlockContent,
-}) => {
+    // --- LOCAL STATE & DATA FETCHING ---
     const { selectedWorld } = useWorld();
     const [allTrees, setAllTrees] = useState<AbilityTree[]>([]);
 
@@ -38,6 +41,11 @@ export const AbilityTreePropsEditor: FC<AbilityTreePropsEditorProps> = ({
         }
     }, [selectedWorld]);
 
+    // --- RENDER LOGIC ---
+    if (!selectedBlock) {
+        return null;
+    }
+
     return (
         <div className="form__group">
             <label className="form__label">Ability Tree</label>
@@ -45,7 +53,7 @@ export const AbilityTreePropsEditor: FC<AbilityTreePropsEditorProps> = ({
                 className="form__select"
                 value={selectedBlock.content ?? ''}
                 onChange={(e) =>
-                    onUpdateBlockContent(
+                    updateBlockContent(
                         selectedBlock.id,
                         e.target.value ? parseInt(e.target.value, 10) : undefined,
                     )
