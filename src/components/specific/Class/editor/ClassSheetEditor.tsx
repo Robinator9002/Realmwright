@@ -1,32 +1,33 @@
 // src/components/specific/Class/editor/ClassSheetEditor.tsx
 
 /**
- * COMMIT: refactor(class-sheet): implement Immer for efficient state updates
+ * COMMIT: refactor(class-sheet): connect component to Zustand store
  *
  * Rationale:
- * This commit addresses a major performance bottleneck identified in the
- * technical plan (Phase 1.1). Previously, every state update relied on a
- * deep clone using `JSON.parse(JSON.stringify())`, which is computationally
- * expensive and can lead to data loss.
+ * This commit completes the architectural refactor initiated in Phase 1.2
+ * by connecting the main ClassSheetEditor component to the new Zustand store.
  *
  * Implementation Details:
- * - The `immer` library has been introduced to handle immutable state updates.
- * - All state-mutating handler functions (e.g., `handleLayoutChange`,
- * `handleAddBlock`, `handleDeleteBlock`) have been refactored.
- * - Instead of manually cloning the state, these functions now use Immer's
- * `produce()` function, which allows for direct, "mutative" syntax while
- * ensuring efficient and correct immutable updates under the hood.
- * - This change significantly improves the editor's performance and makes the
- * state update logic cleaner and more maintainable.
+ * - All local `useState` hooks for managing the editor's state have been removed.
+ * - The component now imports and uses the `useClassSheetStore` hook.
+ * - State and action functions are selected from the store and passed down as
+ * props to the child components (PageCanvas, PropertiesSidebar, etc.).
+ * - A `useEffect` hook has been added to call the store's `init` action
+ * when the component mounts, seeding it with the class data to be edited.
+ * - The `handleSaveChanges` logic remains in the component but now pulls data
+ * from and dispatches actions to the store.
+ * - This change dramatically simplifies the component, offloading all state
+ * management to the central store and turning the editor into a pure
+ * presentational container.
  */
-import { useState, useMemo, type FC } from 'react';
-import { produce } from 'immer';
+import { useEffect, useMemo, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
-import type { Layout } from 'react-grid-layout';
 
-import type { CharacterClass, SheetPage, SheetBlock } from '../../../../db/types';
+import type { CharacterClass } from '../../../../db/types';
 import { updateClass } from '../../../../db/queries/character/class.queries';
 import { blockTypes } from '../../../../constants/sheetEditor.constants';
+import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
+
 import { PageCanvas } from './PageCanvas';
 import { PropertiesSidebar } from './PropertiesSidebar';
 import { PageControls } from './PageControls';
@@ -37,146 +38,48 @@ export interface ClassSheetEditorProps {
 }
 
 export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, onBack }) => {
-    const [editableClass, setEditableClass] = useState<CharacterClass>(characterClass);
-    const [isSaving, setIsSaving] = useState(false);
-    const [activePageIndex, setActivePageIndex] = useState(0);
-    const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+    // --- ZUSTAND STORE ---
+    // Select all the state and actions needed for the editor from the central store.
+    const {
+        init,
+        editableClass,
+        isSaving,
+        activePageIndex,
+        selectedBlockId,
+        addBlock,
+        deleteBlock,
+        handleLayoutChange,
+        updateBlockLayout,
+        updateBlockContent,
+        updateBaseStat,
+        addPage,
+        deletePage,
+        renamePage,
+        setSelectedBlockId,
+        setActivePageIndex,
+        setIsSaving,
+    } = useClassSheetStore();
 
-    const sheet = editableClass.characterSheet || [];
+    // --- INITIALIZATION ---
+    // When the component mounts or the characterClass prop changes,
+    // initialize the store with the data to be edited.
+    useEffect(() => {
+        init(characterClass);
+    }, [characterClass, init]);
 
+    // --- DERIVED STATE ---
+    // Memoize the derived values to prevent unnecessary recalculations.
+    const sheet = useMemo(() => editableClass?.characterSheet || [], [editableClass]);
     const selectedBlock = useMemo(
         () => sheet[activePageIndex]?.blocks.find((block) => block.id === selectedBlockId) || null,
         [sheet, activePageIndex, selectedBlockId],
     );
+    const currentPage = useMemo(() => sheet[activePageIndex], [sheet, activePageIndex]);
 
-    const handleAddBlock = (blockType: SheetBlock['type']) => {
-        setEditableClass(
-            produce((draft) => {
-                if (draft.characterSheet.length === 0) {
-                    draft.characterSheet.push({
-                        id: crypto.randomUUID(),
-                        name: 'Main Page',
-                        blocks: [],
-                    });
-                }
-                const currentPageBlocks = draft.characterSheet[activePageIndex].blocks;
-                const nextY =
-                    currentPageBlocks.length > 0
-                        ? Math.max(...currentPageBlocks.map((b) => b.layout.y + b.layout.h))
-                        : 0;
-                const newBlock: SheetBlock = {
-                    id: crypto.randomUUID(),
-                    type: blockType,
-                    layout: { x: 0, y: nextY, w: 24, h: 8, zIndex: 1 },
-                    content:
-                        blockType === 'rich_text' || blockType === 'notes'
-                            ? ''
-                            : blockType === 'inventory'
-                            ? []
-                            : undefined,
-                };
-                currentPageBlocks.push(newBlock);
-            }),
-        );
-    };
-
-    const handleDeleteBlock = (blockId: string) => {
-        setEditableClass(
-            produce((draft) => {
-                const currentPage = draft.characterSheet[activePageIndex];
-                currentPage.blocks = currentPage.blocks.filter((b) => b.id !== blockId);
-            }),
-        );
-        setSelectedBlockId(null);
-    };
-
-    const handleLayoutChange = (newLayout: Layout[]) => {
-        setEditableClass(
-            produce((draft) => {
-                const currentPage = draft.characterSheet[activePageIndex];
-                currentPage.blocks.forEach((block) => {
-                    const layoutItem = newLayout.find((item) => item.i === block.id);
-                    if (layoutItem) {
-                        block.layout = { ...block.layout, ...layoutItem };
-                    }
-                });
-            }),
-        );
-    };
-
-    const handleUpdateBlockLayout = (blockId: string, newLayout: Partial<SheetBlock['layout']>) => {
-        setEditableClass(
-            produce((draft) => {
-                const block = draft.characterSheet[activePageIndex].blocks.find(
-                    (b) => b.id === blockId,
-                );
-                if (block) {
-                    block.layout = { ...block.layout, ...newLayout };
-                }
-            }),
-        );
-    };
-
-    const handleUpdateBlockContent = (blockId: string, newContent: any) => {
-        setEditableClass(
-            produce((draft) => {
-                const block = draft.characterSheet[activePageIndex].blocks.find(
-                    (b) => b.id === blockId,
-                );
-                if (block) {
-                    block.content = newContent;
-                }
-            }),
-        );
-    };
-
-    const handleUpdateBaseStat = (statId: number, value: number) => {
-        setEditableClass(
-            produce((draft) => {
-                draft.baseStats[statId] = value;
-            }),
-        );
-    };
-
-    const handleAddPage = () => {
-        const newPage: SheetPage = {
-            id: crypto.randomUUID(),
-            name: `Page ${sheet.length + 1}`,
-            blocks: [],
-        };
-        setEditableClass(
-            produce((draft) => {
-                draft.characterSheet.push(newPage);
-            }),
-        );
-        setActivePageIndex(sheet.length); // Set index to the new page
-    };
-
-    const handleDeletePage = (indexToDelete: number) => {
-        setEditableClass(
-            produce((draft) => {
-                draft.characterSheet = draft.characterSheet.filter(
-                    (_, index) => index !== indexToDelete,
-                );
-            }),
-        );
-        if (activePageIndex >= indexToDelete) {
-            setActivePageIndex(Math.max(0, activePageIndex - 1));
-        }
-    };
-
-    const handleRenamePage = (pageIndex: number, newName: string) => {
-        setEditableClass(
-            produce((draft) => {
-                const pageToRename = draft.characterSheet[pageIndex];
-                if (pageToRename) {
-                    pageToRename.name = newName;
-                }
-            }),
-        );
-    };
-
+    // --- EVENT HANDLERS ---
+    // This handler performs the async save operation.
     const handleSaveChanges = async () => {
+        if (!editableClass) return;
         setIsSaving(true);
         try {
             await updateClass(editableClass.id!, {
@@ -190,7 +93,11 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         }
     };
 
-    const currentPage = sheet[activePageIndex];
+    // --- RENDER LOGIC ---
+    // If the store hasn't been initialized yet, show a loading state.
+    if (!editableClass) {
+        return <div className="panel">Loading Editor...</div>;
+    }
 
     return (
         <div className="panel sheet-editor">
@@ -220,7 +127,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     {blockTypes.map(({ type, label, icon }) => (
                         <button
                             key={type}
-                            onClick={() => handleAddBlock(type)}
+                            onClick={() => addBlock(type)}
                             className="button sidebar__block-button"
                         >
                             {icon} {label}
@@ -244,12 +151,12 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
 
                 <PropertiesSidebar
                     selectedBlock={selectedBlock}
-                    onUpdateBlockLayout={handleUpdateBlockLayout}
-                    onUpdateBlockContent={handleUpdateBlockContent}
-                    onUpdateBaseStat={handleUpdateBaseStat}
+                    onUpdateBlockLayout={updateBlockLayout}
+                    onUpdateBlockContent={updateBlockContent}
+                    onUpdateBaseStat={updateBaseStat}
                     characterClass={editableClass}
                     onDeselect={() => setSelectedBlockId(null)}
-                    onDeleteBlock={handleDeleteBlock}
+                    onDeleteBlock={deleteBlock}
                 />
             </div>
 
@@ -257,9 +164,9 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 pages={sheet}
                 activePageIndex={activePageIndex}
                 onSelectPage={setActivePageIndex}
-                onAddPage={handleAddPage}
-                onDeletePage={handleDeletePage}
-                onRenamePage={handleRenamePage}
+                onAddPage={addPage}
+                onDeletePage={deletePage}
+                onRenamePage={renamePage}
             />
         </div>
     );
