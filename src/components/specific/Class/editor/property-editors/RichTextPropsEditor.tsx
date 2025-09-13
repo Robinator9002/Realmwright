@@ -1,38 +1,47 @@
 // src/components/specific/Class/editor/property-editors/RichTextPropsEditor.tsx
 
 /**
- * COMMIT: feat(class-sheet): extract RichTextPropsEditor component
+ * COMMIT: refactor(class-sheet): connect RichTextPropsEditor to Zustand store
  *
  * Rationale:
- * This commit extracts the UI for editing the properties of a RichTextBlock
- * into its own dedicated component, as part of the ongoing modularization of
- * the PropertiesSidebar.
+ * Continuing Phase 3.2, this commit refactors the RichTextPropsEditor to
+ * connect directly to the `useClassSheetStore`, eliminating its props.
  *
  * Implementation Details:
- * - The component renders a simple textarea for editing the Markdown-enabled
- * content of the block.
- * - It receives the `selectedBlock` and the `onUpdateBlockContent` callback
- * as props to manage its state.
+ * - The component's props interface has been removed.
+ * - It now uses the `useClassSheetStore` hook to select the `selectedBlock`
+ * and the `updateBlockContent` action.
+ * - This decouples the component and resolves the corresponding TypeScript
+ * error in the parent `BlockSpecificPropertiesEditor`.
  */
 import type { FC } from 'react';
-import type { SheetBlock } from '../../../../../db/types';
+// NEW: Import the Zustand store.
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
 
-interface RichTextPropsEditorProps {
-    selectedBlock: SheetBlock;
-    onUpdateBlockContent: (blockId: string, content: any) => void;
-}
+// This component no longer needs props.
+export const RichTextPropsEditor: FC = () => {
+    // --- ZUSTAND STORE ---
+    const { selectedBlock, updateBlockContent } = useClassSheetStore((state) => ({
+        // Select the specific state and actions needed.
+        selectedBlock: state.selectedBlock,
+        updateBlockContent: state.updateBlockContent,
+    }));
 
-export const RichTextPropsEditor: FC<RichTextPropsEditorProps> = ({
-    selectedBlock,
-    onUpdateBlockContent,
-}) => (
-    <div className="form__group">
-        <label className="form__label">Content (Markdown)</label>
-        <textarea
-            className="form__textarea"
-            rows={10}
-            value={selectedBlock.content || ''}
-            onChange={(e) => onUpdateBlockContent(selectedBlock.id, e.target.value)}
-        />
-    </div>
-);
+    // If no block is selected (which shouldn't happen if this component is rendered),
+    // we can return null as a safeguard.
+    if (!selectedBlock) {
+        return null;
+    }
+
+    return (
+        <div className="form__group">
+            <label className="form__label">Content (Markdown)</label>
+            <textarea
+                className="form__textarea"
+                rows={10}
+                value={selectedBlock.content || ''}
+                onChange={(e) => updateBlockContent(selectedBlock.id, e.target.value)}
+            />
+        </div>
+    );
+};
