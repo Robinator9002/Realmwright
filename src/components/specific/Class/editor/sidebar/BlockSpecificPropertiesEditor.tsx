@@ -20,10 +20,10 @@ import type { FC } from 'react';
 import type { PropertiesSidebarProps } from '../PropertiesSidebar';
 
 // Import individual property editor components (to be created)
-import { StatsPropsEditor } from './property-editors/StatsPropsEditor';
-import { AbilityTreePropsEditor } from './property-editors/AbilityTreePropsEditor';
-import { RichTextPropsEditor } from './property-editors/RichTextPropsEditor';
-import { InventoryPropsEditor } from './property-editors/InventoryPropsEditor';
+import { StatsPropsEditor } from '../property-editors/StatsPropsEditor';
+import { AbilityTreePropsEditor } from '../property-editors/AbilityTreePropsEditor';
+import { RichTextPropsEditor } from '../property-editors/RichTextPropsEditor';
+import { InventoryPropsEditor } from '../property-editors/InventoryPropsEditor';
 
 type BlockSpecificPropertiesEditorProps = Omit<
     PropertiesSidebarProps,
