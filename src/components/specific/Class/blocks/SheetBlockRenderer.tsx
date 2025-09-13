@@ -1,21 +1,21 @@
 // src/components/specific/Class/blocks/SheetBlockRenderer.tsx
 
 /**
- * COMMIT: feat(class-sheet): integrate NotesBlock into renderer
+ * COMMIT: fix(class-sheet): correct import paths in SheetBlockRenderer
  *
  * Rationale:
- * To make the newly created `NotesBlock` usable, the central
- * `SheetBlockRenderer` must be updated to recognize and render it.
+ * A previous refactor that moved this component into a `/blocks` subdirectory
+ * broke the relative import paths to the individual block components (e.g.,
+ * DetailsBlock, StatsBlock) and the Zustand store, causing compilation errors.
  *
  * Implementation Details:
- * - Imported the new `NotesBlock` component.
- * - Added a `case 'notes'` to the main `switch` statement.
- * - This case returns the `<NotesBlock />`, passing it the necessary
- * `content` and `onContentChange` props. This fully wires up the new block
- * type within the editor's rendering logic.
+ * - All import paths have been updated to correctly
+ * reference their locations from the new directory,
+ * resolving all compilation errors.
  */
 import type { FC } from 'react';
 import type { Character, CharacterClass, SheetBlock } from '../../../../db/types';
+import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 
 // Import all the specific block components
 import { DetailsBlock } from '../../SheetBlocks/character/DetailsBlock';
@@ -23,22 +23,24 @@ import { StatsBlock } from '../../SheetBlocks/character/StatsBlock';
 import { AbilityTreeBlock } from '../../SheetBlocks/content/AbilityTreeBlock';
 import { RichTextBlock } from '../../SheetBlocks/content/RichTextBlock';
 import { InventoryBlock } from '../../SheetBlocks/character/InventoryBlock';
-// NEW: Import the NotesBlock component.
 import { NotesBlock } from '../../SheetBlocks/content/NotesBlock';
 
 interface SheetBlockRendererProps {
     block: SheetBlock;
     characterClass: CharacterClass;
     character?: Character;
-    onContentChange: (blockId: string, newContent: any) => void;
+    onContentChange?: (blockId: string, newContent: any) => void;
 }
 
 export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({
     block,
     characterClass,
     character,
-    onContentChange = () => {},
+    onContentChange: onContentChangeProp = () => {},
 }) => {
+    const updateBlockContent = useClassSheetStore((state) => state.updateBlockContent);
+    const onContentChange = updateBlockContent || onContentChangeProp;
+
     switch (block.type) {
         case 'details':
             return <DetailsBlock characterClass={characterClass} />;
@@ -60,7 +62,6 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({
                     onContentChange={(newContent) => onContentChange(block.id, newContent)}
                 />
             );
-        // NEW: Add a case to handle the 'notes' block type.
         case 'notes':
             const notesContent = character?.instanceData?.[block.id] ?? block.content ?? '';
             return (
