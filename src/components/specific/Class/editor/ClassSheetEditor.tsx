@@ -1,23 +1,19 @@
 // src/components/specific/Class/editor/ClassSheetEditor.tsx
 
 /**
- * COMMIT: fix(class-sheet): implement smart placement for new blocks
+ * COMMIT: feat(class-sheet): implement page renaming logic
  *
  * Rationale:
- * A critical UX bug was causing existing blocks to shift when a new block was
- * added, due to the new block being created at a default (0,0) position that
- * might already be occupied. This fix implements an intelligent placement
- * algorithm to resolve the issue.
+ * To complete the page renaming feature, this commit introduces the
+ * `handleRenamePage` function. This function connects the `onRenamePage`
+ * callback from the `PageControls` component to the editor's main state.
  *
  * Implementation Details:
- * - The `handleAddBlock` function has been overhauled.
- * - It now inspects the layout of all existing blocks on the active page to
- * find the maximum `y + h` value (the bottom-most edge of any block).
- * - New blocks are now created at `y = max(y + h)`, ensuring they always
- * appear in the next available vertical space without causing collisions or
- * shifting existing content.
- * - This provides a stable, predictable, and user-friendly experience when
- * adding new elements to the character sheet.
+ * - A new `handleRenamePage` function has been created. It finds the correct
+ * page by its index and updates its `name` property within the
+ * `editableClass` state.
+ * - This handler is now passed as the `onRenamePage` prop to the
+ * `<PageControls />` component, making the feature fully functional.
  */
 import { useState, useMemo, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -48,11 +44,9 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         [sheet, activePageIndex, selectedBlockId],
     );
 
-    // REWORK: Implemented smart placement logic.
     const handleAddBlock = (blockType: SheetBlock['type']) => {
         setEditableClass((currentClass) => {
             const newClass = JSON.parse(JSON.stringify(currentClass));
-
             if (newClass.characterSheet.length === 0) {
                 newClass.characterSheet.push({
                     id: crypto.randomUUID(),
@@ -60,28 +54,35 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     blocks: [],
                 });
             }
-
             const currentPageBlocks = newClass.characterSheet[activePageIndex].blocks;
-
-            // --- SMART PLACEMENT LOGIC ---
-            // Find the lowest point (y + h) among all existing blocks.
             const nextY =
                 currentPageBlocks.length > 0
                     ? Math.max(...currentPageBlocks.map((b: SheetBlock) => b.layout.y + b.layout.h))
                     : 0;
-
             const newBlock: SheetBlock = {
                 id: crypto.randomUUID(),
                 type: blockType,
-                // Place the new block at x:0 and below the last block.
                 layout: { x: 0, y: nextY, w: 24, h: 8, zIndex: 1 },
                 content:
-                    blockType === 'rich_text' ? '' : blockType === 'inventory' ? [] : undefined,
+                    blockType === 'rich_text' || blockType === 'notes'
+                        ? ''
+                        : blockType === 'inventory'
+                        ? []
+                        : undefined,
             };
-
             currentPageBlocks.push(newBlock);
             return newClass;
         });
+    };
+
+    const handleDeleteBlock = (blockId: string) => {
+        setEditableClass((currentClass) => {
+            const newClass = JSON.parse(JSON.stringify(currentClass));
+            const currentPage = newClass.characterSheet[activePageIndex];
+            currentPage.blocks = currentPage.blocks.filter((b: SheetBlock) => b.id !== blockId);
+            return newClass;
+        });
+        setSelectedBlockId(null);
     };
 
     const handleLayoutChange = (newLayout: Layout[]) => {
@@ -154,6 +155,17 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
             );
             if (activePageIndex >= indexToDelete) {
                 setActivePageIndex(Math.max(0, activePageIndex - 1));
+            }
+            return newClass;
+        });
+    };
+
+    const handleRenamePage = (pageIndex: number, newName: string) => {
+        setEditableClass((currentClass) => {
+            const newClass = JSON.parse(JSON.stringify(currentClass));
+            const pageToRename = newClass.characterSheet[pageIndex];
+            if (pageToRename) {
+                pageToRename.name = newName;
             }
             return newClass;
         });
@@ -232,6 +244,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                     onUpdateBaseStat={handleUpdateBaseStat}
                     characterClass={editableClass}
                     onDeselect={() => setSelectedBlockId(null)}
+                    onDeleteBlock={handleDeleteBlock}
                 />
             </div>
 
@@ -241,6 +254,7 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
                 onSelectPage={setActivePageIndex}
                 onAddPage={handleAddPage}
                 onDeletePage={handleDeletePage}
+                onRenamePage={handleRenamePage}
             />
         </div>
     );
