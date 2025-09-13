@@ -4,22 +4,23 @@
  * COMMIT: feat(class-sheet): create NotesBlock component
  *
  * Rationale:
- * As part of the final polishing stage of the Class Editor alpha, this commit
- * introduces a new, versatile "Notes" block. This provides users with a
- * generic, unformatted text area for private GM notes, flavor text, or any
- * other custom information they wish to include on a character sheet.
+ * This commit introduces the actual `NotesBlock` component that will be
+ * rendered on the character sheet canvas. It provides a simple and
+ * effective way for users to add and edit text.
  *
  * Implementation Details:
  * - The component's structure is based on the existing RichTextBlock,
  * providing a familiar editing experience (display view with an edit button
  * that reveals a textarea).
- * - It uses the 'react-markdown' library to safely render user-provided text.
+ * - It uses local state (`isEditing`, `text`) to manage its own UI without
+ * cluttering the global store.
+ * - When the user saves their changes, the `onContentChange` prop is called,
+ * which is connected to the central store's `updateBlockContent` action.
  * - A unique root class, `notes-block`, has been added to allow for distinct
- * styling to differentiate it from other text blocks.
+ * styling.
  */
 import { useState, type FC } from 'react';
 import { Edit, Save } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 
 export interface NotesBlockProps {
     content: string | undefined;
@@ -43,7 +44,7 @@ export const NotesBlock: FC<NotesBlockProps> = ({ content, onContentChange }) =>
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     rows={8}
-                    placeholder="Enter your notes here... Supports Markdown."
+                    placeholder="Enter your notes here..."
                 />
                 <button
                     onClick={handleSave}
@@ -58,14 +59,12 @@ export const NotesBlock: FC<NotesBlockProps> = ({ content, onContentChange }) =>
     return (
         <div className="notes-block">
             <div className="notes-block__display">
-                <ReactMarkdown>
-                    {content || '*Empty notes block. Click edit to add content.*'}
-                </ReactMarkdown>
+                {content || '*Empty note. Click edit to add content.*'}
             </div>
             <button
                 onClick={() => setIsEditing(true)}
                 className="notes-block__edit-button"
-                title="Edit Notes"
+                title="Edit Note"
             >
                 <Edit size={16} />
             </button>
