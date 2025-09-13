@@ -1,26 +1,26 @@
 // src/components/specific/Class/editor/PropertiesSidebar.tsx
 
 /**
- * COMMIT: refactor(class-sheet): simplify PropertiesSidebar into a container
+ * COMMIT: feat(class-sheet): add block deletion functionality to sidebar
  *
  * Rationale:
- * To complete its refactoring, the PropertiesSidebar is now a lean container
- * component. It delegates all complex rendering logic to its new, specialized
- * child components, adhering to the single-responsibility principle.
+ * To fulfill a core requirement of the editor, this commit introduces the
+ * ability for users to delete a selected block via the properties sidebar.
  *
  * Implementation Details:
- * - The component now imports and renders `<BlockLayoutEditor />` and
- * `<BlockSpecificPropertiesEditor />`.
- * - All internal logic for rendering specific property editors has been
- * removed, as it now resides in the new child components.
- * - The component's primary role is to render the main sidebar structure
- * (header, content sections) and pass the necessary props down the chain.
- * This significantly reduces its complexity and improves maintainability.
+ * - A new `onDeleteBlock` callback prop has been added to the component's
+ * interface.
+ * - A "Delete Block" button is now rendered in the footer of the sidebar.
+ * - The button's `onClick` handler invokes the `onDeleteBlock` callback,
+ * passing up the ID of the currently selected block to be deleted.
+ * - This provides the essential UI hook for the deletion logic, which will be
+ * handled by the parent ClassSheetEditor.
  */
 import type { FC } from 'react';
 import type { SheetBlock, CharacterClass, SheetBlockLayout } from '../../../../db/types';
 import { BlockLayoutEditor } from './sidebar/BlockLayoutEditor';
 import { BlockSpecificPropertiesEditor } from './sidebar/BlockSpecificPropertiesEditor';
+import { Trash2 } from 'lucide-react';
 
 export interface PropertiesSidebarProps {
     selectedBlock: SheetBlock | null;
@@ -29,10 +29,12 @@ export interface PropertiesSidebarProps {
     onUpdateBlockContent: (blockId: string, newContent: any) => void;
     onUpdateBaseStat: (statId: number, value: number) => void;
     onDeselect: () => void;
+    // NEW: Add a prop for the delete handler.
+    onDeleteBlock: (blockId: string) => void;
 }
 
 export const PropertiesSidebar: FC<PropertiesSidebarProps> = (props) => {
-    const { selectedBlock, onDeselect } = props;
+    const { selectedBlock, onDeselect, onDeleteBlock } = props;
 
     if (!selectedBlock) {
         return null;
@@ -53,6 +55,16 @@ export const PropertiesSidebar: FC<PropertiesSidebarProps> = (props) => {
                     onUpdateBlockLayout={props.onUpdateBlockLayout}
                 />
                 <BlockSpecificPropertiesEditor {...props} />
+            </div>
+
+            {/* NEW: Added a footer with a delete button. */}
+            <div className="properties-sidebar__footer">
+                <button
+                    onClick={() => onDeleteBlock(selectedBlock.id)}
+                    className="button button--danger w-full"
+                >
+                    <Trash2 size={16} /> Delete Block
+                </button>
             </div>
         </aside>
     );
