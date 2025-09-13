@@ -17,7 +17,7 @@
  * - This change further decouples the main canvas from its interaction
  * logic, making the component significantly cleaner.
  */
-import { useCallback } from 'react';
+import { useCallback, type RefObject } from 'react';
 import {
     type OnNodesChange,
     type OnEdgesChange,
@@ -46,7 +46,8 @@ interface UseAbilityTreeCanvasEventsProps {
     setSelectedNode: (node: Node | null) => void;
     setPendingConnection: (connection: any | null) => void;
     setSelectedEdge: (edge: Edge | null) => void;
-    reactFlowWrapperRef: React.RefObject<HTMLDivElement>;
+    // FIX: Allow the RefObject to be potentially null to match how useRef works.
+    reactFlowWrapperRef: RefObject<HTMLDivElement>;
 }
 
 export const useAbilityTreeCanvasEvents = ({
