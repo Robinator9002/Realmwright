@@ -21,7 +21,7 @@
 import { useMemo, type FC } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
-import { SheetBlockRenderer } from '../SheetBlockRenderer'; // Adjusted path
+import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer'; // Adjusted path
 
 // --- CONSTANTS ---
 const PAGE_COLUMNS = 48;
