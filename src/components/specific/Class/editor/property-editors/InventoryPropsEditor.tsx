@@ -1,35 +1,40 @@
 // src/components/specific/Class/editor/property-editors/InventoryPropsEditor.tsx
 
 /**
- * COMMIT: feat(class-sheet): extract InventoryPropsEditor component
+ * COMMIT: refactor(class-sheet): connect InventoryPropsEditor to Zustand store
  *
  * Rationale:
- * This commit provides the final piece of the PropertiesSidebar refactor,
- * extracting the UI for editing a class's starting inventory into this
- * dedicated component.
+ * This commit completes Phase 3.2 by refactoring the final property editor,
+ * InventoryPropsEditor, to be fully decoupled and connected to the central
+ * Zustand store.
  *
  * Implementation Details:
- * - The component renders a list of inputs for managing the name and quantity
- * of starting items.
- * - It includes functionality to add and remove items from the list.
- * - All changes are propagated up to the main ClassSheetEditor via the
- * `onUpdateBlockContent` callback, which updates the block's `content`
- * property with the new array of `InventoryItem` objects.
+ * - The component's props interface has been removed.
+ * - It now uses the `useClassSheetStore` hook to select the `selectedBlock`
+ * and the `updateBlockContent` action.
+ * - All internal handlers (`handleAddItem`, `handleRemoveItem`, etc.) have
+ * been updated to call the `updateBlockContent` action from the store,
+- * ensuring changes are correctly propagated and saved.
  */
 import type { FC } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import type { SheetBlock } from '../../../../../db/types';
+// NEW: Import the Zustand store.
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
 import type { InventoryItem } from '../../../SheetBlocks/character/InventoryBlock';
 
-interface InventoryPropsEditorProps {
-    selectedBlock: SheetBlock;
-    onUpdateBlockContent: (blockId: string, content: any) => void;
-}
+// This component no longer needs props.
+export const InventoryPropsEditor: FC = () => {
+    // --- ZUSTAND STORE ---
+    const { selectedBlock, updateBlockContent } = useClassSheetStore((state) => ({
+        selectedBlock: state.selectedBlock,
+        updateBlockContent: state.updateBlockContent,
+    }));
 
-export const InventoryPropsEditor: FC<InventoryPropsEditorProps> = ({
-    selectedBlock,
-    onUpdateBlockContent,
-}) => {
+    // --- RENDER LOGIC ---
+    if (!selectedBlock) {
+        return null;
+    }
+
     const items = (selectedBlock.content as InventoryItem[]) || [];
 
     const handleItemChange = (
@@ -40,7 +45,7 @@ export const InventoryPropsEditor: FC<InventoryPropsEditorProps> = ({
         const newItems = [...items];
         // A type assertion is acceptable here as we control the object shape.
         (newItems[index] as any)[field] = value;
-        onUpdateBlockContent(selectedBlock.id, newItems);
+        updateBlockContent(selectedBlock.id, newItems);
     };
 
     const handleAddItem = () => {
@@ -50,12 +55,12 @@ export const InventoryPropsEditor: FC<InventoryPropsEditorProps> = ({
             quantity: 1,
             description: '',
         };
-        onUpdateBlockContent(selectedBlock.id, [...items, newItem]);
+        updateBlockContent(selectedBlock.id, [...items, newItem]);
     };
 
     const handleRemoveItem = (index: number) => {
         const newItems = items.filter((_, i) => i !== index);
-        onUpdateBlockContent(selectedBlock.id, newItems);
+        updateBlockContent(selectedBlock.id, newItems);
     };
 
     return (
