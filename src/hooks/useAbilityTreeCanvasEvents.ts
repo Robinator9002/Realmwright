@@ -47,7 +47,7 @@ interface UseAbilityTreeCanvasEventsProps {
     setPendingConnection: (connection: any | null) => void;
     setSelectedEdge: (edge: Edge | null) => void;
     // FIX: Allow the RefObject to be potentially null to match how useRef works.
-    reactFlowWrapperRef: RefObject<HTMLDivElement>;
+    reactFlowWrapperRef: RefObject<HTMLDivElement | null>;
 }
 
 export const useAbilityTreeCanvasEvents = ({
