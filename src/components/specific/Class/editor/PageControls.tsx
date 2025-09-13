@@ -1,46 +1,39 @@
 // src/components/specific/Class/editor/PageControls.tsx
 
 /**
- * COMMIT: feat(class-sheet): implement inline page renaming UI
+ * COMMIT: refactor(class-sheet): connect PageControls to Zustand store
  *
  * Rationale:
- * To fulfill the requirement for page management, this commit introduces the
- * UI and local state management for renaming page tabs directly in the
- * PageControls component.
+ * As part of Phase 1.3, this commit refactors the PageControls component to
+ * connect directly to the `useClassSheetStore`. This eliminates the need for
+ * prop drilling from the main editor component.
  *
  * Implementation Details:
- * - The component now has local state (`editingIndex`, `editingName`) to
- * track which page tab is currently being edited.
- * - An `onDoubleClick` handler has been added to the page tabs to initiate
- * the renaming process.
- * - When a tab is being edited, it is replaced with a controlled `<input>` field.
- * - The `onBlur` and `onKeyDown` ('Enter') events on the input field trigger
- * a new `onRenamePage` callback prop, committing the change.
- * - This provides a clean, intuitive, and self-contained UI for page renaming.
+ * - The component's props interface has been completely removed.
+ * - It now imports and uses the `useClassSheetStore` hook to select the
+ * necessary state (`pages`, `activePageIndex`) and actions (`setActivePageIndex`,
+ * `addPage`, `deletePage`, `renamePage`).
+ * - All internal logic now reads from and dispatches to the central store,
+ * making the component self-sufficient and decoupled from its parent.
  */
 import { useState, useEffect, type FC } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import type { SheetPage } from '../../../../db/types';
+import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 
-interface PageControlsProps {
-    pages: SheetPage[];
-    activePageIndex: number;
-    onSelectPage: (index: number) => void;
-    onAddPage: () => void;
-    onDeletePage: (index: number) => void;
-    // NEW: Add a callback for when a page is renamed.
-    onRenamePage: (index: number, newName: string) => void;
-}
+// This component no longer needs to receive any props.
+export const PageControls: FC = () => {
+    // --- ZUSTAND STORE ---
+    const { pages, activePageIndex, setActivePageIndex, addPage, deletePage, renamePage } =
+        useClassSheetStore((state) => ({
+            pages: state.editableClass?.characterSheet || [],
+            activePageIndex: state.activePageIndex,
+            setActivePageIndex: state.setActivePageIndex,
+            addPage: state.addPage,
+            deletePage: state.deletePage,
+            renamePage: state.renamePage,
+        }));
 
-export const PageControls: FC<PageControlsProps> = ({
-    pages,
-    activePageIndex,
-    onSelectPage,
-    onAddPage,
-    onDeletePage,
-    onRenamePage,
-}) => {
-    // State to manage which tab is currently being edited.
+    // Local state for the inline-editing UI is still managed here.
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editingName, setEditingName] = useState('');
 
@@ -58,7 +51,8 @@ export const PageControls: FC<PageControlsProps> = ({
 
     const handleFinishEditing = () => {
         if (editingIndex !== null && editingName.trim()) {
-            onRenamePage(editingIndex, editingName);
+            // Dispatch the rename action to the store.
+            renamePage(editingIndex, editingName);
         }
         setEditingIndex(null);
     };
@@ -89,7 +83,7 @@ export const PageControls: FC<PageControlsProps> = ({
                     ) : (
                         <button
                             key={page.id}
-                            onClick={() => onSelectPage(index)}
+                            onClick={() => setActivePageIndex(index)}
                             onDoubleClick={() => handleStartEditing(index, page.name)}
                             className={`page-controls__tab ${
                                 index === activePageIndex ? 'page-controls__tab--active' : ''
@@ -102,11 +96,11 @@ export const PageControls: FC<PageControlsProps> = ({
                 )}
             </div>
             <div className="page-controls__actions">
-                <button onClick={onAddPage} className="button button--icon" title="Add Page">
+                <button onClick={addPage} className="button button--icon" title="Add Page">
                     <Plus size={16} />
                 </button>
                 <button
-                    onClick={() => onDeletePage(activePageIndex)}
+                    onClick={() => deletePage(activePageIndex)}
                     className="button button--danger button--icon"
                     title="Delete Current Page"
                     disabled={pages.length <= 1}
