@@ -1,26 +1,22 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): revert to layout prop to fix block rendering bug
+ * COMMIT: fix(canvas): calibrate zoom/pan and improve interaction feel
  *
  * Rationale:
- * The bug where new blocks were created but not displayed was caused by a
- * complex interaction between `react-grid-layout` and the CSS scaling from
- * `react-zoom-pan-pinch`. The `data-grid` attribute method was failing to
- * correctly calculate the initial dimensions for new blocks inside a scaled
- * container.
+ * User feedback indicated that the canvas interactions felt clunky. The zoom
+ * was too sensitive, and panning the canvas would often interfere with
+ * interacting with UI elements within the blocks (like buttons or input fields).
  *
  * Implementation Details:
- * - Reverted from the `data-grid` attribute pattern back to using the `layout`
- * prop on the `<GridLayout>` component.
- * - A `useMemo` hook is now used to derive the `gridLayout` array from the
- * store's `blocks`. This ensures the layout data is always synchronized with
- * the children being rendered.
- * - This "controlled component" approach uses a different internal code path
- * in the grid library that is more resilient to the parent transform,
- * finally resolving the persistent rendering issue.
+ * - Added the `wheel={{ step: 0.1 }}` prop to the <TransformWrapper>. This
+ * reduces the zoom sensitivity, making it feel smoother and more controllable.
+ * - Expanded the `panning.excluded` array to include several common UI
+ * element class names. This prevents the panning gesture from activating when
+ * the user's cursor is over an interactive element, resolving a major
+- * source of user frustration.
  */
-import { useMemo, type FC } from 'react'; // Added useMemo
+import { useMemo, type FC } from 'react';
 import GridLayout from 'react-grid-layout';
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
@@ -65,7 +61,6 @@ export const PageCanvas: FC = () => {
             setSelectedBlockId: state.setSelectedBlockId,
         }));
 
-    // FIX: Derive the layout using useMemo. This is the new source of truth for the grid.
     const gridLayout = useMemo(
         () =>
             blocks.map((block) => ({
@@ -94,8 +89,20 @@ export const PageCanvas: FC = () => {
                 limitToBounds={false}
                 panning={{
                     activationKeys: ['Meta', 'Shift'],
-                    excluded: ['input', 'button', 'textarea', 'react-resizable-handle'],
+                    // REWORK: Exclude more specific UI elements to prevent pan interference.
+                    excluded: [
+                        'input',
+                        'button',
+                        'textarea',
+                        'select',
+                        'react-resizable-handle',
+                        'inventory-item__input',
+                        'rich-text-block__edit-button',
+                        'notes-block__edit-button',
+                    ],
                 }}
+                // REWORK: Add wheel options to control zoom sensitivity.
+                wheel={{ step: 0.1 }}
                 doubleClick={{ disabled: true }}
             >
                 <PageCanvasControls />
@@ -105,7 +112,6 @@ export const PageCanvas: FC = () => {
                 >
                     <div className="page-canvas__page">
                         <GridLayout
-                            // FIX: Use the layout prop and remove the data-grid attributes from children.
                             layout={gridLayout}
                             cols={PAGE_COLUMNS}
                             rowHeight={PAGE_ROW_HEIGHT}
@@ -126,7 +132,6 @@ export const PageCanvas: FC = () => {
                                 return (
                                     <div
                                         key={block.id}
-                                        // The data-grid attribute is no longer needed.
                                         className={wrapperClass}
                                         onClick={(e) => {
                                             e.stopPropagation();
