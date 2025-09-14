@@ -81,7 +81,8 @@
 
 .page-canvas__controls {
     position: absolute;
-    right: 10px;
+    top: 10px;
+    right: 200px;
     z-index: 10;
     display: flex;
     gap: var(--spacing-2);

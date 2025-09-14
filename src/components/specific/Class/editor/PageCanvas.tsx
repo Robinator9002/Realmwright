@@ -1,22 +1,18 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 import { useMemo, type FC } from 'react';
-// FIX: Import external libraries from a CDN to resolve build errors.
+// REVERT: Revert from CDN to local imports for better build integration.
 import GridLayout from 'react-grid-layout';
-import {
-    TransformWrapper,
-    TransformComponent,
-    useControls,
-} from 'react-zoom-pan-pinch';
+import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
-import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer';
+// BUILD FIX: Add file extensions to relative imports to fix resolver errors.
+import { useClassSheetStore } from '../../../../stores/classSheetEditor.store.ts';
+import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer.tsx';
 
 // --- CONSTANTS ---
 const PAGE_COLUMNS = 48;
 const PAGE_ROW_HEIGHT = 10;
-// REMOVED: The page width is no longer a fixed constant.
 
 const PageCanvasControls = () => {
     const { zoomIn, zoomOut, resetTransform } = useControls();
@@ -47,7 +43,6 @@ export const PageCanvas: FC = () => {
         selectedBlockId,
         handleLayoutChange,
         setSelectedBlockId,
-        // NEW: Select page dimensions from the store.
         pageWidth,
         pageHeight,
     } = useClassSheetStore((state) => ({
@@ -56,7 +51,6 @@ export const PageCanvas: FC = () => {
         selectedBlockId: state.selectedBlockId,
         handleLayoutChange: state.handleLayoutChange,
         setSelectedBlockId: state.setSelectedBlockId,
-        // NEW: Add page dimension state.
         pageWidth: state.pageWidth,
         pageHeight: state.pageHeight,
     }));
@@ -108,7 +102,6 @@ export const PageCanvas: FC = () => {
                     wrapperClass="page-canvas__transform-wrapper"
                     contentClass="page-canvas__transform-content"
                 >
-                    {/* REWORK: Apply dimensions dynamically using inline styles. */}
                     <div
                         className="page-canvas__page"
                         style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
@@ -117,7 +110,6 @@ export const PageCanvas: FC = () => {
                             layout={gridLayout}
                             cols={PAGE_COLUMNS}
                             rowHeight={PAGE_ROW_HEIGHT}
-                            // REWORK: Use the dynamic width from the store.
                             width={pageWidth}
                             onLayoutChange={handleLayoutChange}
                             preventCollision={true}
