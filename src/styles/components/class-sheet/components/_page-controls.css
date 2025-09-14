@@ -1,32 +1,21 @@
 /* src/styles/components/class-sheet/components/_page-controls.css */
 
-/**
- * COMMIT: style(class-sheet): add styles for PageControls component
- *
- * Rationale:
- * To visually support the new multi-page management UI, this commit adds a
- * dedicated stylesheet for the PageControls component.
- *
- * Implementation Details:
- * - The `.page-controls` container is styled as a flexbox bar, positioned
- * below the main editor content.
- * - The `.page-controls__tab` buttons are styled to look like file tabs,
- * with a distinct visual state (`.page-controls__tab--active`) for the
- * currently selected page.
- * - The `.page-controls__actions` section is separated by a border, creating
- * a clear distinction between navigation and management actions.
- * - A `button--icon` modifier is used for a compact, clean look for the
- * add and delete buttons.
- */
-
 .page-controls {
-    grid-column: 1 / -1; /* Make it span all columns of the editor grid */
+    grid-column: 1 / -1;
     display: flex;
     justify-content: space-between;
     align-items: center;
     background-color: var(--color-background);
     border-top: 1px solid var(--color-border);
     padding: var(--spacing-2) var(--spacing-4);
+    gap: var(--spacing-4);
+}
+
+/* NEW: A wrapper for the left side of the controls bar */
+.page-controls__left-section {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-6);
 }
 
 .page-controls__tabs {
@@ -57,15 +46,31 @@
     color: white;
 }
 
-.page-controls__actions {
+.page-controls__tab-input {
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-accent);
+    background-color: var(--color-panel-bg);
+    max-width: 150px;
+}
+
+/* NEW: Styles for the page dimension settings */
+.page-controls__settings {
     display: flex;
     align-items: center;
-    gap: var(--spacing-2);
+    gap: var(--spacing-4);
     padding-left: var(--spacing-4);
     border-left: 1px solid var(--color-border);
 }
 
-/* A simple modifier for buttons that only contain an icon */
+.page-controls__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
 .button--icon {
     padding: var(--spacing-2);
 }
