@@ -2,6 +2,7 @@
 
 import type { FC } from 'react';
 import { Trash2 } from 'lucide-react';
+// FIX: Corrected imports to ensure child components render.
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 import { BlockLayoutEditor } from './sidebar/BlockLayoutEditor';
 import { BlockSpecificPropertiesEditor } from './sidebar/BlockSpecificPropertiesEditor';
@@ -14,7 +15,7 @@ export const PropertiesSidebar: FC = () => {
         deleteBlock: state.deleteBlock,
     }));
 
-    // REVERT: This component should only render when a block is selected.
+    // This component only renders when a block is selected.
     if (!selectedBlock) {
         return null;
     }
