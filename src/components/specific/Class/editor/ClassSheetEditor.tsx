@@ -20,10 +20,6 @@
 import { useEffect, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 
-// FIX: Import the required CSS for react-grid-layout to function.
-import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
-
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 import type { CharacterClass } from '../../../../db/types';
 import { updateClass } from '../../../../db/queries/character/class.queries';

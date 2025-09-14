@@ -2,8 +2,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
-import './styles/main.css';
 import { AppProviders } from './context/global/AppProviders.tsx';
+
+// Import global styles for the entire application
+import './styles/main.css';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 
 // Get the root element from the HTML
 const rootElement = document.getElementById('root')!;

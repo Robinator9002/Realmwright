@@ -36,7 +36,6 @@
     /* Give the "Add Blocks" sidebar a fixed width and let the canvas take the rest. */
     grid-template-columns: 280px 1fr;
     gap: var(--spacing-6);
-    overflow: hidden;
 }
 
 /* NEW: This modifier class activates a three-column layout when a block is selected. */
