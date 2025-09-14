@@ -28,6 +28,10 @@
     /* NEW: Use a grid for the overall editor layout */
     display: grid;
     grid-template-rows: auto 1fr auto; /* Header, Content, Footer */
+    /* FIX: Constrain grid items and hide top-level scrollbars */
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
 }
 
 /* REWORK: This is now a grid container for the sidebars and canvas. */
@@ -36,6 +40,9 @@
     /* Give the "Add Blocks" sidebar a fixed width and let the canvas take the rest. */
     grid-template-columns: 280px 1fr;
     gap: var(--spacing-6);
+    /* FIX: Constrain grid items to prevent blowout */
+    min-height: 0;
+    min-width: 0;
 }
 
 /* NEW: This modifier class activates a three-column layout when a block is selected. */
