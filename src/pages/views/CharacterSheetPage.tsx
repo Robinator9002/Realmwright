@@ -22,7 +22,7 @@ import { db } from '../../db/db';
 import { updateCharacter } from '../../db/queries/character/character.queries';
 import type { Character, CharacterClass } from '../../db/types';
 import { SheetBlockRenderer } from '../../components/specific/Class/blocks/SheetBlockRenderer';
-import { PageControls } from '../../components/specific/Class/editor/PageControls';
+import { CharacterSheetPageControls } from '../../components/specific/Character/CharacterSheetPageControls';
 
 // Constants for converting grid units to pixels, matching the editor's canvas.
 const PAGE_COLUMNS = 48;
@@ -149,12 +149,10 @@ export const CharacterSheetPage: FC = () => {
             </main>
 
             {sheet.length > 1 && (
-                <PageControls
+                <CharacterSheetPageControls
                     pages={sheet}
                     activePageIndex={activePageIndex}
                     onSelectPage={setActivePageIndex}
-                    onAddPage={() => {}}
-                    onDeletePage={() => {}}
                 />
             )}
         </div>

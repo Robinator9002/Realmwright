@@ -1,24 +1,26 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): resolve block creation rendering bug
+ * COMMIT: fix(class-sheet): revert to layout prop to fix block rendering bug
  *
  * Rationale:
- * The core bug preventing new blocks from appearing was a synchronization
- * issue in `react-grid-layout`. The component was receiving an updated `layout`
- * prop and new `children` simultaneously, causing it to ignore the new item.
+ * The bug where new blocks were created but not displayed was caused by a
+ * complex interaction between `react-grid-layout` and the CSS scaling from
+ * `react-zoom-pan-pinch`. The `data-grid` attribute method was failing to
+ * correctly calculate the initial dimensions for new blocks inside a scaled
+ * container.
  *
  * Implementation Details:
- * - Removed the `layout` prop from the `<GridLayout>` component.
- * - The component now uses the more robust `data-grid` pattern. The layout
- * object for each block is now passed directly to the `data-grid` attribute
- * of its corresponding `div`.
- * - This change guarantees that a block's layout information and its DOM
- * element are always created and processed together, eliminating the race
- * condition and ensuring new blocks render correctly every time.
+ * - Reverted from the `data-grid` attribute pattern back to using the `layout`
+ * prop on the `<GridLayout>` component.
+ * - A `useMemo` hook is now used to derive the `gridLayout` array from the
+ * store's `blocks`. This ensures the layout data is always synchronized with
+ * the children being rendered.
+ * - This "controlled component" approach uses a different internal code path
+ * in the grid library that is more resilient to the parent transform,
+ * finally resolving the persistent rendering issue.
  */
-import type { FC } from 'react';
-// FIX: Removed `useMemo` as it's no longer needed for the layout.
+import { useMemo, type FC } from 'react'; // Added useMemo
 import GridLayout from 'react-grid-layout';
 import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
@@ -63,6 +65,19 @@ export const PageCanvas: FC = () => {
             setSelectedBlockId: state.setSelectedBlockId,
         }));
 
+    // FIX: Derive the layout using useMemo. This is the new source of truth for the grid.
+    const gridLayout = useMemo(
+        () =>
+            blocks.map((block) => ({
+                i: block.id,
+                x: block.layout.x,
+                y: block.layout.y,
+                w: block.layout.w,
+                h: block.layout.h,
+            })),
+        [blocks],
+    );
+
     // --- RENDER LOGIC ---
     if (!characterClass) {
         return (
@@ -90,9 +105,8 @@ export const PageCanvas: FC = () => {
                 >
                     <div className="page-canvas__page">
                         <GridLayout
-                            // FIX: Add a dynamic key to force re-mount on block count change.
-                            // This is a robust way to prevent state sync issues in the library.
-                            key={blocks.length}
+                            // FIX: Use the layout prop and remove the data-grid attributes from children.
+                            layout={gridLayout}
                             cols={PAGE_COLUMNS}
                             rowHeight={PAGE_ROW_HEIGHT}
                             width={PAGE_WIDTH}
@@ -108,18 +122,11 @@ export const PageCanvas: FC = () => {
                                 const wrapperClass = `sheet-block-wrapper ${
                                     isSelected ? 'sheet-block-wrapper--selected' : ''
                                 }`;
-                                const gridData = {
-                                    i: block.id,
-                                    x: block.layout.x,
-                                    y: block.layout.y,
-                                    w: block.layout.w,
-                                    h: block.layout.h,
-                                };
 
                                 return (
                                     <div
                                         key={block.id}
-                                        data-grid={gridData}
+                                        // The data-grid attribute is no longer needed.
                                         className={wrapperClass}
                                         onClick={(e) => {
                                             e.stopPropagation();

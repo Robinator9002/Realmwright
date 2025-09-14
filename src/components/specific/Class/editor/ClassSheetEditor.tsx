@@ -1,26 +1,26 @@
 // src/components/specific/Class/editor/ClassSheetEditor.tsx
 
 /**
- * COMMIT: fix(class-sheet): import required react-grid-layout styles
+ * COMMIT: fix(class-sheet): import required library stylesheets
  *
  * Rationale:
- * THE CORE BUG: Newly created blocks were not appearing on the canvas because
- * the essential CSS files for the `react-grid-layout` library were never
- * imported into the project. Without these styles, the new grid items had no
- * positioning information (`position: absolute`, etc.) and rendered with zero
- * dimensions, making them invisible.
+ * The persistent bug where new blocks were created but not displayed was
+ * caused by a failure to import the necessary CSS files from the
+ * `react-grid-layout` and `react-resizable` libraries. Without these
+ * stylesheets, the grid items had no positioning or dimension styles,
+ * causing them to render invisibly.
  *
  * Implementation Details:
- * - Imported `react-grid-layout/css/styles.css` and
- * `react-resizable/css/styles.css` at the top of the main editor component.
- * - This provides the necessary base styling for all grid items and resize
- * handles, ensuring that newly created blocks are now correctly positioned
- * and displayed on the canvas. This resolves the long-standing rendering bug.
+ * - Added `import 'react-grid-layout/css/styles.css'` and
+ * `import 'react-resizable/css/styles.css'` to the top of the main
+ * editor component.
+ * - This ensures the foundational styles required for the grid to operate
+ * are always loaded, finally resolving the rendering bug.
  */
 import { useEffect, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 
-// FIX: Import the required stylesheets for the grid library.
+// FIX: Import the required CSS for react-grid-layout to function.
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
