@@ -1,36 +1,40 @@
 // src/components/specific/Class/editor/sidebar/BlockLayoutEditor.tsx
 
 /**
- * COMMIT: feat(class-sheet): extract BlockLayoutEditor component
+ * COMMIT: refactor(class-sheet): connect BlockLayoutEditor to Zustand store
  *
  * Rationale:
- * As the first step in refactoring the monolithic PropertiesSidebar, the UI
- * for editing a block's layout properties (x, y, w, h) has been extracted
- * into this dedicated component.
+ * As part of the final cleanup of the PropertiesSidebar, this component is
+ * being refactored to connect directly to the Zustand store. It no longer
+ * needs to receive the selected block or update functions via props.
  *
  * Implementation Details:
- * - This component is purely presentational and is responsible for rendering
- * the four number inputs for the block's layout.
- * - It receives the selected block and the `onUpdateBlockLayout` callback
- * as props, ensuring it remains decoupled from the main editor's state.
- * - This improves code organization and separates the universal layout
- * controls from the block-specific property editors.
+ * - Removed the component's props interface.
+ * - It now uses the `useClassSheetStore` hook to get the `selectedBlock` and
+ * the `updateBlockLayout` action.
+ * - This change makes the component self-sufficient and resolves TypeScript
+ * errors in its parent, `PropertiesSidebar`.
  */
 import type { FC } from 'react';
-import type { SheetBlock, SheetBlockLayout } from '../../../../../db/types';
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
+import type { SheetBlockLayout } from '../../../../../db/types';
 
-interface BlockLayoutEditorProps {
-    selectedBlock: SheetBlock;
-    onUpdateBlockLayout: (blockId: string, newLayout: Partial<SheetBlockLayout>) => void;
-}
+export const BlockLayoutEditor: FC = () => {
+    // --- ZUSTAND STORE ---
+    const { selectedBlock, updateBlockLayout } = useClassSheetStore((state) => ({
+        selectedBlock: state.selectedBlock,
+        updateBlockLayout: state.updateBlockLayout,
+    }));
 
-export const BlockLayoutEditor: FC<BlockLayoutEditorProps> = ({
-    selectedBlock,
-    onUpdateBlockLayout,
-}) => {
+    if (!selectedBlock) {
+        return null;
+    }
+
     const handleLayoutChange = (field: keyof SheetBlockLayout, value: string) => {
-        const numericValue = parseInt(value, 10) || 0;
-        onUpdateBlockLayout(selectedBlock.id, { [field]: numericValue });
+        const numericValue = parseInt(value, 10);
+        if (!isNaN(numericValue)) {
+            updateBlockLayout(selectedBlock.id, { [field]: numericValue });
+        }
     };
 
     return (
@@ -56,7 +60,7 @@ export const BlockLayoutEditor: FC<BlockLayoutEditorProps> = ({
                     />
                 </div>
                 <div className="form__group">
-                    <label className="form__label">Width</label>
+                    <label className="form__label">Width (W)</label>
                     <input
                         type="number"
                         className="form__input"
@@ -65,7 +69,7 @@ export const BlockLayoutEditor: FC<BlockLayoutEditorProps> = ({
                     />
                 </div>
                 <div className="form__group">
-                    <label className="form__label">Height</label>
+                    <label className="form__label">Height (H)</label>
                     <input
                         type="number"
                         className="form__input"
