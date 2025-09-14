@@ -8,20 +8,38 @@
     background-color: var(--color-background);
     border-top: 1px solid var(--color-border);
     padding: var(--spacing-2) var(--spacing-4);
-    gap: var(--spacing-4);
+    gap: var(--spacing-6); /* Add gap for spacing */
 }
 
-/* NEW: A wrapper for the left side of the controls bar */
-.page-controls__left-section {
+/* NEW: Container for the page dimension settings */
+.page-controls__settings {
     display: flex;
     align-items: center;
-    gap: var(--spacing-6);
+    gap: var(--spacing-2);
+    flex-shrink: 0; /* Prevent this section from shrinking */
+}
+
+/* NEW: Styles for the compact dimension inputs */
+.page-controls__input {
+    width: 70px; /* A fixed small width */
+    padding: var(--spacing-1) var(--spacing-2);
+    font-size: 0.875rem;
+}
+
+/* NEW: Style for the compact labels (W: and H:) */
+.page-controls__settings label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-muted-foreground);
 }
 
 .page-controls__tabs {
     display: flex;
     align-items: center;
     gap: var(--spacing-2);
+    /* NEW: Allow tabs to take up the available space */
+    flex-grow: 1;
+    justify-content: center; /* Center the tabs */
 }
 
 .page-controls__tab {
@@ -46,25 +64,6 @@
     color: white;
 }
 
-.page-controls__tab-input {
-    padding: var(--spacing-2) var(--spacing-4);
-    font-size: 0.875rem;
-    font-weight: 600;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--color-accent);
-    background-color: var(--color-panel-bg);
-    max-width: 150px;
-}
-
-/* NEW: Styles for the page dimension settings */
-.page-controls__settings {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-4);
-    padding-left: var(--spacing-4);
-    border-left: 1px solid var(--color-border);
-}
-
 .page-controls__actions {
     display: flex;
     align-items: center;
@@ -73,4 +72,16 @@
 
 .button--icon {
     padding: var(--spacing-2);
+}
+
+/* NEW: Compact input for renaming tabs */
+.page-controls__tab-input {
+    padding: var(--spacing-2) var(--spacing-4);
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-accent);
+    background-color: var(--color-panel-bg);
+    color: var(--color-foreground);
+    width: 150px; /* Give it a reasonable width */
 }

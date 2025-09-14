@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type FC } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
+import { useClassSheetStore } from '../../../../stores/classSheetEditor.store.ts';
 
 export const PageControls: FC = () => {
     // --- ZUSTAND STORE ---
@@ -28,7 +28,6 @@ export const PageControls: FC = () => {
         setPageDimensions: state.setPageDimensions,
     }));
 
-    // Local state for the inline-editing UI
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [editingName, setEditingName] = useState('');
 
@@ -58,7 +57,6 @@ export const PageControls: FC = () => {
         }
     };
 
-    // Handler for page dimension inputs.
     const handleDimensionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         const numericValue = parseInt(value, 10) || 0;
@@ -71,61 +69,56 @@ export const PageControls: FC = () => {
 
     return (
         <div className="page-controls">
-            <div className="page-controls__left-section">
-                <div className="page-controls__tabs">
-                    {pages.map((page, index) =>
-                        editingIndex === index ? (
-                            <input
-                                key={page.id}
-                                type="text"
-                                value={editingName}
-                                onChange={(e) => setEditingName(e.target.value)}
-                                onBlur={handleFinishEditing}
-                                onKeyDown={handleKeyDown}
-                                className="page-controls__tab-input"
-                                autoFocus
-                            />
-                        ) : (
-                            <button
-                                key={page.id}
-                                onClick={() => setActivePageIndex(index)}
-                                onDoubleClick={() => handleStartEditing(index, page.name)}
-                                className={`page-controls__tab ${
-                                    index === activePageIndex ? 'page-controls__tab--active' : ''
-                                }`}
-                                title="Double-click to rename"
-                            >
-                                {page.name || `Page ${index + 1}`}
-                            </button>
-                        ),
-                    )}
-                </div>
-                <div className="page-controls__settings">
-                    <div className="form__group--inline">
-                        <label htmlFor="page-width">W:</label>
-                        <input
-                            id="page-width"
-                            name="width"
-                            type="number"
-                            className="form__input--small"
-                            value={pageWidth}
-                            onChange={handleDimensionChange}
-                        />
-                    </div>
-                    <div className="form__group--inline">
-                        <label htmlFor="page-height">H:</label>
-                        <input
-                            id="page-height"
-                            name="height"
-                            type="number"
-                            className="form__input--small"
-                            value={pageHeight}
-                            onChange={handleDimensionChange}
-                        />
-                    </div>
-                </div>
+            <div className="page-controls__settings">
+                <label htmlFor="page-width">W:</label>
+                <input
+                    id="page-width"
+                    name="width"
+                    type="number"
+                    className="form__input page-controls__input"
+                    value={pageWidth}
+                    onChange={handleDimensionChange}
+                    title="Page Width (px)"
+                />
+                <label htmlFor="page-height">H:</label>
+                <input
+                    id="page-height"
+                    name="height"
+                    type="number"
+                    className="form__input page-controls__input"
+                    value={pageHeight}
+                    onChange={handleDimensionChange}
+                    title="Page Height (px)"
+                />
             </div>
-
+            <div className="page-controls__tabs">
+                {pages.map((page, index) =>
+                    editingIndex === index ? (
+                        <input
+                            key={page.id}
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onBlur={handleFinishEditing}
+                            onKeyDown={handleKeyDown}
+                            className="page-controls__tab-input"
+                            autoFocus
+                        />
+                    ) : (
+                        <button
+                            key={page.id}
+                            onClick={() => setActivePageIndex(index)}
+                            onDoubleClick={() => handleStartEditing(index, page.name)}
+                            className={`page-controls__tab ${
+                                index === activePageIndex ? 'page-controls__tab--active' : ''
+                            }`}
+                            title="Double-click to rename"
+                        >
+                            {page.name || `Page ${index + 1}`}
+                        </button>
+                    ),
+                )}
+            </div>
             <div className="page-controls__actions">
                 <button onClick={addPage} className="button button--icon" title="Add Page">
                     <Plus size={16} />
