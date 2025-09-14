@@ -1,24 +1,13 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
-/**
- * COMMIT: fix(canvas): calibrate zoom/pan and improve interaction feel
- *
- * Rationale:
- * User feedback indicated that the canvas interactions felt clunky. The zoom
- * was too sensitive, and panning the canvas would often interfere with
- * interacting with UI elements within the blocks (like buttons or input fields).
- *
- * Implementation Details:
- * - Added the `wheel={{ step: 0.1 }}` prop to the <TransformWrapper>. This
- * reduces the zoom sensitivity, making it feel smoother and more controllable.
- * - Expanded the `panning.excluded` array to include several common UI
- * element class names. This prevents the panning gesture from activating when
- * the user's cursor is over an interactive element, resolving a major
-- * source of user frustration.
- */
 import { useMemo, type FC } from 'react';
+// FIX: Import external libraries from a CDN to resolve build errors.
 import GridLayout from 'react-grid-layout';
-import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch';
+import {
+    TransformWrapper,
+    TransformComponent,
+    useControls,
+} from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
@@ -27,7 +16,7 @@ import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer';
 // --- CONSTANTS ---
 const PAGE_COLUMNS = 48;
 const PAGE_ROW_HEIGHT = 10;
-const PAGE_WIDTH = 1000;
+// REMOVED: The page width is no longer a fixed constant.
 
 const PageCanvasControls = () => {
     const { zoomIn, zoomOut, resetTransform } = useControls();
@@ -52,14 +41,25 @@ const PageCanvasControls = () => {
 
 export const PageCanvas: FC = () => {
     // --- ZUSTAND STORE ---
-    const { blocks, characterClass, selectedBlockId, handleLayoutChange, setSelectedBlockId } =
-        useClassSheetStore((state) => ({
-            blocks: state.editableClass?.characterSheet[state.activePageIndex]?.blocks ?? [],
-            characterClass: state.editableClass,
-            selectedBlockId: state.selectedBlockId,
-            handleLayoutChange: state.handleLayoutChange,
-            setSelectedBlockId: state.setSelectedBlockId,
-        }));
+    const {
+        blocks,
+        characterClass,
+        selectedBlockId,
+        handleLayoutChange,
+        setSelectedBlockId,
+        // NEW: Select page dimensions from the store.
+        pageWidth,
+        pageHeight,
+    } = useClassSheetStore((state) => ({
+        blocks: state.editableClass?.characterSheet[state.activePageIndex]?.blocks ?? [],
+        characterClass: state.editableClass,
+        selectedBlockId: state.selectedBlockId,
+        handleLayoutChange: state.handleLayoutChange,
+        setSelectedBlockId: state.setSelectedBlockId,
+        // NEW: Add page dimension state.
+        pageWidth: state.pageWidth,
+        pageHeight: state.pageHeight,
+    }));
 
     const gridLayout = useMemo(
         () =>
@@ -89,7 +89,6 @@ export const PageCanvas: FC = () => {
                 limitToBounds={false}
                 panning={{
                     activationKeys: ['Meta', 'Shift'],
-                    // REWORK: Exclude more specific UI elements to prevent pan interference.
                     excluded: [
                         'input',
                         'button',
@@ -101,7 +100,6 @@ export const PageCanvas: FC = () => {
                         'notes-block__edit-button',
                     ],
                 }}
-                // REWORK: Add wheel options to control zoom sensitivity.
                 wheel={{ step: 0.1 }}
                 doubleClick={{ disabled: true }}
             >
@@ -110,12 +108,17 @@ export const PageCanvas: FC = () => {
                     wrapperClass="page-canvas__transform-wrapper"
                     contentClass="page-canvas__transform-content"
                 >
-                    <div className="page-canvas__page">
+                    {/* REWORK: Apply dimensions dynamically using inline styles. */}
+                    <div
+                        className="page-canvas__page"
+                        style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
+                    >
                         <GridLayout
                             layout={gridLayout}
                             cols={PAGE_COLUMNS}
                             rowHeight={PAGE_ROW_HEIGHT}
-                            width={PAGE_WIDTH}
+                            // REWORK: Use the dynamic width from the store.
+                            width={pageWidth}
                             onLayoutChange={handleLayoutChange}
                             preventCollision={true}
                             allowOverlap={true}
