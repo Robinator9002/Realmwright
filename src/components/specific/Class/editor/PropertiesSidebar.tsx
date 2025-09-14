@@ -2,9 +2,10 @@
 
 import type { FC } from 'react';
 import { Trash2 } from 'lucide-react';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
-import { BlockLayoutEditor } from './sidebar/BlockLayoutEditor';
-import { BlockSpecificPropertiesEditor } from './sidebar/BlockSpecificPropertiesEditor';
+// BUILD FIX: Add file extensions to relative imports to fix resolver errors.
+import { useClassSheetStore } from '../../../../stores/classSheetEditor.store.ts';
+import { BlockLayoutEditor } from './sidebar/BlockLayoutEditor.tsx';
+import { BlockSpecificPropertiesEditor } from './sidebar/BlockSpecificPropertiesEditor.tsx';
 
 export const PropertiesSidebar: FC = () => {
     // --- ZUSTAND STORE ---
@@ -19,7 +20,6 @@ export const PropertiesSidebar: FC = () => {
         selectedBlock: state.selectedBlock,
         setSelectedBlockId: state.setSelectedBlockId,
         deleteBlock: state.deleteBlock,
-        // NEW: Select page dimensions and the setter action from the store.
         pageWidth: state.pageWidth,
         pageHeight: state.pageHeight,
         setPageDimensions: state.setPageDimensions,
@@ -38,12 +38,10 @@ export const PropertiesSidebar: FC = () => {
 
     return (
         <aside className="properties-sidebar">
-            {/* REWORK: The sidebar now has a permanent Page Settings section at the top. */}
             <div className="properties-sidebar__header">
                 <h3 className="sidebar__title">
                     {selectedBlock ? 'Block Properties' : 'Page Settings'}
                 </h3>
-                {/* Only show the close button if a block is selected */}
                 {selectedBlock && (
                     <button
                         onClick={() => setSelectedBlockId(null)}
@@ -55,7 +53,6 @@ export const PropertiesSidebar: FC = () => {
             </div>
 
             <div className="properties-sidebar__content">
-                {/* NEW: Page settings section */}
                 <div className="properties-sidebar__section">
                     <h4 className="properties-sidebar__section-title">Page Dimensions</h4>
                     <div className="properties-sidebar__grid">
@@ -88,7 +85,6 @@ export const PropertiesSidebar: FC = () => {
                     </div>
                 </div>
 
-                {/* REWORK: The block-specific editors only render if a block is selected. */}
                 {selectedBlock && (
                     <>
                         <BlockLayoutEditor />
@@ -97,7 +93,6 @@ export const PropertiesSidebar: FC = () => {
                 )}
             </div>
 
-            {/* REWORK: The footer and delete button only render if a block is selected. */}
             {selectedBlock && (
                 <div className="properties-sidebar__footer">
                     <button
