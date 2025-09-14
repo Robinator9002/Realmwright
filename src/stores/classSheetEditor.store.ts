@@ -31,6 +31,9 @@ interface State {
     selectedBlockId: string | null;
     editableClass: CharacterClass | null;
     selectedBlock: SheetBlock | null;
+    // NEW: Add page dimensions to the store's state.
+    pageWidth: number;
+    pageHeight: number;
 }
 
 // --- ACTIONS ---
@@ -45,6 +48,8 @@ interface Actions {
     addPage: () => void;
     deletePage: (pageIndex: number) => void;
     renamePage: (pageIndex: number, newName: string) => void;
+    // NEW: Add an action to update page dimensions.
+    setPageDimensions: (dimensions: { width: number; height: number }) => void;
     setIsSaving: (isSaving: boolean) => void;
     setActivePageIndex: (index: number) => void;
     setSelectedBlockId: (blockId: string | null) => void;
@@ -58,6 +63,9 @@ export const useClassSheetStore = create(
         activePageIndex: 0,
         selectedBlockId: null,
         editableClass: null,
+        // NEW: Initialize page dimensions with default values.
+        pageWidth: 1000,
+        pageHeight: 1414,
         // The derived selectedBlock is calculated from other state pieces.
         get selectedBlock() {
             const { editableClass, activePageIndex, selectedBlockId } = get();
@@ -75,11 +83,21 @@ export const useClassSheetStore = create(
                 state.editableClass = JSON.parse(JSON.stringify(characterClass));
                 state.activePageIndex = 0;
                 state.selectedBlockId = null;
+                // Reset dimensions on init, just in case.
+                state.pageWidth = 1000;
+                state.pageHeight = 1414;
             });
         },
         setIsSaving: (isSaving) => set({ isSaving }),
         setActivePageIndex: (index) => set({ activePageIndex: index, selectedBlockId: null }),
         setSelectedBlockId: (blockId) => set({ selectedBlockId: blockId }),
+        // NEW: Implement the action to update page dimensions.
+        setPageDimensions: (dimensions) => {
+            set((state) => {
+                state.pageWidth = dimensions.width;
+                state.pageHeight = dimensions.height;
+            });
+        },
         addBlock: (blockType) => {
             set((state) => {
                 if (!state.editableClass) return;
@@ -130,7 +148,6 @@ export const useClassSheetStore = create(
                 });
             });
         },
-        // REWORK: Find the block within the Immer draft to ensure mutations are tracked.
         updateBlockLayout: (blockId, newLayout) => {
             set((state) => {
                 if (!state.editableClass) return;
@@ -142,7 +159,6 @@ export const useClassSheetStore = create(
                 }
             });
         },
-        // REWORK: Find the block within the Immer draft to ensure mutations are tracked.
         updateBlockContent: (blockId, newContent) => {
             set((state) => {
                 if (!state.editableClass) return;
