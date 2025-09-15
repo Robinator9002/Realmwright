@@ -1,23 +1,23 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): implement global listener for robust click detection
+ * COMMIT: fix(class-sheet): remove wrapper from pan exclusion to restore click events
  *
  * Rationale:
- * A persistent event conflict with `react-grid-layout` prevented a standard
- * `onClick` from firing. The previous manual click detection failed because the
- * drag library was capturing the `mouseup` event at the document level and
- * stopping its propagation, so the component's `onMouseUp` handler never fired.
+ * The final piece of the click/drag puzzle was the `excluded` array in the
+ * `TransformWrapper` (react-zoom-pan-pinch). By including `'sheet-block-wrapper'`
+ * in this array, we were inadvertently telling the library to suppress panning
+ * when the cursor was over a block. This suppression was so effective that it
+ * also blocked the `mouseup` event from propagating to our global window listener,
+ * preventing our manual click detection from ever firing.
  *
  * Implementation Details:
- * - The component no longer relies on `onMouseUp` on the block element itself.
- * - On `onMouseDown`, a new, single-use `mouseup` event listener is attached
- * directly to the `window`.
- * - This global listener is guaranteed to fire when the mouse is released,
- * regardless of the drag library's actions. It then calculates the press
- * duration to determine if the action was a click.
- * - This resolves the event conflict and correctly differentiates between a
- * click-to-select and a drag-to-move action.
+ * - The `'sheet-block-wrapper'` string has been removed from the `excluded`
+ * array within the `<TransformWrapper>` component.
+ * - This allows mouse events to propagate correctly while still preventing
+ * unwanted panning when interacting with form elements inside the blocks.
+ * - This change finally resolves all event conflicts, enabling both
+ * click-to-select and drag-to-move functionality to work as intended.
  */
 import { useMemo, type FC } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -89,7 +89,6 @@ const ScaledGridLayout: FC = () => {
                     setSelectedBlockId(blockId);
                 }
             }
-            // The listener is removed automatically by the { once: true } option.
         };
 
         window.addEventListener('mouseup', handleMouseUp, { once: true });
@@ -182,14 +181,8 @@ export const PageCanvas: FC = () => {
                 limitToBounds={false}
                 panning={{
                     activationKeys: ['Meta', 'Shift'],
-                    excluded: [
-                        'input',
-                        'button',
-                        'textarea',
-                        'select',
-                        'react-resizable-handle',
-                        'sheet-block-wrapper',
-                    ],
+                    // FIX: Removing the wrapper from the exclusion list is the key.
+                    excluded: ['input', 'button', 'textarea', 'select', 'react-resizable-handle'],
                 }}
                 wheel={{ step: 0.1 }}
                 doubleClick={{ disabled: true }}
