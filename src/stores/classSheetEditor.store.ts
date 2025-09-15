@@ -1,24 +1,18 @@
 // src/stores/classSheetEditor.store.ts
 
 /**
- * COMMIT: refactor(class-sheet): centralize data fetching in Zustand store
+ * COMMIT: fix(class-sheet): add missing allAbilityTrees property to store state
  *
  * Rationale:
- * To establish a single source of truth and improve data consistency, all
- * data fetching required for the class sheet editor is being moved into the
- * store's `init` action. Previously, individual components like
- * `StatsPropsEditor` and `AbilityTreePropsEditor` were responsible for their
- * own data fetching, leading to scattered and redundant logic.
+ * A TypeScript error was occurring in consuming components because the
+ * `allAbilityTrees` property, while fetched and set in the `init` action, was
+ * never formally declared in the store's `State` interface.
  *
  * Implementation Details:
- * - The store's state has been expanded to include `statDefinitions` and
- * `abilityTrees` arrays.
- * - The `init` action is now `async`. Upon initialization, it not only sets
- * the `editableClass` but also fetches all stat definitions and ability trees
- * for the class's world.
- * - This change ensures that all necessary data is loaded once, centrally,
- * and made available to all child components through the store, eliminating
- * the need for them to perform their own database queries.
+ * - Added `allAbilityTrees: AbilityTree[]` to the `State` interface.
+ * - Initialized `allAbilityTrees` to an empty array in the initial state.
+ * - This change ensures the store's type definition accurately reflects its
+ * shape, resolving the downstream TypeScript error.
  */
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
@@ -42,14 +36,15 @@ interface State {
     selectedBlock: SheetBlock | null;
     pageWidth: number;
     pageHeight: number;
-    // NEW: Add state to hold world-specific definitions.
+    // Data pre-fetched for the editor to use.
     statDefinitions: StatDefinition[];
-    abilityTrees: AbilityTree[];
+    // FIX: Declare the missing property.
+    allAbilityTrees: AbilityTree[];
 }
 
 // --- ACTIONS ---
 interface Actions {
-    init: (characterClass: CharacterClass) => Promise<void>; // Now async
+    init: (characterClass: CharacterClass) => void;
     addBlock: (blockType: SheetBlock['type']) => void;
     deleteBlock: (blockId: string) => void;
     handleLayoutChange: (newLayout: Layout[]) => void;
@@ -75,9 +70,9 @@ export const useClassSheetStore = create(
         editableClass: null,
         pageWidth: 1000,
         pageHeight: 1414,
-        // NEW: Initialize new state properties.
         statDefinitions: [],
-        abilityTrees: [],
+        // FIX: Initialize the new property.
+        allAbilityTrees: [],
         // The derived selectedBlock is calculated from other state pieces.
         get selectedBlock() {
             const { editableClass, activePageIndex, selectedBlockId } = get();
@@ -90,24 +85,24 @@ export const useClassSheetStore = create(
         },
 
         // --- ACTIONS ---
-        // REWORK: `init` is now an async action that fetches all required data.
         init: async (characterClass) => {
-            // Fetch world-specific data in parallel for efficiency.
-            const [stats, trees] = await Promise.all([
-                getStatDefinitionsForWorld(characterClass.worldId),
-                getAbilityTreesForWorld(characterClass.worldId),
+            const worldId = characterClass.worldId;
+
+            // Pre-fetch all necessary data for the editor session.
+            const [statDefinitions, allAbilityTrees] = await Promise.all([
+                getStatDefinitionsForWorld(worldId),
+                getAbilityTreesForWorld(worldId),
             ]);
 
             set((state) => {
-                // Use a deep copy to prevent accidental mutation of the original object.
                 state.editableClass = JSON.parse(JSON.stringify(characterClass));
-                state.statDefinitions = stats;
-                state.abilityTrees = trees;
-                // Reset UI state
                 state.activePageIndex = 0;
                 state.selectedBlockId = null;
                 state.pageWidth = 1000;
                 state.pageHeight = 1414;
+                // Set the fetched data into the store.
+                state.statDefinitions = statDefinitions;
+                state.allAbilityTrees = allAbilityTrees;
             });
         },
         setIsSaving: (isSaving) => set({ isSaving }),
