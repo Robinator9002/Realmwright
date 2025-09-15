@@ -188,7 +188,7 @@ export const PageCanvas: FC = () => {
                 minScale={0.2}
                 limitToBounds={false}
                 panning={{
-                    activationKeys: ['Meta', 'Shift'],
+                    activationKeys: ['Control', 'Shift'],
                     excluded: ['input', 'button', 'textarea', 'select', 'react-resizable-handle'],
                 }}
                 wheel={{ step: 0.1 }}
