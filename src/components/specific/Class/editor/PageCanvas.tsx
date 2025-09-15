@@ -1,33 +1,32 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: refactor(class-sheet): Isolate block selection from drag events
+ * COMMIT: fix(class-sheet): implement robust click detection using onDragStop
  *
  * Rationale:
- * The previous click detection, which relied on a timer within a `mousedown`
- * event, was unreliable because it conflicted with the drag-and-drop event
- * handlers from the `react-grid-layout` library. A slight mouse movement could
- * be misinterpreted as a drag, preventing the `mouseup` event from firing as
- * expected and thus failing to select the block.
+ * Previous attempts to differentiate clicks from drags using timers or global
+ * mouseup listeners were unreliable. They competed with the internal event
+ * handling of `react-grid-layout`, where even a 1-pixel mouse movement can
+ * initiate a drag, preventing a "click" from being registered. This commit
+ * implements a more robust solution that works *with* the library's event cycle.
  *
  * Implementation Details:
- * - Removed the old timer-based `handleMouseDown` function.
- * - Introduced two `useRef` hooks: `interactionTargetId` to store the ID of a
- * block when an interaction begins, and `wasMoved` to act as a flag that is
- * set to `true` if a drag or resize event occurs.
- * - The block wrapper's `onMouseDown` now simply sets these two refs to their
- * initial state (`block.id` and `false`, respectively).
- * - The `GridLayout` component's `onDrag` and `onResize` props are now used to
- * set the `wasMoved` ref to `true` the moment any movement is detected.
- * - A component-level `useEffect` hook now manages a single global `mouseup`
- * listener. When the mouse is released, this listener checks if the
- * `wasMoved` flag is still `false`. If it is, the interaction is classified
- * as a "click," and the `setSelectedBlockId` action is dispatched.
- * - This new approach is more robust as it works *with* the lifecycle of the
- * grid library's events instead of competing with them.
+ * - The old `useEffect`-based global mouseup listener and associated refs have been removed.
+ * - The component now uses the `onDragStart` and `onDragStop` props from `GridLayout`.
+ * - On `onDragStart`, we record the original layout of the block being interacted with
+ * in a `useRef` hook. This serves as our "before" snapshot.
+ * - On `onDragStop`, which fires reliably after any interaction, we compare the final
+ * layout properties (`x`, `y`) of the moved item with the initial layout stored
+ * in our ref.
+ * - If the `x` and `y` coordinates have not changed, we can definitively conclude
+ * that the interaction was a click, not a drag. Only then do we call
+ * `setSelectedBlockId` to select the block and open the sidebar.
+ * - This approach is superior because it leverages the library's own events and
+ * uses positional data rather than timing, making it immune to issues caused by
+ * minor mouse jitter.
  */
-import { useMemo, type FC, useRef, useEffect } from 'react';
-import GridLayout from 'react-grid-layout';
+import { useMemo, type FC, useRef } from 'react';
+import GridLayout, { type Layout } from 'react-grid-layout';
 import {
     TransformWrapper,
     TransformComponent,
@@ -72,29 +71,8 @@ const ScaledGridLayout: FC = () => {
         transformState: { scale },
     } = useTransformContext();
 
-    // --- REFS FOR CLICK VS. DRAG DETECTION ---
-    const interactionTargetId = useRef<string | null>(null);
-    const wasMoved = useRef(false);
-
-    // --- EFFECT FOR GLOBAL MOUSEUP LISTENER ---
-    useEffect(() => {
-        const handleMouseUp = () => {
-            // If the mouse is released after an interaction that didn't involve movement...
-            if (!wasMoved.current && interactionTargetId.current) {
-                // ...it's a click. Select the block if it's not already selected.
-                if (selectedBlockId !== interactionTargetId.current) {
-                    setSelectedBlockId(interactionTargetId.current);
-                }
-            }
-            // Reset for the next interaction.
-            interactionTargetId.current = null;
-        };
-
-        window.addEventListener('mouseup', handleMouseUp);
-        return () => {
-            window.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [selectedBlockId, setSelectedBlockId]);
+    // --- REF FOR CLICK VS. DRAG DETECTION ---
+    const dragStartLayout = useRef<Layout | null>(null);
 
     const gridLayout = useMemo(
         () =>
@@ -108,6 +86,24 @@ const ScaledGridLayout: FC = () => {
         [blocks],
     );
 
+    // --- EVENT HANDLERS FOR CLICK DETECTION ---
+    const handleDragStart = (_layout: Layout[], oldItem: Layout) => {
+        // Store the initial state of the item being dragged.
+        dragStartLayout.current = oldItem;
+    };
+
+    const handleDragStop = (_layout: Layout[], _oldItem: Layout, newItem: Layout) => {
+        const start = dragStartLayout.current;
+        if (start && start.x === newItem.x && start.y === newItem.y) {
+            // If the item's x/y position hasn't changed, it was a click.
+            if (selectedBlockId !== newItem.i) {
+                setSelectedBlockId(newItem.i);
+            }
+        }
+        // Clear the ref for the next interaction.
+        dragStartLayout.current = null;
+    };
+
     if (!characterClass) return null;
 
     return (
@@ -119,8 +115,8 @@ const ScaledGridLayout: FC = () => {
                 rowHeight={PAGE_ROW_HEIGHT}
                 width={pageWidth}
                 onLayoutChange={handleLayoutChange}
-                onDrag={() => (wasMoved.current = true)}
-                onResize={() => (wasMoved.current = true)}
+                onDragStart={handleDragStart}
+                onDragStop={handleDragStop}
                 preventCollision={true}
                 compactType={null}
                 isDraggable={true}
@@ -135,15 +131,7 @@ const ScaledGridLayout: FC = () => {
                     }`;
 
                     return (
-                        <div
-                            key={block.id}
-                            className={wrapperClass}
-                            onMouseDown={() => {
-                                // On mouse down, note the target and reset the movement flag.
-                                interactionTargetId.current = block.id;
-                                wasMoved.current = false;
-                            }}
-                        >
+                        <div key={block.id} className={wrapperClass}>
                             <SheetBlockRenderer block={block} characterClass={characterClass} />
                         </div>
                     );
@@ -201,7 +189,6 @@ export const PageCanvas: FC = () => {
                 limitToBounds={false}
                 panning={{
                     activationKeys: ['Meta', 'Shift'],
-                    // FIX: Removing the wrapper from the exclusion list is the key.
                     excluded: ['input', 'button', 'textarea', 'select', 'react-resizable-handle'],
                 }}
                 wheel={{ step: 0.1 }}
