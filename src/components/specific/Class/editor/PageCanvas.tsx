@@ -1,24 +1,25 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): cancel drag on wrapper to restore onClick selection
+ * COMMIT: fix(class-sheet): implement draggable handle to resolve event conflicts
  *
  * Rationale:
- * The properties sidebar was not opening on click due to an aggressive event
- * capture by `react-grid-layout`. Any `mousedown` on a block was immediately
- * treated as the start of a drag, preventing the `onClick` event from ever
- * firing. Previous attempts to fix this with `onMouseDown` and
- * `stopPropagation` broke the drag functionality entirely.
+ * A fundamental event conflict between 'click-to-select' and 'drag-to-move'
+ * was causing multiple UI bugs, including the inability to drag blocks and
+ * the failure of the properties sidebar to render its content correctly.
+ * The `react-grid-layout` library was capturing all mouse events on the block,
+ * preventing clicks from registering properly.
  *
  * Implementation Details:
- * - The `.sheet-block-wrapper` class name has been added to the `draggableCancel`
- * prop of the `<GridLayout>` component. This instructs the library to ignore
- * drag attempts that start on the block's main body, preserving the click event.
- * - The event handler on the wrapper `div` has been reverted from `onMouseDown`
- * back to a standard `onClick`.
- * - This change correctly separates the click-to-select and drag-to-move
- * functionalities, resolving the bug in a robust way that works with the
- * library's intended design.
+ * - A dedicated drag handle has been implemented. The `draggableHandle` prop
+ * on the `<GridLayout>` component is now set to `.sheet-block__drag-handle`.
+ * - A `div` with this class has been added to the block's JSX, serving as the
+ * exclusive grab point for dragging. It uses existing CSS to be visible.
+ * - The `draggableCancel` prop has been simplified, as we no longer need to
+ * blacklist the entire block wrapper.
+ * - This change provides a clean, unambiguous separation between clicking on a
+ * block to select it and grabbing a specific handle to move it, resolving
+ * all associated bugs.
  */
 import { useMemo, type FC } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -28,7 +29,7 @@ import {
     useControls,
     useTransformContext,
 } from 'react-zoom-pan-pinch';
-import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { GripVertical, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store.ts';
 import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer.tsx';
 
@@ -93,8 +94,10 @@ const ScaledGridLayout: FC = () => {
                 compactType={null}
                 isDraggable={true}
                 isResizable={true}
-                // FIX: Add the wrapper class to the cancel list to enable clicking.
-                draggableCancel=".sheet-block-wrapper, .sheet-block__content, input, textarea, button"
+                // FIX: Define a specific drag handle to separate click/drag events.
+                draggableHandle=".sheet-block__drag-handle"
+                // Let the handle control dragging; cancel on interactive elements.
+                draggableCancel=".sheet-block__content, input, textarea, button"
                 transformScale={scale}
             >
                 {blocks.map((block) => {
@@ -107,7 +110,6 @@ const ScaledGridLayout: FC = () => {
                         <div
                             key={block.id}
                             className={wrapperClass}
-                            // FIX: Revert to onClick, which will now fire correctly.
                             onClick={(e) => {
                                 e.stopPropagation();
                                 if (selectedBlockId !== block.id) {
@@ -115,6 +117,11 @@ const ScaledGridLayout: FC = () => {
                                 }
                             }}
                         >
+                            {/* NEW: This is the dedicated handle for dragging */}
+                            <div className="sheet-block__drag-handle">
+                                <GripVertical size={18} />
+                            </div>
+
                             <SheetBlockRenderer block={block} characterClass={characterClass} />
                         </div>
                     );
@@ -172,14 +179,7 @@ export const PageCanvas: FC = () => {
                 limitToBounds={false}
                 panning={{
                     activationKeys: ['Meta', 'Shift'],
-                    excluded: [
-                        'input',
-                        'button',
-                        'textarea',
-                        'select',
-                        'react-resizable-handle',
-                        'sheet-block-wrapper',
-                    ],
+                    excluded: ['input', 'button', 'textarea', 'select', 'react-resizable-handle'],
                 }}
                 wheel={{ step: 0.1 }}
                 doubleClick={{ disabled: true }}
