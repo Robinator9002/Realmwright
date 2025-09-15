@@ -1,31 +1,29 @@
 // src/pages/views/AbilityTreeEditorPage.tsx
 
 /**
- * COMMIT: fix(ability-tree): ensure edge click correctly triggers edit modal
- *
- * This commit resolves a critical bug where clicking an edge to edit it did
- * not open the PrerequisiteModal.
+ * COMMIT: refactor(ability-tree): make AbilityTreeEditorPage responsible for its own data fetching
  *
  * Rationale:
- * The root cause was a state-to-UI disconnect. The `selectedEdge` state was
- * being set correctly in the context, but the `AbilityTreeEditorPage` was not
- * reacting to this change to set its local `isModalOpen` state to true.
+ * To complete the architectural consolidation, this page component is being
+ * refactored to be self-sufficient. It no longer receives a pre-fetched
+ * `AbilityTree` object but instead takes a `treeId` and fetches its own data.
  *
  * Implementation Details:
- * 1.  **State Synchronization:**
- * - A new `useEffect` hook has been added to the `AbilityTreeEditor` component.
- * - This effect listens for changes to both `pendingConnection` (for creation)
- * and `selectedEdge` (for editing). If either exists, it sets
- * `isModalOpen` to `true`, ensuring the modal always appears when needed.
- * 2.  **Centralized Modal Close Logic:**
- * - A new `handleModalClose` function now handles all modal closing logic.
- * - It correctly resets `isModalOpen`, `pendingConnection`, and `selectedEdge`,
- * preventing stale state and ensuring the modal behaves predictably.
+ * - The props for `AbilityTreeEditorPage` have been changed from `tree` to `treeId`.
+ * - The component now contains its own `useEffect` hook to call
+ * `getAbilityTreeById` when it mounts.
+ * - It manages its own loading and error states, providing feedback to the user
+ * while the data is being fetched.
+ * - The fetched `AbilityTree` object is then used to initialize the
+ * `AbilityTreeEditorProvider`, completing the data flow.
  */
 import { useState, useEffect, type FC, useCallback } from 'react';
 import { useWorld } from '../../context/feature/WorldContext';
 import type { AbilityTree } from '../../db/types';
-import { getAbilityTreesForWorld } from '../../db/queries/character/ability.queries';
+import {
+    getAbilityTreesForWorld,
+    getAbilityTreeById,
+} from '../../db/queries/character/ability.queries';
 import { ReactFlowProvider } from 'reactflow';
 
 import {
@@ -69,9 +67,7 @@ const AbilityTreeEditor: FC<{
         fetchAvailableTrees();
     }, [selectedWorld, currentTree.id]);
 
-    // NEW: This effect synchronizes the modal's visibility with the context state.
     useEffect(() => {
-        // If a new connection is pending OR an existing edge is selected, open the modal.
         if (pendingConnection || selectedEdge) {
             setIsModalOpen(true);
         }
@@ -82,12 +78,10 @@ const AbilityTreeEditor: FC<{
             if (pendingConnection) {
                 handleConnect(pendingConnection, type);
             }
-            // The modal close logic will handle resetting state.
         },
         [handleConnect, pendingConnection],
     );
 
-    // NEW: Centralized handler for closing the modal and resetting all related state.
     const handleModalClose = () => {
         setIsModalOpen(false);
         setPendingConnection(null);
@@ -126,10 +120,47 @@ const AbilityTreeEditor: FC<{
     );
 };
 
-export const AbilityTreeEditorPage: FC<{ tree: AbilityTree; onClose: () => void }> = ({
-    tree,
+// The page now accepts a treeId and fetches the data itself.
+export const AbilityTreeEditorPage: FC<{ treeId: number; onClose: () => void }> = ({
+    treeId,
     onClose,
 }) => {
+    const [tree, setTree] = useState<AbilityTree | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchTree = async () => {
+            try {
+                const fetchedTree = await getAbilityTreeById(treeId);
+                if (fetchedTree) {
+                    setTree(fetchedTree);
+                } else {
+                    setError(`Ability Tree with ID ${treeId} not found.`);
+                }
+            } catch (err) {
+                setError('Failed to load the ability tree.');
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchTree();
+    }, [treeId]);
+
+    if (isLoading) {
+        return <p>Loading Editor...</p>;
+    }
+
+    if (error) {
+        return <p className="error-message">{error}</p>;
+    }
+
+    if (!tree) {
+        return <p>Could not load ability tree data.</p>;
+    }
+
     return (
         <AbilityTreeEditorProvider initialTree={tree}>
             <AbilityTreeEditor onClose={onClose} />
