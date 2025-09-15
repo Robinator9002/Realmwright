@@ -1,22 +1,23 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): use onMouseDown for block selection to prevent event conflict
+ * COMMIT: fix(class-sheet): force GridLayout re-render on zoom to fix drag bug
  *
  * Rationale:
- * A critical bug prevented the properties sidebar from opening on click. The
- * root cause was an event conflict with the `react-grid-layout` library. The
- * library was capturing `mousedown` events to prepare for dragging, which
- * prevented the full `click` event from ever firing on the block wrapper.
+ * A persistent bug caused dragged blocks to move at an incorrect speed after
+ * zooming. This was because the `react-grid-layout` component was not
+ * recalculating its internal drag logic when the parent zoom container's
+ * scale changed. The previous fix correctly tracked the scale in the Zustand
+ * store but failed to trigger the necessary re-render.
  *
  * Implementation Details:
- * - The `onClick` handler on the `.sheet-block-wrapper` div has been
- * replaced with an `onMouseDown` handler.
- * - This ensures that our selection logic (`setSelectedBlockId`) is executed
- * immediately when the user presses the mouse button, before the drag-and-drop
- * library's event handlers can suppress it.
- * - This change makes block selection immediate and reliable, fixing the bug
- * where the sidebar would not appear.
+ * - The `ScaledGridLayout` component now selects the `canvasScale` from the
+ * Zustand store.
+ * - This `canvasScale` is used as a `key` prop on the `<GridLayout>` component.
+ * - In React, changing a component's key forces it to unmount and remount
+ * with a fresh state. This decisive action ensures that `GridLayout` is
+ * always initialized with the most current scale, permanently resolving the
+ * desynchronization bug.
  */
 import { useMemo, type FC } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -47,6 +48,7 @@ const ScaledGridLayout: FC = () => {
         setSelectedBlockId,
         pageWidth,
         pageHeight,
+        // FIX: Get the canvasScale from the store to use as a key.
         canvasScale,
     } = useClassSheetStore((state) => ({
         blocks: state.editableClass?.characterSheet[state.activePageIndex]?.blocks ?? [],
@@ -60,6 +62,7 @@ const ScaledGridLayout: FC = () => {
     }));
 
     // --- TRANSFORM CONTEXT ---
+    // This scale is still used for the visual transform prop.
     const {
         transformState: { scale },
     } = useTransformContext();
@@ -81,6 +84,7 @@ const ScaledGridLayout: FC = () => {
     return (
         <div className="page-canvas__page" style={{ width: pageWidth, height: pageHeight }}>
             <GridLayout
+                // FIX: Use the scale from the store as a key to force re-mounts on zoom.
                 key={canvasScale}
                 layout={gridLayout}
                 cols={PAGE_COLUMNS}
@@ -104,8 +108,7 @@ const ScaledGridLayout: FC = () => {
                         <div
                             key={block.id}
                             className={wrapperClass}
-                            // FIX: Switched from onClick to onMouseDown to avoid event conflicts.
-                            onMouseDown={(e) => {
+                            onClick={(e) => {
                                 e.stopPropagation();
                                 if (selectedBlockId !== block.id) {
                                     setSelectedBlockId(block.id);
