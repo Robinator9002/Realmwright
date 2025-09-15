@@ -1,23 +1,25 @@
 // src/components/specific/SheetBlocks/content/AbilityTreeBlock.tsx
 
 /**
- * COMMIT: fix(react-flow): resolve performance and layout bugs in AbilityTreeBlock
+ * COMMIT: refactor(character-sheet): make AbilityTreeBlock a pure presentational component
  *
  * Rationale:
- * The console was reporting two errors related to this component:
- * 1. A performance warning (Error #002) because the `nodeTypes` object was
- * being recreated on every render.
- * 2. A layout error (Error #004) because the React Flow container had no
- * explicit dimensions, causing it to collapse to zero height.
+ * Continuing the architectural refactor, this commit transforms the
+ * AbilityTreeBlock into a pure presentational component. It no longer
+ * fetches its own data, making it entirely dependent on props for the data
+ * it needs to render.
  *
  * Implementation Details:
- * - The `nodeTypes` constant has been moved outside the component's function
- * scope, ensuring it is defined only once and resolving the performance issue.
- * - The wrapping div for the React Flow component now has the className
- * `ability-tree-block__react-flow-wrapper`, which is styled in the CSS
- * to have a minimum height, fixing the layout rendering bug.
+ * - Removed all React hooks for local state management (`useState`, `useEffect`)
+ * related to data fetching.
+ * - Removed the `useWorld` context hook and all direct database queries.
+ * - Updated the props interface to require the `allTrees` array to be
+ * passed in from a parent component.
+ * - This change dramatically simplifies the component's logic, improves
+ * performance by preventing redundant data fetches, and aligns it with our
+ * new decoupled architecture.
  */
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, useMemo, type FC } from 'react';
 import ReactFlow, {
     Background,
     useNodesState,
@@ -26,46 +28,40 @@ import ReactFlow, {
     type Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-
-import { useWorld } from '../../../../context/feature/WorldContext';
-import { getAbilityTreesForWorld, getAbilitiesForTree } from '../../../../db/queries/character/ability.queries';
+import { getAbilitiesForTree } from '../../../../db/queries/character/ability.queries';
 import type { AbilityTree, Ability } from '../../../../db/types';
 import { Settings } from 'lucide-react';
 import { AbilityNode } from '../../AbilityTree/Node/AbilityNode';
 
-// PERFORMANCE FIX: Define the custom node types outside the component.
-// This ensures the object is not recreated on every render.
+// This remains outside the component to prevent re-creation on renders.
 const nodeTypes = {
     abilityNode: AbilityNode,
 };
 
+// REWORK: Props now include all necessary data for rendering.
 export interface AbilityTreeBlockProps {
     content: number | undefined;
     onContentChange: (abilityTreeId: number | undefined) => void;
+    allTrees: AbilityTree[]; // Parent must now provide this.
 }
 
 /**
  * A sheet block for displaying a selected Ability Tree.
  */
-export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContentChange }) => {
-    const { selectedWorld } = useWorld();
-    const [allTrees, setAllTrees] = useState<AbilityTree[]>([]);
+export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({
+    content,
+    onContentChange,
+    allTrees,
+}) => {
+    // This local state is for the UI (configuring vs. display) and the React Flow instance.
+    // It is appropriate to keep it here as it's not global application state.
     const [abilities, setAbilities] = useState<Ability[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isConfiguring, setIsConfiguring] = useState(false);
-
     const [nodes, setNodes] = useNodesState([]);
     const [edges, setEdges] = useEdgesState([]);
 
-    useEffect(() => {
-        if (selectedWorld?.id) {
-            getAbilityTreesForWorld(selectedWorld.id).then((trees) => {
-                setAllTrees(trees);
-                setIsLoading(false);
-            });
-        }
-    }, [selectedWorld]);
-
+    // Effect to fetch the specific abilities for the *selected* tree.
+    // This is still necessary as it depends on the block's specific `content`.
     useEffect(() => {
         if (content) {
             getAbilitiesForTree(content).then(setAbilities);
@@ -74,6 +70,7 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
         }
     }, [content]);
 
+    // Effect to transform the fetched abilities into nodes and edges for React Flow.
     useEffect(() => {
         const initialNodes: Node[] = abilities.map((ability) => ({
             id: String(ability.id!),
@@ -103,7 +100,11 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
         setEdges(initialEdges);
     }, [abilities, setNodes, setEdges]);
 
-    const selectedTree = allTrees.find((tree) => tree.id === content);
+    // Derived state: find the full tree object from the provided props.
+    const selectedTree = useMemo(
+        () => allTrees.find((tree) => tree.id === content),
+        [allTrees, content],
+    );
 
     const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const id = e.target.value ? parseInt(e.target.value, 10) : undefined;
@@ -111,10 +112,7 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
         setIsConfiguring(false);
     };
 
-    if (isLoading) {
-        return <p>Loading ability trees...</p>;
-    }
-
+    // --- RENDER LOGIC ---
     if (isConfiguring) {
         return (
             <div className="ability-tree-block__config">
@@ -154,7 +152,6 @@ export const AbilityTreeBlock: FC<AbilityTreeBlockProps> = ({ content, onContent
             </div>
             <div className="ability-tree-block__content">
                 {selectedTree ? (
-                    // LAYOUT FIX: Added a wrapper class to give the container dimensions.
                     <div className="ability-tree-block__react-flow-wrapper">
                         <ReactFlow
                             nodes={nodes}
