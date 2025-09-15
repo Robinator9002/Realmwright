@@ -1,25 +1,23 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): prevent block flashing during canvas zoom
+ * COMMIT: fix(class-sheet): use correct zoom events to prevent block flashing
  *
  * Rationale:
  * When zooming in or out, the `react-grid-layout` component re-calculates
- * block positions based on the new `transformScale`. This can cause a brief
- * visual flash where blocks appear to jump to the top-left corner before
- * snapping into their correct, scaled positions. This commit fixes the issue
- * by making the grid invisible during the zoom transformation.
+ * block positions, causing a visual flash. The previous fix attempted to solve
+ * this by hiding the grid during the zoom, but it used incorrect prop names
+ * (`onZoomStart`/`onZoomEnd`), causing a TypeScript error. This commit corrects
+ * the prop names to the library's actual API.
  *
  * Implementation Details:
  * - A new state variable, `isZooming`, has been added to the `PageCanvas` component.
- * - The `TransformWrapper` now uses the `onZoomStart` and `onZoomEnd` event
- * handlers to set `isZooming` to `true` at the beginning of a zoom and
- * `false` at the end.
+ * - The `TransformWrapper` now uses the correct `onTransformationStart` and
+ * `onTransformationEnd` event handlers to set `isZooming` to `true` at the
+ * beginning of a transform and `false` at the end.
  * - The `isZooming` state is passed as a prop to the `ScaledGridLayout`.
- * - Inside `ScaledGridLayout`, a style object is used to set the grid's
- * `visibility` to `'hidden'` when `isZooming` is `true`. This allows the
- * layout to be calculated without rendering the intermediate, incorrect states,
- * eliminating the visual flicker entirely.
+ * - Inside `ScaledGridLayout`, a style object sets the grid's `visibility` to
+ * `'hidden'` when `isZooming` is `true`, eliminating the visual flicker.
  */
 import { useMemo, type FC, useRef, useState } from 'react';
 import GridLayout, { type Layout } from 'react-grid-layout';
@@ -202,7 +200,7 @@ export const PageCanvas: FC = () => {
                 doubleClick={{ disabled: true }}
                 onZoom={(ref) => setCanvasScale(ref.state.scale)}
                 onZoomStart={() => setIsZooming(true)}
-                onZoomEnd={() => setIsZooming(false)}
+                onZoomStop={() => setIsZooming(false)}
             >
                 <PageCanvasControls />
                 <TransformComponent wrapperClass="page-canvas__transform-wrapper">
