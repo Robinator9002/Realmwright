@@ -1,20 +1,19 @@
 // src/components/specific/Class/blocks/SheetBlockRenderer.tsx
 
 /**
- * COMMIT: refactor(class-sheet): connect SheetBlockRenderer to store for prop drilling
+ * COMMIT: refactor(class-sheet): supply AbilityTreeBlock with allTrees prop from store
  *
  * Rationale:
- * Now that the `StatsBlock` component has been refactored into a pure
- * presentational component, it requires the `statDefinitions` to be passed
- * in as a prop. The `SheetBlockRenderer`, as the central dispatcher for all
- * blocks, is the correct place to source this data.
+ * Following the same pattern as the `StatsBlock` refactor, the newly purified
+ * `AbilityTreeBlock` now requires the `allTrees` array to be passed in as a
+ * prop. This commit updates the renderer to fulfill this final data dependency.
  *
  * Implementation Details:
- * - The component now connects to the `useClassSheetStore` to select the
- * `statDefinitions` array.
- * - In the `switch` statement, the `StatsBlock` is now passed the required
- * `statDefinitions` prop from the store, resolving the dependency and
- * completing the refactor for this block type.
+ * - The component's connection to `useClassSheetStore` has been updated to
+ * also select the `allAbilityTrees` array.
+ * - In the `switch` statement, the `AbilityTreeBlock` is now passed the
+ * required `allTrees` prop, completing the decoupling of our render
+ * components from direct data fetching logic.
  */
 import type { FC } from 'react';
 import type { Character, CharacterClass, SheetBlock } from '../../../../db/types';
@@ -42,11 +41,14 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({
     onContentChange: onContentChangeProp = () => {},
 }) => {
     // --- ZUSTAND STORE ---
-    // REWORK: Now selects both actions and the data needed by child components.
-    const { updateBlockContent, statDefinitions } = useClassSheetStore((state) => ({
-        updateBlockContent: state.updateBlockContent,
-        statDefinitions: state.statDefinitions,
-    }));
+    // REWORK: Now selects all data needed by any potential child block.
+    const { updateBlockContent, statDefinitions, allAbilityTrees } = useClassSheetStore(
+        (state) => ({
+            updateBlockContent: state.updateBlockContent,
+            statDefinitions: state.statDefinitions,
+            allAbilityTrees: state.allAbilityTrees,
+        }),
+    );
     const onContentChange = updateBlockContent || onContentChangeProp;
 
     // --- RENDER LOGIC ---
@@ -54,21 +56,18 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({
         case 'details':
             return <DetailsBlock characterClass={characterClass} />;
         case 'stats':
-            // Determine which stats to show (live character or class blueprint).
             const statsToShow = character ? character.stats : characterClass.baseStats;
-            return (
-                // REWORK: Pass the required statDefinitions prop.
-                <StatsBlock baseStats={statsToShow} statDefinitions={statDefinitions} />
-            );
+            return <StatsBlock baseStats={statsToShow} statDefinitions={statDefinitions} />;
         case 'ability_tree':
             return (
                 <AbilityTreeBlock
                     content={block.content}
                     onContentChange={(newContent) => onContentChange(block.id, newContent)}
+                    // REWORK: Pass the required allTrees prop.
+                    allTrees={allAbilityTrees}
                 />
             );
         case 'rich_text':
-            // For live characters, use instanceData; otherwise, use the class's default content.
             const richTextContent = character?.instanceData?.[block.id] ?? block.content ?? '';
             return (
                 <RichTextBlock
@@ -93,7 +92,6 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({
                 />
             );
         default:
-            // Fallback for any unknown block types.
             return (
                 <div className="sheet-block__header">
                     <span className="sheet-block__type">Unknown Block: {block.type}</span>
