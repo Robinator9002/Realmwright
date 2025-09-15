@@ -1,31 +1,27 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): implement robust click detection using onDragStop
+ * COMMIT: fix(class-sheet): prevent block flashing during canvas zoom
  *
  * Rationale:
- * Previous attempts to differentiate clicks from drags using timers or global
- * mouseup listeners were unreliable. They competed with the internal event
- * handling of `react-grid-layout`, where even a 1-pixel mouse movement can
- * initiate a drag, preventing a "click" from being registered. This commit
- * implements a more robust solution that works *with* the library's event cycle.
+ * When zooming in or out, the `react-grid-layout` component re-calculates
+ * block positions based on the new `transformScale`. This can cause a brief
+ * visual flash where blocks appear to jump to the top-left corner before
+ * snapping into their correct, scaled positions. This commit fixes the issue
+ * by making the grid invisible during the zoom transformation.
  *
  * Implementation Details:
- * - The old `useEffect`-based global mouseup listener and associated refs have been removed.
- * - The component now uses the `onDragStart` and `onDragStop` props from `GridLayout`.
- * - On `onDragStart`, we record the original layout of the block being interacted with
- * in a `useRef` hook. This serves as our "before" snapshot.
- * - On `onDragStop`, which fires reliably after any interaction, we compare the final
- * layout properties (`x`, `y`) of the moved item with the initial layout stored
- * in our ref.
- * - If the `x` and `y` coordinates have not changed, we can definitively conclude
- * that the interaction was a click, not a drag. Only then do we call
- * `setSelectedBlockId` to select the block and open the sidebar.
- * - This approach is superior because it leverages the library's own events and
- * uses positional data rather than timing, making it immune to issues caused by
- * minor mouse jitter.
+ * - A new state variable, `isZooming`, has been added to the `PageCanvas` component.
+ * - The `TransformWrapper` now uses the `onZoomStart` and `onZoomEnd` event
+ * handlers to set `isZooming` to `true` at the beginning of a zoom and
+ * `false` at the end.
+ * - The `isZooming` state is passed as a prop to the `ScaledGridLayout`.
+ * - Inside `ScaledGridLayout`, a style object is used to set the grid's
+ * `visibility` to `'hidden'` when `isZooming` is `true`. This allows the
+ * layout to be calculated without rendering the intermediate, incorrect states,
+ * eliminating the visual flicker entirely.
  */
-import { useMemo, type FC, useRef } from 'react';
+import { useMemo, type FC, useRef, useState } from 'react';
 import GridLayout, { type Layout } from 'react-grid-layout';
 import {
     TransformWrapper,
@@ -41,10 +37,14 @@ import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer.tsx';
 const PAGE_COLUMNS = 48;
 const PAGE_ROW_HEIGHT = 10;
 
+interface ScaledGridLayoutProps {
+    isZooming: boolean;
+}
+
 /**
  * An internal component that has access to the zoom/pan context.
  */
-const ScaledGridLayout: FC = () => {
+const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
     // --- ZUSTAND STORE ---
     const {
         blocks,
@@ -106,8 +106,14 @@ const ScaledGridLayout: FC = () => {
 
     if (!characterClass) return null;
 
+    const gridStyle = {
+        width: pageWidth,
+        height: pageHeight,
+        visibility: isZooming ? 'hidden' : 'visible',
+    } as const;
+
     return (
-        <div className="page-canvas__page" style={{ width: pageWidth, height: pageHeight }}>
+        <div className="page-canvas__page" style={gridStyle}>
             <GridLayout
                 key={canvasScale}
                 layout={gridLayout}
@@ -169,6 +175,7 @@ const PageCanvasControls: FC = () => {
  * The main PageCanvas component that wraps the zoomable/pannable grid.
  */
 export const PageCanvas: FC = () => {
+    const [isZooming, setIsZooming] = useState(false);
     const { hasPages, setCanvasScale } = useClassSheetStore((state) => ({
         hasPages: (state.editableClass?.characterSheet.length ?? 0) > 0,
         setCanvasScale: state.setCanvasScale,
@@ -194,10 +201,12 @@ export const PageCanvas: FC = () => {
                 wheel={{ step: 0.1 }}
                 doubleClick={{ disabled: true }}
                 onZoom={(ref) => setCanvasScale(ref.state.scale)}
+                onZoomStart={() => setIsZooming(true)}
+                onZoomEnd={() => setIsZooming(false)}
             >
                 <PageCanvasControls />
                 <TransformComponent wrapperClass="page-canvas__transform-wrapper">
-                    <ScaledGridLayout />
+                    <ScaledGridLayout isZooming={isZooming} />
                 </TransformComponent>
             </TransformWrapper>
         </div>
