@@ -1,28 +1,37 @@
 // src/stores/classSheetEditor.store.ts
 
 /**
- * COMMIT: fix(class-sheet): correct update logic for Immer compatibility
+ * COMMIT: refactor(class-sheet): centralize data fetching in Zustand store
  *
  * Rationale:
- * A flaw was identified in the update actions (`updateBlockLayout`,
- * `updateBlockContent`). These actions were using `get().selectedBlock` to
- * retrieve a block from the original state and then attempting to mutate it
- * inside an Immer `set` call. This is an anti-pattern, as Immer only tracks
- * mutations made to its `draft` object.
+ * To establish a single source of truth and improve data consistency, all
+ * data fetching required for the class sheet editor is being moved into the
+ * store's `init` action. Previously, individual components like
+ * `StatsPropsEditor` and `AbilityTreePropsEditor` were responsible for their
+ * own data fetching, leading to scattered and redundant logic.
  *
  * Implementation Details:
- * - The `updateBlockLayout` and `updateBlockContent` actions have been
- * rewritten.
- * - They now correctly find the target block *within the Immer draft state*
- * before applying mutations. This ensures that changes are properly tracked
- * by Immer and the state updates immutably and correctly.
- * - The `selectedBlock` getter remains, as it is perfectly safe and efficient
- * for *reading* derived state within components.
+ * - The store's state has been expanded to include `statDefinitions` and
+ * `abilityTrees` arrays.
+ * - The `init` action is now `async`. Upon initialization, it not only sets
+ * the `editableClass` but also fetches all stat definitions and ability trees
+ * for the class's world.
+ * - This change ensures that all necessary data is loaded once, centrally,
+ * and made available to all child components through the store, eliminating
+ * the need for them to perform their own database queries.
  */
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Layout } from 'react-grid-layout';
-import type { CharacterClass, SheetBlock, SheetPage } from '../db/types';
+import type {
+    CharacterClass,
+    SheetBlock,
+    SheetPage,
+    StatDefinition,
+    AbilityTree,
+} from '../db/types';
+import { getStatDefinitionsForWorld } from '../db/queries/character/stat.queries';
+import { getAbilityTreesForWorld } from '../db/queries/character/ability.queries';
 
 // --- STATE ---
 interface State {
@@ -31,14 +40,16 @@ interface State {
     selectedBlockId: string | null;
     editableClass: CharacterClass | null;
     selectedBlock: SheetBlock | null;
-    // NEW: Add page dimensions to the store's state.
     pageWidth: number;
     pageHeight: number;
+    // NEW: Add state to hold world-specific definitions.
+    statDefinitions: StatDefinition[];
+    abilityTrees: AbilityTree[];
 }
 
 // --- ACTIONS ---
 interface Actions {
-    init: (characterClass: CharacterClass) => void;
+    init: (characterClass: CharacterClass) => Promise<void>; // Now async
     addBlock: (blockType: SheetBlock['type']) => void;
     deleteBlock: (blockId: string) => void;
     handleLayoutChange: (newLayout: Layout[]) => void;
@@ -48,7 +59,6 @@ interface Actions {
     addPage: () => void;
     deletePage: (pageIndex: number) => void;
     renamePage: (pageIndex: number, newName: string) => void;
-    // NEW: Add an action to update page dimensions.
     setPageDimensions: (dimensions: { width: number; height: number }) => void;
     setIsSaving: (isSaving: boolean) => void;
     setActivePageIndex: (index: number) => void;
@@ -63,9 +73,11 @@ export const useClassSheetStore = create(
         activePageIndex: 0,
         selectedBlockId: null,
         editableClass: null,
-        // NEW: Initialize page dimensions with default values.
         pageWidth: 1000,
         pageHeight: 1414,
+        // NEW: Initialize new state properties.
+        statDefinitions: [],
+        abilityTrees: [],
         // The derived selectedBlock is calculated from other state pieces.
         get selectedBlock() {
             const { editableClass, activePageIndex, selectedBlockId } = get();
@@ -78,12 +90,22 @@ export const useClassSheetStore = create(
         },
 
         // --- ACTIONS ---
-        init: (characterClass) => {
+        // REWORK: `init` is now an async action that fetches all required data.
+        init: async (characterClass) => {
+            // Fetch world-specific data in parallel for efficiency.
+            const [stats, trees] = await Promise.all([
+                getStatDefinitionsForWorld(characterClass.worldId),
+                getAbilityTreesForWorld(characterClass.worldId),
+            ]);
+
             set((state) => {
+                // Use a deep copy to prevent accidental mutation of the original object.
                 state.editableClass = JSON.parse(JSON.stringify(characterClass));
+                state.statDefinitions = stats;
+                state.abilityTrees = trees;
+                // Reset UI state
                 state.activePageIndex = 0;
                 state.selectedBlockId = null;
-                // Reset dimensions on init, just in case.
                 state.pageWidth = 1000;
                 state.pageHeight = 1414;
             });
@@ -91,7 +113,6 @@ export const useClassSheetStore = create(
         setIsSaving: (isSaving) => set({ isSaving }),
         setActivePageIndex: (index) => set({ activePageIndex: index, selectedBlockId: null }),
         setSelectedBlockId: (blockId) => set({ selectedBlockId: blockId }),
-        // NEW: Implement the action to update page dimensions.
         setPageDimensions: (dimensions) => {
             set((state) => {
                 state.pageWidth = dimensions.width;
