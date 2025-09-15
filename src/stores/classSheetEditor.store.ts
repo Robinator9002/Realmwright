@@ -36,7 +36,6 @@ interface State {
     activePageIndex: number;
     selectedBlockId: string | null;
     editableClass: CharacterClass | null;
-    selectedBlock: SheetBlock | null;
     pageWidth: number;
     pageHeight: number;
     // Data fetched for the editor
@@ -66,7 +65,7 @@ interface Actions {
 
 // --- STORE ---
 export const useClassSheetStore = create(
-    immer<State & Actions>((set, get) => ({
+    immer<State & Actions>((set) => ({
         // --- INITIAL STATE ---
         isSaving: false,
         activePageIndex: 0,
@@ -77,7 +76,8 @@ export const useClassSheetStore = create(
         statDefinitions: [],
         allAbilityTrees: [],
         canvasScale: 1,
-        // The derived selectedBlock is calculated from other state pieces.
+        // REMOVED: The derived selectedBlock getter is no longer needed.
+        /*
         get selectedBlock() {
             const { editableClass, activePageIndex, selectedBlockId } = get();
             if (!editableClass || !selectedBlockId) return null;
@@ -87,6 +87,7 @@ export const useClassSheetStore = create(
                 ) || null
             );
         },
+        */
 
         // --- ACTIONS ---
         init: async (characterClass) => {
