@@ -1,23 +1,23 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): resolve stale zoom level on block drag
+ * COMMIT: fix(class-sheet): force GridLayout re-render on zoom to fix drag bug
  *
  * Rationale:
- * A bug was identified where, after zooming, the first drag operation on a
- * block would use the previous zoom level for its calculations, causing a
- * visual disconnect. The `react-grid-layout` component was not re-evaluating
- * its internal drag logic when its `transformScale` prop changed.
+ * A persistent bug caused dragged blocks to move at an incorrect speed after
+ * zooming. This was because the `react-grid-layout` component was not
+ * recalculating its internal drag logic when the parent zoom container's
+ * scale changed. The previous fix correctly tracked the scale in the Zustand
+ * store but failed to trigger the necessary re-render.
  *
  * Implementation Details:
- * - The `GridLayout` component within `ScaledGridLayout` is now assigned a
- * `key` prop that is tied directly to the `scale` value from the zoom context.
- * - When the scale changes, the key changes, forcing React to unmount the old
- * grid and mount a new instance.
- * - This ensures that the grid's internal drag handlers are always
- * initialized with the very latest `transformScale`, completely resolving
- * the state synchronization issue and providing a smooth drag experience at
- * any zoom level.
+ * - The `ScaledGridLayout` component now selects the `canvasScale` from the
+ * Zustand store.
+ * - This `canvasScale` is used as a `key` prop on the `<GridLayout>` component.
+ * - In React, changing a component's key forces it to unmount and remount
+ * with a fresh state. This decisive action ensures that `GridLayout` is
+ * always initialized with the most current scale, permanently resolving the
+ * desynchronization bug.
  */
 import { useMemo, type FC } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -28,8 +28,8 @@ import {
     useTransformContext,
 } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
-import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer';
+import { useClassSheetStore } from '../../../../stores/classSheetEditor.store.ts';
+import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer.tsx';
 
 // --- CONSTANTS ---
 const PAGE_COLUMNS = 48;
@@ -37,7 +37,6 @@ const PAGE_ROW_HEIGHT = 10;
 
 /**
  * An internal component that has access to the zoom/pan context.
- * This is separated to allow `useTransformContext` to be called.
  */
 const ScaledGridLayout: FC = () => {
     // --- ZUSTAND STORE ---
@@ -49,6 +48,8 @@ const ScaledGridLayout: FC = () => {
         setSelectedBlockId,
         pageWidth,
         pageHeight,
+        // FIX: Get the canvasScale from the store to use as a key.
+        canvasScale,
     } = useClassSheetStore((state) => ({
         blocks: state.editableClass?.characterSheet[state.activePageIndex]?.blocks ?? [],
         characterClass: state.editableClass,
@@ -57,15 +58,15 @@ const ScaledGridLayout: FC = () => {
         setSelectedBlockId: state.setSelectedBlockId,
         pageWidth: state.pageWidth,
         pageHeight: state.pageHeight,
+        canvasScale: state.canvasScale,
     }));
 
     // --- TRANSFORM CONTEXT ---
-    // This hook provides the current scale from the TransformWrapper parent.
+    // This scale is still used for the visual transform prop.
     const {
         transformState: { scale },
     } = useTransformContext();
 
-    // Memoize the layout array to prevent unnecessary recalculations.
     const gridLayout = useMemo(
         () =>
             blocks.map((block) => ({
@@ -83,21 +84,19 @@ const ScaledGridLayout: FC = () => {
     return (
         <div className="page-canvas__page" style={{ width: pageWidth, height: pageHeight }}>
             <GridLayout
-                // FIX: Use the zoom scale as the key. This forces the component to
-                // re-mount when the scale changes, ensuring it always uses the
-                // latest `transformScale` for its internal drag calculations.
-                key={scale}
+                // FIX: Use the scale from the store as a key to force re-mounts on zoom.
+                key={canvasScale}
                 layout={gridLayout}
                 cols={PAGE_COLUMNS}
                 rowHeight={PAGE_ROW_HEIGHT}
                 width={pageWidth}
                 onLayoutChange={handleLayoutChange}
                 preventCollision={true}
+                compactType={null}
                 isDraggable={true}
                 isResizable={true}
                 draggableCancel=".sheet-block__content, input, textarea, button"
                 transformScale={scale}
-                compactType={null} // Allows free-form placement.
             >
                 {blocks.map((block) => {
                     const isSelected = block.id === selectedBlockId;
@@ -127,7 +126,6 @@ const ScaledGridLayout: FC = () => {
 
 /**
  * The controls for the zoom/pan functionality.
- * This is a separate component to use the `useControls` hook.
  */
 const PageCanvasControls: FC = () => {
     const { zoomIn, zoomOut, resetTransform } = useControls();
@@ -152,15 +150,13 @@ const PageCanvasControls: FC = () => {
 
 /**
  * The main PageCanvas component that wraps the zoomable/pannable grid.
- * It sets up the context provider for zooming and panning.
  */
 export const PageCanvas: FC = () => {
-    // Check if there are any pages to render.
-    const hasPages = useClassSheetStore(
-        (state) => (state.editableClass?.characterSheet.length ?? 0) > 0,
-    );
+    const { hasPages, setCanvasScale } = useClassSheetStore((state) => ({
+        hasPages: (state.editableClass?.characterSheet.length ?? 0) > 0,
+        setCanvasScale: state.setCanvasScale,
+    }));
 
-    // If there are no pages, show a prompt to the user.
     if (!hasPages) {
         return (
             <div className="page-canvas__container">
@@ -175,9 +171,7 @@ export const PageCanvas: FC = () => {
                 minScale={0.2}
                 limitToBounds={false}
                 panning={{
-                    // Allow panning by holding Meta (Cmd) or Shift key.
                     activationKeys: ['Meta', 'Shift'],
-                    // Disable panning when interacting with these specific elements.
                     excluded: [
                         'input',
                         'button',
@@ -189,13 +183,10 @@ export const PageCanvas: FC = () => {
                 }}
                 wheel={{ step: 0.1 }}
                 doubleClick={{ disabled: true }}
+                onZoom={(ref) => setCanvasScale(ref.state.scale)}
             >
-                {/* These children can now use the zoom/pan context hooks. */}
                 <PageCanvasControls />
-                <TransformComponent
-                    wrapperClass="page-canvas__transform-wrapper"
-                    contentClass="page-canvas__transform-content"
-                >
+                <TransformComponent wrapperClass="page-canvas__transform-wrapper">
                     <ScaledGridLayout />
                 </TransformComponent>
             </TransformWrapper>
