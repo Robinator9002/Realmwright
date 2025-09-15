@@ -1,22 +1,24 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): use onMouseDown for block selection to prevent event conflict
+ * COMMIT: fix(class-sheet): cancel drag on wrapper to restore onClick selection
  *
  * Rationale:
- * A critical bug prevented the properties sidebar from opening on click. The
- * root cause was an event conflict with the `react-grid-layout` library. The
- * library was capturing `mousedown` events to prepare for dragging, which
- * prevented the full `click` event from ever firing on the block wrapper.
+ * The properties sidebar was not opening on click due to an aggressive event
+ * capture by `react-grid-layout`. Any `mousedown` on a block was immediately
+ * treated as the start of a drag, preventing the `onClick` event from ever
+ * firing. Previous attempts to fix this with `onMouseDown` and
+ * `stopPropagation` broke the drag functionality entirely.
  *
  * Implementation Details:
- * - The `onClick` handler on the `.sheet-block-wrapper` div has been
- * replaced with an `onMouseDown` handler.
- * - This ensures that our selection logic (`setSelectedBlockId`) is executed
- * immediately when the user presses the mouse button, before the drag-and-drop
- * library's event handlers can suppress it.
- * - This change makes block selection immediate and reliable, fixing the bug
- * where the sidebar would not appear.
+ * - The `.sheet-block-wrapper` class name has been added to the `draggableCancel`
+ * prop of the `<GridLayout>` component. This instructs the library to ignore
+ * drag attempts that start on the block's main body, preserving the click event.
+ * - The event handler on the wrapper `div` has been reverted from `onMouseDown`
+ * back to a standard `onClick`.
+ * - This change correctly separates the click-to-select and drag-to-move
+ * functionalities, resolving the bug in a robust way that works with the
+ * library's intended design.
  */
 import { useMemo, type FC } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -91,7 +93,8 @@ const ScaledGridLayout: FC = () => {
                 compactType={null}
                 isDraggable={true}
                 isResizable={true}
-                draggableCancel=".sheet-block__content, input, textarea, button"
+                // FIX: Add the wrapper class to the cancel list to enable clicking.
+                draggableCancel=".sheet-block-wrapper, .sheet-block__content, input, textarea, button"
                 transformScale={scale}
             >
                 {blocks.map((block) => {
@@ -104,8 +107,8 @@ const ScaledGridLayout: FC = () => {
                         <div
                             key={block.id}
                             className={wrapperClass}
-                            // FIX: Switched from onClick to onMouseDown to avoid event conflicts.
-                            onMouseDown={(e) => {
+                            // FIX: Revert to onClick, which will now fire correctly.
+                            onClick={(e) => {
                                 e.stopPropagation();
                                 if (selectedBlockId !== block.id) {
                                     setSelectedBlockId(block.id);
