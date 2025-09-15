@@ -1,30 +1,27 @@
 // src/stores/classSheetEditor.store.ts
 
 /**
- * COMMIT: fix(class-sheet): synchronize canvas scale via Zustand store to fix drag bug
+ * COMMIT: fix(class-sheet): correct import path for stat queries in store
  *
  * Rationale:
- * A persistent bug caused react-grid-layout's drag calculations to use a
- * stale scale value after zooming. The previous fix (using a React `key`)
- * was insufficient. This commit implements a more robust solution by making
- * the Zustand store the single source of truth for the canvas's scale.
+ * A previous refactoring moved stat-related database queries into a dedicated
+ * `stat.queries.ts` file, but this store was not updated to reflect that
+ * change. It was still attempting to import `getStatDefinitionsForWorld`
+ * from the incorrect `ability.queries.ts` file, causing a compilation error.
  *
  * Implementation Details:
- * - A new `canvasScale` property has been added to the store's state,
- * initialized to 1.
- * - A corresponding `setCanvasScale` action has been added.
- * - The PageCanvas component will now use the `onTransformed` callback from
- * the zoom library to call `setCanvasScale`, ensuring the store is always
- * up-to-date. The grid layout will, in turn, read this value from the
- * store, guaranteeing perfect synchronization and correct drag calculations.
+ * - Removed the incorrect import statement.
+ * - Added a new import statement pointing to the correct location for
+ * `getStatDefinitionsForWorld` inside `src/db/queries/character/stat.queries.ts`.
+ * - This resolves the TypeScript error and ensures the store can fetch the
+ * data it needs to initialize properly.
  */
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Layout } from 'react-grid-layout';
-import {
-    getStatDefinitionsForWorld,
-    getAbilityTreesForWorld,
-} from '../db/queries/character/ability.queries';
+// FIX: Correct the import path for the stat definition query.
+import { getStatDefinitionsForWorld } from '../db/queries/character/stat.queries';
+import { getAbilityTreesForWorld } from '../db/queries/character/ability.queries';
 import type {
     CharacterClass,
     SheetBlock,
@@ -45,7 +42,6 @@ interface State {
     // Data fetched for the editor
     statDefinitions: StatDefinition[];
     allAbilityTrees: AbilityTree[];
-    // NEW: Add canvas scale to the store for synchronization.
     canvasScale: number;
 }
 
@@ -62,7 +58,6 @@ interface Actions {
     deletePage: (pageIndex: number) => void;
     renamePage: (pageIndex: number, newName: string) => void;
     setPageDimensions: (dimensions: { width: number; height: number }) => void;
-    // NEW: Add an action to update the canvas scale.
     setCanvasScale: (scale: number) => void;
     setIsSaving: (isSaving: boolean) => void;
     setActivePageIndex: (index: number) => void;
@@ -81,7 +76,6 @@ export const useClassSheetStore = create(
         pageHeight: 1414,
         statDefinitions: [],
         allAbilityTrees: [],
-        // NEW: Initialize canvas scale.
         canvasScale: 1,
         // The derived selectedBlock is calculated from other state pieces.
         get selectedBlock() {
@@ -123,7 +117,6 @@ export const useClassSheetStore = create(
                 state.pageHeight = dimensions.height;
             });
         },
-        // NEW: Implement the scale update action.
         setCanvasScale: (scale) => {
             set({ canvasScale: scale });
         },
