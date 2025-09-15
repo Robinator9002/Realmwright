@@ -1,5 +1,25 @@
 // src/components/specific/SheetBlocks/character/InventoryBlock.tsx
 
+/**
+ * COMMIT: refactor(character-sheet): convert InventoryBlock to a fully controlled component
+ *
+ * Rationale:
+ * The component was previously holding a local copy of the inventory items in
+ * its own state (`useState`). This is an anti-pattern for controlled
+ * components, as it creates a duplicate source of truth and can lead to bugs
+ * where the UI and the central store are out of sync.
+ *
+ * Implementation Details:
+ * - The `const [items, setItems] = useState(...)` hook has been completely removed.
+ * - The component now uses the `content` prop directly as the source of truth
+ * for rendering the list of items.
+ * - All event handlers (`handleAddItem`, `handleRemoveItem`, `handleItemChange`)
+ * have been updated to construct a new array and immediately call the
+ * `onContentChange` callback, delegating all state updates to the parent
+ * (in this case, the Zustand store).
+ * - This change makes the component stateless and fully controlled, ensuring
+ * a single, reliable data flow.
+ */
 import { useState, type FC } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
@@ -21,7 +41,9 @@ export interface InventoryBlockProps {
  * A sheet block for managing a list of inventory items.
  */
 export const InventoryBlock: FC<InventoryBlockProps> = ({ content, onContentChange }) => {
-    const [items, setItems] = useState<InventoryItem[]>(content || []);
+    // The component no longer holds its own state for the items.
+    // It directly uses the `content` prop, making it a "controlled component".
+    const items = content || [];
     const [newItemName, setNewItemName] = useState('');
 
     const handleAddItem = () => {
@@ -33,14 +55,12 @@ export const InventoryBlock: FC<InventoryBlockProps> = ({ content, onContentChan
             description: '',
         };
         const newItems = [...items, newItem];
-        setItems(newItems);
         onContentChange(newItems); // Immediately update the parent state
         setNewItemName('');
     };
 
     const handleRemoveItem = (itemId: string) => {
         const newItems = items.filter((item) => item.id !== itemId);
-        setItems(newItems);
         onContentChange(newItems);
     };
 
@@ -51,11 +71,11 @@ export const InventoryBlock: FC<InventoryBlockProps> = ({ content, onContentChan
     ) => {
         const newItems = items.map((item) => {
             if (item.id === itemId) {
+                // A type assertion is safe here as we control the inputs.
                 return { ...item, [field]: value };
             }
             return item;
         });
-        setItems(newItems);
         onContentChange(newItems);
     };
 
