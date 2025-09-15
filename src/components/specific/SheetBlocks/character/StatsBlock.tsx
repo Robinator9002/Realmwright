@@ -1,62 +1,45 @@
 // src/components/specific/SheetBlocks/character/StatsBlock.tsx
 
 /**
- * COMMIT: fix(character-sheet): correct StatsBlock rendering logic
+ * COMMIT: refactor(character-sheet): make StatsBlock a pure presentational component
  *
  * Rationale:
- * The StatsBlock was previously iterating over the character's `stats` object.
- * This meant if a new stat was defined for the world *after* a character was
- * created, it would never appear on their sheet. The panel also appeared
- * empty if the character had no stats defined at all.
+ * To align with the new architecture of separating data logic from
+ * presentation, this component has been refactored to be a "pure" or "dumb"
+ * component. It no longer fetches its own data or manages its own state.
  *
  * Implementation Details:
- * - The component's rendering logic has been inverted. It now iterates over the
- * world's `statDefs` array, which is the single source of truth for what
- * stats exist.
- * - For each stat definition, it looks up the corresponding value in the
- * `baseStats` prop. If a value exists, it's displayed; otherwise, it
- * gracefully shows a dash ('-').
- * - This makes the component far more robust and ensures the UI always
- * accurately reflects the world's current ruleset.
+ * - Removed all React hooks (`useState`, `useEffect`) and the `useWorld` context.
+ * - The component's props interface has been updated to accept the
+ * `statDefinitions` array directly.
+ * - All data loading and context-aware logic has been eliminated. The
+ * component now solely focuses on mapping over the props it receives to
+ * render the UI, making it more reusable and predictable.
  */
-import { useState, useEffect, type FC } from 'react';
-import { useWorld } from '../../../../context/feature/WorldContext';
-import { getStatDefinitionsForWorld } from '../../../../db/queries/character/stat.queries';
+import type { FC } from 'react';
 import type { StatDefinition } from '../../../../db/types';
 
+// REWORK: The props interface now includes all data needed for rendering.
 export interface StatsBlockProps {
     baseStats: { [statId: number]: number };
+    statDefinitions: StatDefinition[];
 }
 
 /**
- * A sheet block component for displaying a character's statistics.
+ * A sheet block component for displaying a character's statistics. It is a
+ * pure presentational component that receives all required data via props.
  */
-export const StatsBlock: FC<StatsBlockProps> = ({ baseStats }) => {
-    const { selectedWorld } = useWorld();
-    const [statDefs, setStatDefs] = useState<StatDefinition[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        if (selectedWorld?.id) {
-            getStatDefinitionsForWorld(selectedWorld.id).then((defs) => {
-                setStatDefs(defs);
-                setIsLoading(false);
-            });
-        }
-    }, [selectedWorld]);
-
-    if (isLoading) {
-        return <div className="stats-block stats-block--loading">Loading Stats...</div>;
-    }
-
-    if (statDefs.length === 0) {
+export const StatsBlock: FC<StatsBlockProps> = ({ baseStats, statDefinitions }) => {
+    // RENDER LOGIC:
+    // If there are no stat definitions, display a clear message.
+    if (statDefinitions.length === 0) {
         return <p className="panel__empty-message">No stats defined for this world.</p>;
     }
 
+    // Map over the provided stat definitions to render each stat item.
     return (
         <div className="stats-block">
-            {/* REWORK: Iterate over the definitions, not the character's stats. */}
-            {statDefs.map((def) => {
+            {statDefinitions.map((def) => {
                 // Look up the character's value for the current stat definition.
                 const value = baseStats[def.id!] ?? '-';
                 return (
