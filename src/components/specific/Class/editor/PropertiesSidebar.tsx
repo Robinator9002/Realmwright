@@ -3,8 +3,6 @@
 import type { FC } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
-import { BlockLayoutEditor } from './sidebar/BlockLayoutEditor';
-import { BlockSpecificPropertiesEditor } from './sidebar/BlockSpecificPropertiesEditor';
 import type { SheetBlock } from '../../../../db/types';
 
 export const PropertiesSidebar: FC = () => {
@@ -45,9 +43,6 @@ export const PropertiesSidebar: FC = () => {
             </div>
 
             <div className="properties-sidebar__content">
-                {/* These children will be updated next to use the new pattern */}
-                <BlockLayoutEditor />
-                <BlockSpecificPropertiesEditor />
             </div>
 
             <div className="properties-sidebar__footer">

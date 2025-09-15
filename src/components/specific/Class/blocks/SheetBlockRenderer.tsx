@@ -17,15 +17,6 @@
  */
 import type { FC } from 'react';
 import type { Character, CharacterClass, SheetBlock } from '../../../../db/types';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
-
-// Import all the specific block components
-import { DetailsBlock } from '../../SheetBlocks/character/DetailsBlock';
-import { StatsBlock } from '../../SheetBlocks/character/StatsBlock';
-import { AbilityTreeBlock } from '../../SheetBlocks/content/AbilityTreeBlock';
-import { RichTextBlock } from '../../SheetBlocks/content/RichTextBlock';
-import { InventoryBlock } from '../../SheetBlocks/character/InventoryBlock';
-import { NotesBlock } from '../../SheetBlocks/content/NotesBlock';
 
 interface SheetBlockRendererProps {
     block: SheetBlock;
@@ -36,61 +27,9 @@ interface SheetBlockRendererProps {
 
 export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({
     block,
-    characterClass,
-    character,
-    onContentChange: onContentChangeProp = () => {},
 }) => {
-    // --- ZUSTAND STORE ---
-    // REWORK: Now selects all data needed by any potential child block.
-    const { updateBlockContent, statDefinitions, allAbilityTrees } = useClassSheetStore(
-        (state) => ({
-            updateBlockContent: state.updateBlockContent,
-            statDefinitions: state.statDefinitions,
-            allAbilityTrees: state.allAbilityTrees,
-        }),
-    );
-    const onContentChange = updateBlockContent || onContentChangeProp;
-
     // --- RENDER LOGIC ---
     switch (block.type) {
-        case 'details':
-            return <DetailsBlock characterClass={characterClass} />;
-        case 'stats':
-            const statsToShow = character ? character.stats : characterClass.baseStats;
-            return <StatsBlock baseStats={statsToShow} statDefinitions={statDefinitions} />;
-        case 'ability_tree':
-            return (
-                <AbilityTreeBlock
-                    content={block.content}
-                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
-                    // REWORK: Pass the required allTrees prop.
-                    allTrees={allAbilityTrees}
-                />
-            );
-        case 'rich_text':
-            const richTextContent = character?.instanceData?.[block.id] ?? block.content ?? '';
-            return (
-                <RichTextBlock
-                    content={richTextContent}
-                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
-                />
-            );
-        case 'notes':
-            const notesContent = character?.instanceData?.[block.id] ?? block.content ?? '';
-            return (
-                <NotesBlock
-                    content={notesContent}
-                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
-                />
-            );
-        case 'inventory':
-            const inventoryContent = character?.instanceData?.[block.id] ?? [];
-            return (
-                <InventoryBlock
-                    content={inventoryContent}
-                    onContentChange={(newContent) => onContentChange(block.id, newContent)}
-                />
-            );
         default:
             return (
                 <div className="sheet-block__header">
