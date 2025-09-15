@@ -1,25 +1,32 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): remove wrapper from pan exclusion to restore click events
+ * COMMIT: refactor(class-sheet): Isolate block selection from drag events
  *
  * Rationale:
- * The final piece of the click/drag puzzle was the `excluded` array in the
- * `TransformWrapper` (react-zoom-pan-pinch). By including `'sheet-block-wrapper'`
- * in this array, we were inadvertently telling the library to suppress panning
- * when the cursor was over a block. This suppression was so effective that it
- * also blocked the `mouseup` event from propagating to our global window listener,
- * preventing our manual click detection from ever firing.
+ * The previous click detection, which relied on a timer within a `mousedown`
+ * event, was unreliable because it conflicted with the drag-and-drop event
+ * handlers from the `react-grid-layout` library. A slight mouse movement could
+ * be misinterpreted as a drag, preventing the `mouseup` event from firing as
+ * expected and thus failing to select the block.
  *
  * Implementation Details:
- * - The `'sheet-block-wrapper'` string has been removed from the `excluded`
- * array within the `<TransformWrapper>` component.
- * - This allows mouse events to propagate correctly while still preventing
- * unwanted panning when interacting with form elements inside the blocks.
- * - This change finally resolves all event conflicts, enabling both
- * click-to-select and drag-to-move functionality to work as intended.
+ * - Removed the old timer-based `handleMouseDown` function.
+ * - Introduced two `useRef` hooks: `interactionTargetId` to store the ID of a
+ * block when an interaction begins, and `wasMoved` to act as a flag that is
+ * set to `true` if a drag or resize event occurs.
+ * - The block wrapper's `onMouseDown` now simply sets these two refs to their
+ * initial state (`block.id` and `false`, respectively).
+ * - The `GridLayout` component's `onDrag` and `onResize` props are now used to
+ * set the `wasMoved` ref to `true` the moment any movement is detected.
+ * - A component-level `useEffect` hook now manages a single global `mouseup`
+ * listener. When the mouse is released, this listener checks if the
+ * `wasMoved` flag is still `false`. If it is, the interaction is classified
+ * as a "click," and the `setSelectedBlockId` action is dispatched.
+ * - This new approach is more robust as it works *with* the lifecycle of the
+ * grid library's events instead of competing with them.
  */
-import { useMemo, type FC } from 'react';
+import { useMemo, type FC, useRef, useEffect } from 'react';
 import GridLayout from 'react-grid-layout';
 import {
     TransformWrapper,
@@ -34,7 +41,6 @@ import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer.tsx';
 // --- CONSTANTS ---
 const PAGE_COLUMNS = 48;
 const PAGE_ROW_HEIGHT = 10;
-const CLICK_THRESHOLD_MS = 200; // Max duration for an action to be considered a "click"
 
 /**
  * An internal component that has access to the zoom/pan context.
@@ -66,6 +72,30 @@ const ScaledGridLayout: FC = () => {
         transformState: { scale },
     } = useTransformContext();
 
+    // --- REFS FOR CLICK VS. DRAG DETECTION ---
+    const interactionTargetId = useRef<string | null>(null);
+    const wasMoved = useRef(false);
+
+    // --- EFFECT FOR GLOBAL MOUSEUP LISTENER ---
+    useEffect(() => {
+        const handleMouseUp = () => {
+            // If the mouse is released after an interaction that didn't involve movement...
+            if (!wasMoved.current && interactionTargetId.current) {
+                // ...it's a click. Select the block if it's not already selected.
+                if (selectedBlockId !== interactionTargetId.current) {
+                    setSelectedBlockId(interactionTargetId.current);
+                }
+            }
+            // Reset for the next interaction.
+            interactionTargetId.current = null;
+        };
+
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [selectedBlockId, setSelectedBlockId]);
+
     const gridLayout = useMemo(
         () =>
             blocks.map((block) => ({
@@ -78,22 +108,6 @@ const ScaledGridLayout: FC = () => {
         [blocks],
     );
 
-    // --- EVENT HANDLERS FOR CLICK DETECTION ---
-    const handleMouseDown = (blockId: string) => {
-        const startTime = Date.now();
-
-        const handleMouseUp = () => {
-            const pressDuration = Date.now() - startTime;
-            if (pressDuration < CLICK_THRESHOLD_MS) {
-                if (selectedBlockId !== blockId) {
-                    setSelectedBlockId(blockId);
-                }
-            }
-        };
-
-        window.addEventListener('mouseup', handleMouseUp, { once: true });
-    };
-
     if (!characterClass) return null;
 
     return (
@@ -105,6 +119,8 @@ const ScaledGridLayout: FC = () => {
                 rowHeight={PAGE_ROW_HEIGHT}
                 width={pageWidth}
                 onLayoutChange={handleLayoutChange}
+                onDrag={() => (wasMoved.current = true)}
+                onResize={() => (wasMoved.current = true)}
                 preventCollision={true}
                 compactType={null}
                 isDraggable={true}
@@ -122,7 +138,11 @@ const ScaledGridLayout: FC = () => {
                         <div
                             key={block.id}
                             className={wrapperClass}
-                            onMouseDown={() => handleMouseDown(block.id)}
+                            onMouseDown={() => {
+                                // On mouse down, note the target and reset the movement flag.
+                                interactionTargetId.current = block.id;
+                                wasMoved.current = false;
+                            }}
                         >
                             <SheetBlockRenderer block={block} characterClass={characterClass} />
                         </div>
