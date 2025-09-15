@@ -1,22 +1,30 @@
 // src/stores/classSheetEditor.store.ts
 
 /**
- * COMMIT: fix(class-sheet): add missing allAbilityTrees property to store state
+ * COMMIT: fix(class-sheet): synchronize canvas scale via Zustand store to fix drag bug
  *
  * Rationale:
- * A TypeScript error was occurring in consuming components because the
- * `allAbilityTrees` property, while fetched and set in the `init` action, was
- * never formally declared in the store's `State` interface.
+ * A persistent bug caused react-grid-layout's drag calculations to use a
+ * stale scale value after zooming. The previous fix (using a React `key`)
+ * was insufficient. This commit implements a more robust solution by making
+ * the Zustand store the single source of truth for the canvas's scale.
  *
  * Implementation Details:
- * - Added `allAbilityTrees: AbilityTree[]` to the `State` interface.
- * - Initialized `allAbilityTrees` to an empty array in the initial state.
- * - This change ensures the store's type definition accurately reflects its
- * shape, resolving the downstream TypeScript error.
+ * - A new `canvasScale` property has been added to the store's state,
+ * initialized to 1.
+ * - A corresponding `setCanvasScale` action has been added.
+ * - The PageCanvas component will now use the `onTransformed` callback from
+ * the zoom library to call `setCanvasScale`, ensuring the store is always
+ * up-to-date. The grid layout will, in turn, read this value from the
+ * store, guaranteeing perfect synchronization and correct drag calculations.
  */
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Layout } from 'react-grid-layout';
+import {
+    getStatDefinitionsForWorld,
+    getAbilityTreesForWorld,
+} from '../db/queries/character/ability.queries';
 import type {
     CharacterClass,
     SheetBlock,
@@ -24,8 +32,6 @@ import type {
     StatDefinition,
     AbilityTree,
 } from '../db/types';
-import { getStatDefinitionsForWorld } from '../db/queries/character/stat.queries';
-import { getAbilityTreesForWorld } from '../db/queries/character/ability.queries';
 
 // --- STATE ---
 interface State {
@@ -36,15 +42,16 @@ interface State {
     selectedBlock: SheetBlock | null;
     pageWidth: number;
     pageHeight: number;
-    // Data pre-fetched for the editor to use.
+    // Data fetched for the editor
     statDefinitions: StatDefinition[];
-    // FIX: Declare the missing property.
     allAbilityTrees: AbilityTree[];
+    // NEW: Add canvas scale to the store for synchronization.
+    canvasScale: number;
 }
 
 // --- ACTIONS ---
 interface Actions {
-    init: (characterClass: CharacterClass) => void;
+    init: (characterClass: CharacterClass) => Promise<void>;
     addBlock: (blockType: SheetBlock['type']) => void;
     deleteBlock: (blockId: string) => void;
     handleLayoutChange: (newLayout: Layout[]) => void;
@@ -55,6 +62,8 @@ interface Actions {
     deletePage: (pageIndex: number) => void;
     renamePage: (pageIndex: number, newName: string) => void;
     setPageDimensions: (dimensions: { width: number; height: number }) => void;
+    // NEW: Add an action to update the canvas scale.
+    setCanvasScale: (scale: number) => void;
     setIsSaving: (isSaving: boolean) => void;
     setActivePageIndex: (index: number) => void;
     setSelectedBlockId: (blockId: string | null) => void;
@@ -71,8 +80,9 @@ export const useClassSheetStore = create(
         pageWidth: 1000,
         pageHeight: 1414,
         statDefinitions: [],
-        // FIX: Initialize the new property.
         allAbilityTrees: [],
+        // NEW: Initialize canvas scale.
+        canvasScale: 1,
         // The derived selectedBlock is calculated from other state pieces.
         get selectedBlock() {
             const { editableClass, activePageIndex, selectedBlockId } = get();
@@ -87,22 +97,21 @@ export const useClassSheetStore = create(
         // --- ACTIONS ---
         init: async (characterClass) => {
             const worldId = characterClass.worldId;
-
-            // Pre-fetch all necessary data for the editor session.
-            const [statDefinitions, allAbilityTrees] = await Promise.all([
+            const [stats, trees] = await Promise.all([
                 getStatDefinitionsForWorld(worldId),
                 getAbilityTreesForWorld(worldId),
             ]);
 
             set((state) => {
                 state.editableClass = JSON.parse(JSON.stringify(characterClass));
+                state.statDefinitions = stats;
+                state.allAbilityTrees = trees;
+                // Reset transient state
                 state.activePageIndex = 0;
                 state.selectedBlockId = null;
                 state.pageWidth = 1000;
                 state.pageHeight = 1414;
-                // Set the fetched data into the store.
-                state.statDefinitions = statDefinitions;
-                state.allAbilityTrees = allAbilityTrees;
+                state.canvasScale = 1;
             });
         },
         setIsSaving: (isSaving) => set({ isSaving }),
@@ -113,6 +122,10 @@ export const useClassSheetStore = create(
                 state.pageWidth = dimensions.width;
                 state.pageHeight = dimensions.height;
             });
+        },
+        // NEW: Implement the scale update action.
+        setCanvasScale: (scale) => {
+            set({ canvasScale: scale });
         },
         addBlock: (blockType) => {
             set((state) => {
