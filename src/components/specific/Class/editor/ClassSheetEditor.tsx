@@ -1,27 +1,28 @@
 // src/components/specific/Class/editor/ClassSheetEditor.tsx
 
 /**
- * COMMIT: fix(class-sheet): import required library stylesheets
+ * COMMIT: refactor(class-sheet): make ClassSheetEditor responsible for its own data fetching
  *
  * Rationale:
- * The persistent bug where new blocks were created but not displayed was
- * caused by a failure to import the necessary CSS files from the
- * `react-grid-layout` and `react-resizable` libraries. Without these
- * stylesheets, the grid items had no positioning or dimension styles,
- * causing them to render invisibly.
+ * As part of the final architectural consolidation, the responsibility for
+ * fetching the CharacterClass data has been moved from the root App component
+ * to this editor component itself. This makes the component more self-contained.
  *
  * Implementation Details:
- * - Added `import 'react-grid-layout/css/styles.css'` and
- * `import 'react-resizable/css/styles.css'` to the top of the main
- * editor component.
- * - This ensures the foundational styles required for the grid to operate
- * are always loaded, finally resolving the rendering bug.
+ * - The component's props interface has been changed from expecting a full
+ * `characterClass` object to accepting a `classId`.
+ * - It now uses local state (`isLoading`, `error`) and a `useEffect` hook to
+ * fetch the `CharacterClass` data from the database when it mounts.
+ * - The Zustand store's `init` function is called only after the data has been
+ * successfully fetched, ensuring the store is initialized correctly.
+ * - This change completes the architectural shift, making the component fully
+ * responsible for its own data dependencies.
  */
-import { useEffect, type FC } from 'react';
+import { useEffect, useState, type FC } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
-import type { CharacterClass } from '../../../../db/types';
+import { getClassById } from '../../../../db/queries/character/class.queries';
 import { updateClass } from '../../../../db/queries/character/class.queries';
 import { blockTypes } from '../../../../constants/sheetEditor.constants';
 import { PageCanvas } from './PageCanvas';
@@ -29,11 +30,11 @@ import { PropertiesSidebar } from './PropertiesSidebar';
 import { PageControls } from './PageControls';
 
 export interface ClassSheetEditorProps {
-    characterClass: CharacterClass;
+    classId: number;
     onBack: () => void;
 }
 
-export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, onBack }) => {
+export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ classId, onBack }) => {
     // --- ZUSTAND STORE ---
     const init = useClassSheetStore((state) => state.init);
     const isSaving = useClassSheetStore((state) => state.isSaving);
@@ -42,9 +43,29 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
     const selectedBlockId = useClassSheetStore((state) => state.selectedBlockId);
     const addBlock = useClassSheetStore((state) => state.addBlock);
 
+    // --- LOCAL STATE FOR DATA FETCHING ---
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // --- DATA FETCHING ---
     useEffect(() => {
-        init(characterClass);
-    }, [characterClass, init]);
+        const fetchClassData = async () => {
+            try {
+                const characterClass = await getClassById(classId);
+                if (characterClass) {
+                    init(characterClass);
+                } else {
+                    setError(`Class with ID ${classId} not found.`);
+                }
+            } catch (err) {
+                setError('Failed to load class data.');
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchClassData();
+    }, [classId, init]);
 
     const handleSaveChanges = async () => {
         if (!editableClass) return;
@@ -61,8 +82,16 @@ export const ClassSheetEditor: FC<ClassSheetEditorProps> = ({ characterClass, on
         }
     };
 
-    if (!editableClass) {
+    if (isLoading) {
         return <div>Loading Editor...</div>;
+    }
+
+    if (error) {
+        return <div className="error-message">{error}</div>;
+    }
+
+    if (!editableClass) {
+        return <div>Class data could not be loaded.</div>;
     }
 
     return (
