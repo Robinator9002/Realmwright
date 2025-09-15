@@ -1,23 +1,23 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): force GridLayout re-render on zoom to fix drag bug
+ * COMMIT: fix(class-sheet): implement global listener for robust click detection
  *
  * Rationale:
- * A persistent bug caused dragged blocks to move at an incorrect speed after
- * zooming. This was because the `react-grid-layout` component was not
- * recalculating its internal drag logic when the parent zoom container's
- * scale changed. The previous fix correctly tracked the scale in the Zustand
- * store but failed to trigger the necessary re-render.
+ * A persistent event conflict with `react-grid-layout` prevented a standard
+ * `onClick` from firing. The previous manual click detection failed because the
+ * drag library was capturing the `mouseup` event at the document level and
+ * stopping its propagation, so the component's `onMouseUp` handler never fired.
  *
  * Implementation Details:
- * - The `ScaledGridLayout` component now selects the `canvasScale` from the
- * Zustand store.
- * - This `canvasScale` is used as a `key` prop on the `<GridLayout>` component.
- * - In React, changing a component's key forces it to unmount and remount
- * with a fresh state. This decisive action ensures that `GridLayout` is
- * always initialized with the most current scale, permanently resolving the
- * desynchronization bug.
+ * - The component no longer relies on `onMouseUp` on the block element itself.
+ * - On `onMouseDown`, a new, single-use `mouseup` event listener is attached
+ * directly to the `window`.
+ * - This global listener is guaranteed to fire when the mouse is released,
+ * regardless of the drag library's actions. It then calculates the press
+ * duration to determine if the action was a click.
+ * - This resolves the event conflict and correctly differentiates between a
+ * click-to-select and a drag-to-move action.
  */
 import { useMemo, type FC } from 'react';
 import GridLayout from 'react-grid-layout';
@@ -34,6 +34,7 @@ import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer.tsx';
 // --- CONSTANTS ---
 const PAGE_COLUMNS = 48;
 const PAGE_ROW_HEIGHT = 10;
+const CLICK_THRESHOLD_MS = 200; // Max duration for an action to be considered a "click"
 
 /**
  * An internal component that has access to the zoom/pan context.
@@ -48,7 +49,6 @@ const ScaledGridLayout: FC = () => {
         setSelectedBlockId,
         pageWidth,
         pageHeight,
-        // FIX: Get the canvasScale from the store to use as a key.
         canvasScale,
     } = useClassSheetStore((state) => ({
         blocks: state.editableClass?.characterSheet[state.activePageIndex]?.blocks ?? [],
@@ -62,7 +62,6 @@ const ScaledGridLayout: FC = () => {
     }));
 
     // --- TRANSFORM CONTEXT ---
-    // This scale is still used for the visual transform prop.
     const {
         transformState: { scale },
     } = useTransformContext();
@@ -79,12 +78,28 @@ const ScaledGridLayout: FC = () => {
         [blocks],
     );
 
+    // --- EVENT HANDLERS FOR CLICK DETECTION ---
+    const handleMouseDown = (blockId: string) => {
+        const startTime = Date.now();
+
+        const handleMouseUp = () => {
+            const pressDuration = Date.now() - startTime;
+            if (pressDuration < CLICK_THRESHOLD_MS) {
+                if (selectedBlockId !== blockId) {
+                    setSelectedBlockId(blockId);
+                }
+            }
+            // The listener is removed automatically by the { once: true } option.
+        };
+
+        window.addEventListener('mouseup', handleMouseUp, { once: true });
+    };
+
     if (!characterClass) return null;
 
     return (
         <div className="page-canvas__page" style={{ width: pageWidth, height: pageHeight }}>
             <GridLayout
-                // FIX: Use the scale from the store as a key to force re-mounts on zoom.
                 key={canvasScale}
                 layout={gridLayout}
                 cols={PAGE_COLUMNS}
@@ -108,12 +123,7 @@ const ScaledGridLayout: FC = () => {
                         <div
                             key={block.id}
                             className={wrapperClass}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (selectedBlockId !== block.id) {
-                                    setSelectedBlockId(block.id);
-                                }
-                            }}
+                            onMouseDown={() => handleMouseDown(block.id)}
                         >
                             <SheetBlockRenderer block={block} characterClass={characterClass} />
                         </div>
