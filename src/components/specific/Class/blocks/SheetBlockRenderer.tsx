@@ -1,17 +1,20 @@
 // src/components/specific/Class/blocks/SheetBlockRenderer.tsx
 
 /**
- * COMMIT: fix(class-sheet): correct import paths in SheetBlockRenderer
+ * COMMIT: refactor(class-sheet): connect SheetBlockRenderer to store for prop drilling
  *
  * Rationale:
- * A previous refactor that moved this component into a `/blocks` subdirectory
- * broke the relative import paths to the individual block components (e.g.,
- * DetailsBlock, StatsBlock) and the Zustand store, causing compilation errors.
+ * Now that the `StatsBlock` component has been refactored into a pure
+ * presentational component, it requires the `statDefinitions` to be passed
+ * in as a prop. The `SheetBlockRenderer`, as the central dispatcher for all
+ * blocks, is the correct place to source this data.
  *
  * Implementation Details:
- * - All import paths have been updated to correctly
- * reference their locations from the new directory,
- * resolving all compilation errors.
+ * - The component now connects to the `useClassSheetStore` to select the
+ * `statDefinitions` array.
+ * - In the `switch` statement, the `StatsBlock` is now passed the required
+ * `statDefinitions` prop from the store, resolving the dependency and
+ * completing the refactor for this block type.
  */
 import type { FC } from 'react';
 import type { Character, CharacterClass, SheetBlock } from '../../../../db/types';
@@ -38,15 +41,25 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({
     character,
     onContentChange: onContentChangeProp = () => {},
 }) => {
-    const updateBlockContent = useClassSheetStore((state) => state.updateBlockContent);
+    // --- ZUSTAND STORE ---
+    // REWORK: Now selects both actions and the data needed by child components.
+    const { updateBlockContent, statDefinitions } = useClassSheetStore((state) => ({
+        updateBlockContent: state.updateBlockContent,
+        statDefinitions: state.statDefinitions,
+    }));
     const onContentChange = updateBlockContent || onContentChangeProp;
 
+    // --- RENDER LOGIC ---
     switch (block.type) {
         case 'details':
             return <DetailsBlock characterClass={characterClass} />;
         case 'stats':
+            // Determine which stats to show (live character or class blueprint).
             const statsToShow = character ? character.stats : characterClass.baseStats;
-            return <StatsBlock baseStats={statsToShow} />;
+            return (
+                // REWORK: Pass the required statDefinitions prop.
+                <StatsBlock baseStats={statsToShow} statDefinitions={statDefinitions} />
+            );
         case 'ability_tree':
             return (
                 <AbilityTreeBlock
@@ -55,6 +68,7 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({
                 />
             );
         case 'rich_text':
+            // For live characters, use instanceData; otherwise, use the class's default content.
             const richTextContent = character?.instanceData?.[block.id] ?? block.content ?? '';
             return (
                 <RichTextBlock
@@ -79,6 +93,7 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({
                 />
             );
         default:
+            // Fallback for any unknown block types.
             return (
                 <div className="sheet-block__header">
                     <span className="sheet-block__type">Unknown Block: {block.type}</span>
