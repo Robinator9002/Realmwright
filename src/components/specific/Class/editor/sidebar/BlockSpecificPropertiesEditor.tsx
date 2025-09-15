@@ -1,19 +1,22 @@
 // src/components/specific/Class/editor/sidebar/BlockSpecificPropertiesEditor.tsx
 
 /**
- * COMMIT: feat(class-sheet): add default case to properties editor
+ * COMMIT: feat(class-sheet): implement block-specific properties editor
  *
  * Rationale:
- * To complete the editor's functionality, the properties sidebar needs to
- * gracefully handle blocks that do not have any specific, configurable
- * properties (e.g., the 'Details' or 'Notes' blocks).
+ * The properties sidebar was rendering as an empty container because the
+ * component responsible for displaying contextual editors was not implemented.
+ * This commit introduces the necessary logic to render the correct property
+ * editor based on the selected block's type.
  *
  * Implementation Details:
- * - Added `case` statements for 'details' and 'notes' to the `switch`.
- * - These cases, along with the `default` case, now render a user-friendly
- * message indicating that no specific properties are available for editing.
- * - This prevents the sidebar from appearing empty or broken and provides
- * clear feedback to the user, completing the planned feature set.
+ * - The component now uses the `useClassSheetStore` to get the `selectedBlock`.
+ * - A `switch` statement on `selectedBlock.type` acts as a router.
+ * - Each `case` returns the corresponding editor component (e.g.,
+ * `StatsPropsEditor` for a 'stats' block).
+ * - A `default` case is included to gracefully handle blocks that have no
+ * specific properties to edit, displaying a user-friendly message instead
+ * of an empty space. This completes the functionality of the properties sidebar.
  */
 import type { FC } from 'react';
 import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
@@ -40,7 +43,7 @@ export const BlockSpecificPropertiesEditor: FC = () => {
             return <AbilityTreePropsEditor />;
         case 'inventory':
             return <InventoryPropsEditor />;
-        // NEW: Handle blocks with no specific properties.
+        // Handle blocks with no specific properties.
         case 'details':
         case 'notes':
         default:
