@@ -1,23 +1,23 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
 /**
- * COMMIT: fix(class-sheet): use correct zoom events to prevent block flashing
+ * COMMIT: fix(class-sheet): refine zoom effect to hide blocks instead of entire grid
  *
  * Rationale:
- * When zooming in or out, the `react-grid-layout` component re-calculates
- * block positions, causing a visual flash. The previous fix attempted to solve
- * this by hiding the grid during the zoom, but it used incorrect prop names
- * (`onZoomStart`/`onZoomEnd`), causing a TypeScript error. This commit corrects
- * the prop names to the library's actual API.
+ * The previous fix for the zoom-flicker issue hid the entire GridLayout,
+ * which was visually jarring as the whole page background would disappear and
+ * reappear. This commit refines that behavior.
  *
  * Implementation Details:
- * - A new state variable, `isZooming`, has been added to the `PageCanvas` component.
- * - The `TransformWrapper` now uses the correct `onTransformationStart` and
- * `onTransformationEnd` event handlers to set `isZooming` to `true` at the
- * beginning of a transform and `false` at the end.
- * - The `isZooming` state is passed as a prop to the `ScaledGridLayout`.
- * - Inside `ScaledGridLayout`, a style object sets the grid's `visibility` to
- * `'hidden'` when `isZooming` is `true`, eliminating the visual flicker.
+ * - The `isZooming` state is now used within the `blocks.map()` function inside
+ * the `ScaledGridLayout` component.
+ * - A `style` object is applied to each individual block's wrapper div.
+ * - This style sets `visibility: 'hidden'` on each block only when a zoom is
+ * in progress (`isZooming` is true).
+ * - The `visibility` style has been removed from the main grid container, so
+ * the page background remains static during the zoom.
+ * - This results in a much smoother user experience, where only the blocks
+ * themselves pop in and out, rather than the entire canvas.
  */
 import { useMemo, type FC, useRef, useState } from 'react';
 import GridLayout, { type Layout } from 'react-grid-layout';
@@ -104,14 +104,8 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
 
     if (!characterClass) return null;
 
-    const gridStyle = {
-        width: pageWidth,
-        height: pageHeight,
-        visibility: isZooming ? 'hidden' : 'visible',
-    } as const;
-
     return (
-        <div className="page-canvas__page" style={gridStyle}>
+        <div className="page-canvas__page" style={{ width: pageWidth, height: pageHeight }}>
             <GridLayout
                 key={canvasScale}
                 layout={gridLayout}
@@ -133,9 +127,13 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
                     const wrapperClass = `sheet-block-wrapper ${
                         isSelected ? 'sheet-block-wrapper--selected' : ''
                     }`;
+                    // REWORK: Hide individual blocks during zoom instead of the whole grid.
+                    const blockStyle = {
+                        visibility: isZooming ? 'hidden' : 'visible',
+                    } as const;
 
                     return (
-                        <div key={block.id} className={wrapperClass}>
+                        <div key={block.id} className={wrapperClass} style={blockStyle}>
                             <SheetBlockRenderer block={block} characterClass={characterClass} />
                         </div>
                     );
