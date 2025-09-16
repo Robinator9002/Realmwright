@@ -106,9 +106,13 @@
 
 /* --- Details Block --- */
 /* REWORK: The details block no longer needs its own border. */
+/* --- Details Block --- */
 .details-block {
     width: 100%;
-    text-align: center;
+    /* REMOVED: This was overriding the dynamic styles from the block's properties. */
+    /* text-align: center; */
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: var(--spacing-4);
 }
 
 .details-block__name {
