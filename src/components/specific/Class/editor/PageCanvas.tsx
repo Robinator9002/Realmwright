@@ -10,7 +10,6 @@ import {
 } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store.ts';
-// REWORK: Import the new, real SheetBlockRenderer.
 import { SheetBlockRenderer } from './SheetBlockRenderer';
 
 // --- CONSTANTS ---
@@ -52,7 +51,7 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
         transformState: { scale },
     } = useTransformContext();
 
-    // --- REF FOR CLICK VS. DRAG DETECTION ---
+    // REWORK: This ref is now used to distinguish a click from a drag.
     const dragStartLayout = useRef<Layout | null>(null);
 
     const gridLayout = useMemo(
@@ -68,17 +67,28 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
     );
 
     // --- EVENT HANDLERS FOR CLICK DETECTION ---
+
+    /**
+     * Records the layout of the item when the drag begins.
+     */
     const handleDragStart = (_layout: Layout[], oldItem: Layout) => {
         dragStartLayout.current = oldItem;
     };
 
+    /**
+     * On drag stop, compares the start and end positions. If they are the same,
+     * it's considered a click, and the block is selected.
+     */
     const handleDragStop = (_layout: Layout[], _oldItem: Layout, newItem: Layout) => {
         const start = dragStartLayout.current;
+        // If the item didn't move, it was a click.
         if (start && start.x === newItem.x && start.y === newItem.y) {
+            // Only fire the selection event if the block isn't already selected.
             if (selectedBlockId !== newItem.i) {
                 setSelectedBlockId(newItem.i);
             }
         }
+        // Reset the ref for the next interaction.
         dragStartLayout.current = null;
     };
 
@@ -93,6 +103,7 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
                 rowHeight={PAGE_ROW_HEIGHT}
                 width={pageWidth}
                 onLayoutChange={handleLayoutChange}
+                // REWORK: Wire up the new drag handlers.
                 onDragStart={handleDragStart}
                 onDragStop={handleDragStop}
                 preventCollision={true}
@@ -113,7 +124,6 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
 
                     return (
                         <div key={block.id} className={wrapperClass} style={blockStyle}>
-                            {/* This is the key change: using the real renderer */}
                             <SheetBlockRenderer block={block} />
                         </div>
                     );
