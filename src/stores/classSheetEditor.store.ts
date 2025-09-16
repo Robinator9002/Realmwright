@@ -1,22 +1,19 @@
 // src/stores/classSheetEditor.store.ts
 
 /**
- * COMMIT: feat(store): add action to update block styles
+ * COMMIT: feat(store): add action to update block configuration
  *
  * Rationale:
- * The `BlockAppearanceSettings` component requires a method to update the
- * visual style properties (e.g., text alignment, colors) of a specific
- * `SheetBlock`. The store lacked this functionality, causing a TypeScript
- * error when the component tried to access the undefined `updateBlockStyles`
- * action.
+ * To support the new `config` property on the `SheetBlock` type, the store
+ * needs a dedicated action to modify it. This allows components in the
+ * properties sidebar to save block-specific settings (like which ability
+ * tree to display) to the central state.
  *
  * Implementation Details:
- * - Added `updateBlockStyles` to the `Actions` interface, defining its
- * signature to accept a `blockId` and a partial `SheetBlockStyles` object.
- * - Implemented the `updateBlockStyles` function within the store's
- * actions. This new function safely locates the specified block and merges
- * the new styles with any existing styles.
- * - This resolves the compilation error and enables style editing functionality.
+ * - Added `updateBlockConfig` to the `Actions` interface.
+ * - Implemented the `updateBlockConfig` function. It safely finds the
+ * target block and merges the new configuration values with any existing
+ * ones, ensuring that partial updates don't overwrite unrelated settings.
  */
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
@@ -55,6 +52,7 @@ interface Actions {
     updateBlockLayout: (blockId: string, newLayout: Partial<SheetBlock['layout']>) => void;
     updateBlockContent: (blockId: string, newContent: any) => void;
     updateBlockStyles: (blockId: string, newStyles: Partial<SheetBlockStyles>) => void;
+    updateBlockConfig: (blockId: string, newConfig: Partial<any>) => void;
     updateBaseStat: (statId: number, value: number) => void;
     addPage: () => void;
     deletePage: (pageIndex: number) => void;
@@ -194,6 +192,20 @@ export const useClassSheetStore = create(
                 if (block) {
                     // Using spread to merge existing and new styles
                     block.styles = { ...block.styles, ...newStyles };
+                }
+            });
+        },
+        // NEW: Implementation for updating block-specific configurations.
+        updateBlockConfig: (blockId, newConfig) => {
+            set((state) => {
+                if (!state.editableClass) return;
+                const block = state.editableClass.characterSheet[
+                    state.activePageIndex
+                ]?.blocks.find((b) => b.id === blockId);
+
+                if (block) {
+                    // Merge new config values with any existing ones.
+                    block.config = { ...block.config, ...newConfig };
                 }
             });
         },
