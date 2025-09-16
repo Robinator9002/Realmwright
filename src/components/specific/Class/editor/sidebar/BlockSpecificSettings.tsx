@@ -2,57 +2,43 @@
 
 import type { FC } from 'react';
 import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
-import type { SheetBlock } from '../../../../../db/types';
+// NEW: Import the concrete settings component from its new location.
+import { AbilityTreeSettings } from '../../../SheetBlocks/settings/content/AbilityTreeSettings';
 
 /**
- * A "router" component that renders the appropriate settings UI for the
- * currently selected block based on its type. This keeps the main
- * properties sidebar clean and allows for modular, block-specific settings panels.
+ * A "router" component that renders the appropriate settings UI based on the
+ * currently selected block's type.
  */
 export const BlockSpecificSettings: FC = () => {
     // --- ZUSTAND STORE ---
-    const { editableClass, activePageIndex, selectedBlockId } = useClassSheetStore((state) => ({
-        editableClass: state.editableClass,
-        activePageIndex: state.activePageIndex,
+    const { selectedBlockId, getBlockById } = useClassSheetStore((state) => ({
         selectedBlockId: state.selectedBlockId,
+        getBlockById: (id: string) =>
+            state.editableClass?.characterSheet[state.activePageIndex]?.blocks.find(
+                (b) => b.id === id,
+            ),
     }));
 
     // --- DERIVED STATE ---
-    const selectedBlock: SheetBlock | null =
-        editableClass?.characterSheet[activePageIndex]?.blocks.find(
-            (b) => b.id === selectedBlockId,
-        ) || null;
+    const selectedBlock = selectedBlockId ? getBlockById(selectedBlockId) : null;
 
     if (!selectedBlock) {
-        // This should not happen if the component is used correctly within PropertiesSidebar
-        return null;
+        return null; // Should not happen if a block is selected, but a safe guard.
     }
 
-    /**
-     * Renders the specific settings component based on the block type.
-     * In the future, these will be broken out into their own components,
-     * but are kept inline for this foundational step.
-     */
+    // --- RENDER LOGIC ---
     const renderSettings = () => {
         switch (selectedBlock.type) {
             case 'ability_tree':
-                // Placeholder for AbilityTreeSettings.tsx
-                return <p className="panel__empty-message--small">Ability Tree settings...</p>;
+                // REWORK: Replace the placeholder with the actual settings component.
+                return <AbilityTreeSettings />;
 
-            case 'rich_text':
-                // Placeholder for RichTextSettings.tsx
-                return <p className="panel__empty-message--small">Rich Text settings...</p>;
-
-            case 'notes':
-                // Placeholder for NotesSettings.tsx
-                return <p className="panel__empty-message--small">Notes settings...</p>;
-
-            case 'inventory':
-                // Placeholder for InventorySettings.tsx
-                return <p className="panel__empty-message--small">Inventory settings...</p>;
-
-            case 'details':
+            // Future block-specific settings components will be added here.
             case 'stats':
+            case 'details':
+            case 'inventory':
+            case 'rich_text':
+            case 'notes':
             default:
                 return (
                     <p className="panel__empty-message--small">

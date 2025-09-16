@@ -1,4 +1,4 @@
-// src/components/specific/Class/editor/sidebar/AbilityTreeSettings.tsx
+// src/components/specific/SheetBlocks/settings/content/AbilityTreeSettings.tsx
 
 import type { FC } from 'react';
 import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
