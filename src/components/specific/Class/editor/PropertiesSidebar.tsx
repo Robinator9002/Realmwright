@@ -4,10 +4,11 @@ import type { FC } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 import type { SheetBlock } from '../../../../db/types';
+import { BlockLayoutSettings } from './sidebar/BlockLayoutSettings';
+import { BlockAppearanceSettings } from './sidebar/BlockAppearanceSettings';
 
 export const PropertiesSidebar: FC = () => {
     // --- ZUSTAND STORE ---
-    // REWORK: Select the raw state needed to find the block, ensuring reactivity.
     const { editableClass, activePageIndex, selectedBlockId, setSelectedBlockId, deleteBlock } =
         useClassSheetStore((state) => ({
             editableClass: state.editableClass,
@@ -18,13 +19,11 @@ export const PropertiesSidebar: FC = () => {
         }));
 
     // --- DERIVED STATE ---
-    // Find the selected block object based on the current state.
     const selectedBlock: SheetBlock | null =
         editableClass?.characterSheet[activePageIndex]?.blocks.find(
             (b) => b.id === selectedBlockId,
         ) || null;
 
-    // This component only renders when a block is selected.
     if (!selectedBlock) {
         return null;
     }
@@ -43,6 +42,15 @@ export const PropertiesSidebar: FC = () => {
             </div>
 
             <div className="properties-sidebar__content">
+                <BlockLayoutSettings />
+                <BlockAppearanceSettings />
+                {/* A placeholder for the future contextual settings */}
+                <div className="properties-sidebar__section">
+                    <h4 className="properties-sidebar__section-title">Block Specific</h4>
+                    <p className="panel__empty-message--small">
+                        No specific properties for this block type.
+                    </p>
+                </div>
             </div>
 
             <div className="properties-sidebar__footer">
