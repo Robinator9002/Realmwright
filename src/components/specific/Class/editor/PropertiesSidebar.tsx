@@ -6,6 +6,8 @@ import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 import type { SheetBlock } from '../../../../db/types';
 import { BlockLayoutSettings } from './sidebar/BlockLayoutSettings';
 import { BlockAppearanceSettings } from './sidebar/BlockAppearanceSettings';
+// NEW: Import the dynamic settings router component.
+import { BlockSpecificSettings } from './sidebar/BlockSpecificSettings';
 
 export const PropertiesSidebar: FC = () => {
     // --- ZUSTAND STORE ---
@@ -44,13 +46,8 @@ export const PropertiesSidebar: FC = () => {
             <div className="properties-sidebar__content">
                 <BlockLayoutSettings />
                 <BlockAppearanceSettings />
-                {/* A placeholder for the future contextual settings */}
-                <div className="properties-sidebar__section">
-                    <h4 className="properties-sidebar__section-title">Block Specific</h4>
-                    <p className="panel__empty-message--small">
-                        No specific properties for this block type.
-                    </p>
-                </div>
+                {/* REWORK: The old placeholder is replaced with the new router component. */}
+                <BlockSpecificSettings />
             </div>
 
             <div className="properties-sidebar__footer">
