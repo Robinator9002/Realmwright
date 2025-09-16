@@ -3,7 +3,6 @@
 import type { FC, ReactNode } from 'react';
 import { Settings } from 'lucide-react';
 import type { SheetBlock } from '../../../../db/types';
-// NEW: Import the store to access the selection action.
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 
 // --- HELPER FUNCTIONS ---
@@ -32,7 +31,6 @@ interface SheetBlockWrapperProps {
  * button, and the main content area.
  */
 export const SheetBlockWrapper: FC<SheetBlockWrapperProps> = ({ block, children }) => {
-    // NEW: Get the action to set the selected block ID from the store.
     const setSelectedBlockId = useClassSheetStore((state) => state.setSelectedBlockId);
     const displayName = getBlockDisplayName(block.type);
 
@@ -43,7 +41,6 @@ export const SheetBlockWrapper: FC<SheetBlockWrapperProps> = ({ block, children 
                 <button
                     className="sheet-block__config-button"
                     title={`Configure ${displayName}`}
-                    // REWORK: This button now selects the block, opening the properties sidebar.
                     onClick={() => setSelectedBlockId(block.id)}
                 >
                     <Settings size={14} />
