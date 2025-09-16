@@ -1,24 +1,5 @@
 // src/components/specific/Class/editor/PageCanvas.tsx
 
-/**
- * COMMIT: fix(class-sheet): refine zoom effect to hide blocks instead of entire grid
- *
- * Rationale:
- * The previous fix for the zoom-flicker issue hid the entire GridLayout,
- * which was visually jarring as the whole page background would disappear and
- * reappear. This commit refines that behavior.
- *
- * Implementation Details:
- * - The `isZooming` state is now used within the `blocks.map()` function inside
- * the `ScaledGridLayout` component.
- * - A `style` object is applied to each individual block's wrapper div.
- * - This style sets `visibility: 'hidden'` on each block only when a zoom is
- * in progress (`isZooming` is true).
- * - The `visibility` style has been removed from the main grid container, so
- * the page background remains static during the zoom.
- * - This results in a much smoother user experience, where only the blocks
- * themselves pop in and out, rather than the entire canvas.
- */
 import { useMemo, type FC, useRef, useState } from 'react';
 import GridLayout, { type Layout } from 'react-grid-layout';
 import {
@@ -29,12 +10,14 @@ import {
 } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store.ts';
-import { SheetBlockRenderer } from '../blocks/SheetBlockRenderer.tsx';
+// REWORK: Import the new, real SheetBlockRenderer.
+import { SheetBlockRenderer } from './SheetBlockRenderer';
 
 // --- CONSTANTS ---
 const PAGE_COLUMNS = 48;
 const PAGE_ROW_HEIGHT = 10;
 
+// --- COMPONENT PROPS ---
 interface ScaledGridLayoutProps {
     isZooming: boolean;
 }
@@ -86,19 +69,16 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
 
     // --- EVENT HANDLERS FOR CLICK DETECTION ---
     const handleDragStart = (_layout: Layout[], oldItem: Layout) => {
-        // Store the initial state of the item being dragged.
         dragStartLayout.current = oldItem;
     };
 
     const handleDragStop = (_layout: Layout[], _oldItem: Layout, newItem: Layout) => {
         const start = dragStartLayout.current;
         if (start && start.x === newItem.x && start.y === newItem.y) {
-            // If the item's x/y position hasn't changed, it was a click.
             if (selectedBlockId !== newItem.i) {
                 setSelectedBlockId(newItem.i);
             }
         }
-        // Clear the ref for the next interaction.
         dragStartLayout.current = null;
     };
 
@@ -127,14 +107,14 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
                     const wrapperClass = `sheet-block-wrapper ${
                         isSelected ? 'sheet-block-wrapper--selected' : ''
                     }`;
-                    // REWORK: Hide individual blocks during zoom instead of the whole grid.
                     const blockStyle = {
                         visibility: isZooming ? 'hidden' : 'visible',
                     } as const;
 
                     return (
                         <div key={block.id} className={wrapperClass} style={blockStyle}>
-                            <SheetBlockRenderer block={block} characterClass={characterClass} />
+                            {/* This is the key change: using the real renderer */}
+                            <SheetBlockRenderer block={block} />
                         </div>
                     );
                 })}
