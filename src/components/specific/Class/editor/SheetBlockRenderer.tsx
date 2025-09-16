@@ -26,6 +26,7 @@ interface SheetBlockRendererProps {
 /**
  * A "router" component that determines which specific block component to render
  * based on the `block.type`. It fetches any necessary shared data from the
+
  * Zustand store and passes it down, then wraps the final rendered block
  * in the universal SheetBlockWrapper.
  */
@@ -68,11 +69,14 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({ block }) => {
                 );
             case 'ability_tree':
                 return <AbilityTreeBlock block={block} allTrees={allAbilityTrees} />;
+
             case 'rich_text':
-                // REWORK: Pass the entire block object to the refactored component.
                 return <RichTextBlock block={block} />;
+
             case 'notes':
-                return <NotesBlock content={block.content} onContentChange={onContentChange} />;
+                // REWORK: Pass the entire block object to the refactored component.
+                return <NotesBlock block={block} />;
+
             case 'inventory':
                 return <InventoryBlock content={block.content} onContentChange={onContentChange} />;
 
