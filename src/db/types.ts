@@ -43,6 +43,14 @@ export type SheetBlock = {
     config?: any;
 };
 
+// NEW: Define the shape of a single inventory item.
+export interface InventoryItem {
+    id: string;
+    name: string;
+    quantity: number;
+    description: string;
+}
+
 export type SheetPage = {
     id: string;
     name: string;
