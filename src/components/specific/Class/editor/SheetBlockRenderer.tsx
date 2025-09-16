@@ -67,13 +67,9 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({ block }) => {
                     />
                 );
             case 'ability_tree':
-                return (
-                    <AbilityTreeBlock
-                        content={block.content}
-                        onContentChange={onContentChange}
-                        allTrees={allAbilityTrees}
-                    />
-                );
+                // REWORK: Pass the entire block and the list of all trees.
+                // The component now gets its configuration from `block.config`.
+                return <AbilityTreeBlock block={block} allTrees={allAbilityTrees} />;
             case 'rich_text':
                 return <RichTextBlock content={block.content} onContentChange={onContentChange} />;
             case 'notes':
