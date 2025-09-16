@@ -1,25 +1,26 @@
 // src/stores/classSheetEditor.store.ts
 
 /**
- * COMMIT: fix(class-sheet): correct import path for stat queries in store
+ * COMMIT: feat(store): add action to update block styles
  *
  * Rationale:
- * A previous refactoring moved stat-related database queries into a dedicated
- * `stat.queries.ts` file, but this store was not updated to reflect that
- * change. It was still attempting to import `getStatDefinitionsForWorld`
- * from the incorrect `ability.queries.ts` file, causing a compilation error.
+ * The `BlockAppearanceSettings` component requires a method to update the
+ * visual style properties (e.g., text alignment, colors) of a specific
+ * `SheetBlock`. The store lacked this functionality, causing a TypeScript
+ * error when the component tried to access the undefined `updateBlockStyles`
+ * action.
  *
  * Implementation Details:
- * - Removed the incorrect import statement.
- * - Added a new import statement pointing to the correct location for
- * `getStatDefinitionsForWorld` inside `src/db/queries/character/stat.queries.ts`.
- * - This resolves the TypeScript error and ensures the store can fetch the
- * data it needs to initialize properly.
+ * - Added `updateBlockStyles` to the `Actions` interface, defining its
+ * signature to accept a `blockId` and a partial `SheetBlockStyles` object.
+ * - Implemented the `updateBlockStyles` function within the store's
+ * actions. This new function safely locates the specified block and merges
+ * the new styles with any existing styles.
+ * - This resolves the compilation error and enables style editing functionality.
  */
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Layout } from 'react-grid-layout';
-// FIX: Correct the import path for the stat definition query.
 import { getStatDefinitionsForWorld } from '../db/queries/character/stat.queries';
 import { getAbilityTreesForWorld } from '../db/queries/character/ability.queries';
 import type {
@@ -28,6 +29,7 @@ import type {
     SheetPage,
     StatDefinition,
     AbilityTree,
+    SheetBlockStyles,
 } from '../db/types';
 
 // --- STATE ---
@@ -52,6 +54,7 @@ interface Actions {
     handleLayoutChange: (newLayout: Layout[]) => void;
     updateBlockLayout: (blockId: string, newLayout: Partial<SheetBlock['layout']>) => void;
     updateBlockContent: (blockId: string, newContent: any) => void;
+    updateBlockStyles: (blockId: string, newStyles: Partial<SheetBlockStyles>) => void;
     updateBaseStat: (statId: number, value: number) => void;
     addPage: () => void;
     deletePage: (pageIndex: number) => void;
@@ -76,18 +79,6 @@ export const useClassSheetStore = create(
         statDefinitions: [],
         allAbilityTrees: [],
         canvasScale: 1,
-        // REMOVED: The derived selectedBlock getter is no longer needed.
-        /*
-        get selectedBlock() {
-            const { editableClass, activePageIndex, selectedBlockId } = get();
-            if (!editableClass || !selectedBlockId) return null;
-            return (
-                editableClass.characterSheet[activePageIndex]?.blocks.find(
-                    (b) => b.id === selectedBlockId,
-                ) || null
-            );
-        },
-        */
 
         // --- ACTIONS ---
         init: async (characterClass) => {
@@ -190,6 +181,19 @@ export const useClassSheetStore = create(
                 ]?.blocks.find((b) => b.id === blockId);
                 if (block) {
                     block.content = newContent;
+                }
+            });
+        },
+        updateBlockStyles: (blockId, newStyles) => {
+            set((state) => {
+                if (!state.editableClass) return;
+                const block = state.editableClass.characterSheet[
+                    state.activePageIndex
+                ]?.blocks.find((b) => b.id === blockId);
+
+                if (block) {
+                    // Using spread to merge existing and new styles
+                    block.styles = { ...block.styles, ...newStyles };
                 }
             });
         },
