@@ -1,6 +1,6 @@
 // src/components/specific/Class/editor/SheetBlockWrapper.tsx
 
-import type { FC, ReactNode } from 'react';
+import type { FC, ReactNode, CSSProperties } from 'react';
 import { Settings } from 'lucide-react';
 import type { SheetBlock } from '../../../../db/types';
 import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
@@ -34,6 +34,11 @@ export const SheetBlockWrapper: FC<SheetBlockWrapperProps> = ({ block, children 
     const setSelectedBlockId = useClassSheetStore((state) => state.setSelectedBlockId);
     const displayName = getBlockDisplayName(block.type);
 
+    // REWORK: Create a style object to apply dynamic styles from the block's data.
+    const contentStyles: CSSProperties = {
+        textAlign: block.styles?.textAlign || 'left',
+    };
+
     return (
         <div className="sheet-block">
             <div className="sheet-block__header">
@@ -46,7 +51,10 @@ export const SheetBlockWrapper: FC<SheetBlockWrapperProps> = ({ block, children 
                     <Settings size={14} />
                 </button>
             </div>
-            <div className="sheet-block__content">{children}</div>
+            {/* REWORK: Apply the dynamic styles to the content wrapper. */}
+            <div className="sheet-block__content" style={contentStyles}>
+                {children}
+            </div>
         </div>
     );
 };
