@@ -1,41 +1,35 @@
 // src/components/specific/SheetBlocks/content/NotesBlock.tsx
 
-/**
- * COMMIT: feat(class-sheet): create NotesBlock component
- *
- * Rationale:
- * This commit introduces the actual `NotesBlock` component that will be
- * rendered on the character sheet canvas. It provides a simple and
- * effective way for users to add and edit text.
- *
- * Implementation Details:
- * - The component's structure is based on the existing RichTextBlock,
- * providing a familiar editing experience (display view with an edit button
- * that reveals a textarea).
- * - It uses local state (`isEditing`, `text`) to manage its own UI without
- * cluttering the global store.
- * - When the user saves their changes, the `onContentChange` prop is called,
- * which is connected to the central store's `updateBlockContent` action.
- * - A unique root class, `notes-block`, has been added to allow for distinct
- * styling.
- */
 import { useState, type FC } from 'react';
 import { Edit, Save } from 'lucide-react';
+// REWORK: Import the full SheetBlock type and the store hook.
+import type { SheetBlock } from '../../../../db/types';
+import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 
+// REWORK: The component now accepts the entire block object.
 export interface NotesBlockProps {
-    content: string | undefined;
-    onContentChange: (newContent: string) => void;
+    block: SheetBlock;
 }
 
-export const NotesBlock: FC<NotesBlockProps> = ({ content, onContentChange }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [text, setText] = useState(content || '');
+export const NotesBlock: FC<NotesBlockProps> = ({ block }) => {
+    // --- ZUSTAND STORE ---
+    const updateBlockContent = useClassSheetStore((state) => state.updateBlockContent);
 
+    // --- LOCAL UI STATE ---
+    const [isEditing, setIsEditing] = useState(false);
+    const [text, setText] = useState(block.content || '');
+
+    // --- DERIVED STATE ---
+    // The placeholder is now read from the block's configuration.
+    const placeholder = block.config?.placeholder || '*Empty note. Click edit to add content.*';
+
+    // --- EVENT HANDLERS ---
     const handleSave = () => {
-        onContentChange(text);
+        updateBlockContent(block.id, text);
         setIsEditing(false);
     };
 
+    // --- RENDER LOGIC ---
     if (isEditing) {
         return (
             <div className="notes-block notes-block--editing">
@@ -44,7 +38,7 @@ export const NotesBlock: FC<NotesBlockProps> = ({ content, onContentChange }) =>
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     rows={8}
-                    placeholder="Enter your notes here..."
+                    placeholder={placeholder}
                 />
                 <button
                     onClick={handleSave}
@@ -58,9 +52,7 @@ export const NotesBlock: FC<NotesBlockProps> = ({ content, onContentChange }) =>
 
     return (
         <div className="notes-block">
-            <div className="notes-block__display">
-                {content || '*Empty note. Click edit to add content.*'}
-            </div>
+            <div className="notes-block__display">{block.content || placeholder}</div>
             <button
                 onClick={() => setIsEditing(true)}
                 className="notes-block__edit-button"
