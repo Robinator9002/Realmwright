@@ -28,7 +28,6 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
     // --- ZUSTAND STORE ---
     const {
         blocks,
-        characterClass,
         selectedBlockId,
         handleLayoutChange,
         setSelectedBlockId,
@@ -37,7 +36,6 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
         canvasScale,
     } = useClassSheetStore((state) => ({
         blocks: state.editableClass?.characterSheet[state.activePageIndex]?.blocks ?? [],
-        characterClass: state.editableClass,
         selectedBlockId: state.selectedBlockId,
         handleLayoutChange: state.handleLayoutChange,
         setSelectedBlockId: state.setSelectedBlockId,
@@ -51,6 +49,7 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
         transformState: { scale },
     } = useTransformContext();
 
+    // --- REF FOR CLICK VS. DRAG DETECTION ---
     const dragStartLayout = useRef<Layout | null>(null);
 
     const gridLayout = useMemo(
@@ -66,13 +65,17 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
     );
 
     // --- EVENT HANDLERS ---
-
     const handleDragStart = (_layout: Layout[], oldItem: Layout) => {
         dragStartLayout.current = oldItem;
+        // NEW: Select the block the moment the drag begins.
+        if (selectedBlockId !== oldItem.i) {
+            setSelectedBlockId(oldItem.i);
+        }
     };
 
     const handleDragStop = (_layout: Layout[], _oldItem: Layout, newItem: Layout) => {
         const start = dragStartLayout.current;
+        // This logic handles pure clicks (no movement).
         if (start && start.x === newItem.x && start.y === newItem.y) {
             if (selectedBlockId !== newItem.i) {
                 setSelectedBlockId(newItem.i);
@@ -81,20 +84,14 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
         dragStartLayout.current = null;
     };
 
-    /**
-     * NEW: Handles clicks on the canvas background to deselect the active block.
-     * It checks if the click target is the canvas itself, not a child element.
-     */
     const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (e.target === e.currentTarget && selectedBlockId) {
+        // Deselect if the click is on the background canvas itself.
+        if (e.target === e.currentTarget) {
             setSelectedBlockId(null);
         }
     };
 
-    if (!characterClass) return null;
-
     return (
-        // REWORK: Attach the new click handler for deselection.
         <div
             className="page-canvas__page"
             style={{ width: pageWidth, height: pageHeight }}
@@ -113,12 +110,14 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
                 compactType={null}
                 isDraggable={true}
                 isResizable={true}
-                draggableCancel=".sheet-block__content, input, textarea, button, select"
+                // REWORK: Define the block header as the only valid drag handle.
+                draggableHandle=".sheet-block__header"
                 transformScale={scale}
             >
                 {blocks.map((block) => {
                     const isSelected = block.id === selectedBlockId;
-                    const wrapperClass = `sheet-block-wrapper ${
+                    // REWORK: The wrapper is now just the grid item. `SheetBlockWrapper` is inside.
+                    const gridItemClass = `sheet-block-wrapper ${
                         isSelected ? 'sheet-block-wrapper--selected' : ''
                     }`;
                     const blockStyle = {
@@ -126,7 +125,7 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
                     } as const;
 
                     return (
-                        <div key={block.id} className={wrapperClass} style={blockStyle}>
+                        <div key={block.id} className={gridItemClass} style={blockStyle}>
                             <SheetBlockRenderer block={block} />
                         </div>
                     );
