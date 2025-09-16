@@ -2,8 +2,9 @@
 
 import type { FC } from 'react';
 import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
-// NEW: Import the concrete settings component from its new location.
 import { AbilityTreeSettings } from '../../../SheetBlocks/settings/content/AbilityTreeSettings';
+// NEW: Import the settings panel for the rich text block.
+import { RichTextBlockSettings } from '../../../SheetBlocks/settings/content/RichTextBlockSettings';
 
 /**
  * A "router" component that renders the appropriate settings UI based on the
@@ -11,34 +12,31 @@ import { AbilityTreeSettings } from '../../../SheetBlocks/settings/content/Abili
  */
 export const BlockSpecificSettings: FC = () => {
     // --- ZUSTAND STORE ---
-    const { selectedBlockId, getBlockById } = useClassSheetStore((state) => ({
-        selectedBlockId: state.selectedBlockId,
-        getBlockById: (id: string) =>
+    const selectedBlock = useClassSheetStore((state) => {
+        if (!state.selectedBlockId) return null;
+        return (
             state.editableClass?.characterSheet[state.activePageIndex]?.blocks.find(
-                (b) => b.id === id,
-            ),
-    }));
-
-    // --- DERIVED STATE ---
-    const selectedBlock = selectedBlockId ? getBlockById(selectedBlockId) : null;
+                (b) => b.id === state.selectedBlockId,
+            ) || null
+        );
+    });
 
     if (!selectedBlock) {
-        return null; // Should not happen if a block is selected, but a safe guard.
+        return null;
     }
 
     // --- RENDER LOGIC ---
+    // This switch statement determines which settings component to show.
     const renderSettings = () => {
         switch (selectedBlock.type) {
             case 'ability_tree':
-                // REWORK: Replace the placeholder with the actual settings component.
                 return <AbilityTreeSettings />;
 
-            // Future block-specific settings components will be added here.
-            case 'stats':
-            case 'details':
-            case 'inventory':
+            // NEW: Add the case for the rich text block.
             case 'rich_text':
-            case 'notes':
+                return <RichTextBlockSettings />;
+
+            // Other block types will be added here in the future.
             default:
                 return (
                     <p className="panel__empty-message--small">
