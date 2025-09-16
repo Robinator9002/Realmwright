@@ -26,29 +26,20 @@ interface SheetBlockRendererProps {
 /**
  * A "router" component that determines which specific block component to render
  * based on the `block.type`. It fetches any necessary shared data from the
-
  * Zustand store and passes it down, then wraps the final rendered block
  * in the universal SheetBlockWrapper.
  */
 export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({ block }) => {
     // --- ZUSTAND STORE ---
     // Fetch all data that *any* of the child blocks might need.
-    const { characterClass, statDefinitions, allAbilityTrees, updateBlockContent } =
-        useClassSheetStore((state) => ({
-            characterClass: state.editableClass,
-            statDefinitions: state.statDefinitions,
-            allAbilityTrees: state.allAbilityTrees,
-            updateBlockContent: state.updateBlockContent,
-        }));
+    const { characterClass, statDefinitions, allAbilityTrees } = useClassSheetStore((state) => ({
+        characterClass: state.editableClass,
+        statDefinitions: state.statDefinitions,
+        allAbilityTrees: state.allAbilityTrees,
+    }));
 
     // This shouldn't happen if the renderer is used correctly, but it's a safe guard.
     if (!characterClass) return null;
-
-    // --- EVENT HANDLERS ---
-    // A generic handler to pass down to blocks that can edit their content.
-    const onContentChange = (newContent: any) => {
-        updateBlockContent(block.id, newContent);
-    };
 
     // --- RENDER LOGIC ---
 
@@ -74,11 +65,11 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({ block }) => {
                 return <RichTextBlock block={block} />;
 
             case 'notes':
-                // REWORK: Pass the entire block object to the refactored component.
                 return <NotesBlock block={block} />;
 
             case 'inventory':
-                return <InventoryBlock content={block.content} onContentChange={onContentChange} />;
+                // REWORK: Pass the entire block object to the refactored component.
+                return <InventoryBlock block={block} />;
 
             default:
                 return (
