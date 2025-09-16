@@ -111,7 +111,7 @@ const ScaledGridLayout: FC<ScaledGridLayoutProps> = ({ isZooming }) => {
                 isDraggable={true}
                 isResizable={true}
                 // REWORK: Define the block header as the only valid drag handle.
-                draggableHandle=".sheet-block__header"
+                draggableHandle=".sheet-block-wrapper"
                 transformScale={scale}
             >
                 {blocks.map((block) => {
