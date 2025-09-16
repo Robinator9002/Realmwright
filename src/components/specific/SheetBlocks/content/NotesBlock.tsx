@@ -2,34 +2,29 @@
 
 import { useState, type FC } from 'react';
 import { Edit, Save } from 'lucide-react';
-// REWORK: Import the full SheetBlock type and the store hook.
+// REWORK: Import the full block type.
 import type { SheetBlock } from '../../../../db/types';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 
-// REWORK: The component now accepts the entire block object.
+// REWORK: The component now accepts the entire block object and a change handler.
 export interface NotesBlockProps {
     block: SheetBlock;
+    onContentChange: (newContent: string) => void;
 }
 
-export const NotesBlock: FC<NotesBlockProps> = ({ block }) => {
-    // --- ZUSTAND STORE ---
-    const updateBlockContent = useClassSheetStore((state) => state.updateBlockContent);
+export const NotesBlock: FC<NotesBlockProps> = ({ block, onContentChange }) => {
+    // --- DERIVED STATE & PROPS ---
+    const content = block.content || '';
+    const placeholder = block.config?.placeholder || '*Empty note. Click edit to add content.*';
 
     // --- LOCAL UI STATE ---
     const [isEditing, setIsEditing] = useState(false);
-    const [text, setText] = useState(block.content || '');
+    const [text, setText] = useState(content);
 
-    // --- DERIVED STATE ---
-    // The placeholder is now read from the block's configuration.
-    const placeholder = block.config?.placeholder || '*Empty note. Click edit to add content.*';
-
-    // --- EVENT HANDLERS ---
     const handleSave = () => {
-        updateBlockContent(block.id, text);
+        onContentChange(text);
         setIsEditing(false);
     };
 
-    // --- RENDER LOGIC ---
     if (isEditing) {
         return (
             <div className="notes-block notes-block--editing">
@@ -52,7 +47,7 @@ export const NotesBlock: FC<NotesBlockProps> = ({ block }) => {
 
     return (
         <div className="notes-block">
-            <div className="notes-block__display">{block.content || placeholder}</div>
+            <div className="notes-block__display">{content || placeholder}</div>
             <button
                 onClick={() => setIsEditing(true)}
                 className="notes-block__edit-button"

@@ -2,8 +2,7 @@
 
 import { useState, type FC } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-// REWORK: Import the store and the full block type.
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
+// REWORK: Remove the direct dependency on the Zustand store.
 import type { SheetBlock } from '../../../../db/types';
 
 // Define the shape of a single inventory item
@@ -14,17 +13,18 @@ export interface InventoryItem {
     description: string;
 }
 
-// REWORK: The component now accepts the entire block object.
+// REWORK: The component now accepts the entire block object AND a change handler.
 export interface InventoryBlockProps {
     block: SheetBlock;
+    onContentChange: (newContent: InventoryItem[]) => void;
 }
 
 /**
  * A sheet block for managing a list of inventory items.
  */
-export const InventoryBlock: FC<InventoryBlockProps> = ({ block }) => {
+export const InventoryBlock: FC<InventoryBlockProps> = ({ block, onContentChange }) => {
     // --- ZUSTAND STORE ---
-    const updateBlockContent = useClassSheetStore((state) => state.updateBlockContent);
+    // The direct store dependency has been removed.
 
     // --- LOCAL UI STATE ---
     const [newItemName, setNewItemName] = useState('');
@@ -36,7 +36,7 @@ export const InventoryBlock: FC<InventoryBlockProps> = ({ block }) => {
     const title = block.config?.title || 'Inventory';
 
     // --- EVENT HANDLERS ---
-    // All handlers now update the central store directly.
+    // All handlers now call the onContentChange prop.
     const handleAddItem = () => {
         if (!newItemName.trim()) return;
         const newItem: InventoryItem = {
@@ -46,13 +46,13 @@ export const InventoryBlock: FC<InventoryBlockProps> = ({ block }) => {
             description: '',
         };
         const newItems = [...items, newItem];
-        updateBlockContent(block.id, newItems);
+        onContentChange(newItems);
         setNewItemName('');
     };
 
     const handleRemoveItem = (itemId: string) => {
         const newItems = items.filter((item) => item.id !== itemId);
-        updateBlockContent(block.id, newItems);
+        onContentChange(newItems);
     };
 
     const handleItemChange = (
@@ -66,7 +66,7 @@ export const InventoryBlock: FC<InventoryBlockProps> = ({ block }) => {
             }
             return item;
         });
-        updateBlockContent(block.id, newItems);
+        onContentChange(newItems);
     };
 
     return (

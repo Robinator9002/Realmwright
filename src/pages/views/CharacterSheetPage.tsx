@@ -1,27 +1,27 @@
 // src/pages/views/CharacterSheetPage.tsx
 
-/**
- * COMMIT: fix(character-sheet): resolve TypeScript error for style prop
- *
- * Rationale:
- * A TypeScript error (ts2322) was occurring because the `style` object for
- * absolutely positioned blocks was not explicitly typed. TypeScript's inferred
- * type for `position: 'absolute'` was `string`, which is not specific
- * enough for React's CSSProperties type.
- *
- * Implementation Details:
- * - Imported the `CSSProperties` type from React.
- * - Explicitly cast the `style` object for each rendered block as
- * `CSSProperties`. This informs TypeScript that the provided values (like
- * 'absolute') are valid, resolving the type mismatch error.
- */
 import { useState, useEffect, type FC, type CSSProperties } from 'react';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useView } from '../../context/global/ViewContext';
 import { db } from '../../db/db';
 import { updateCharacter } from '../../db/queries/character/character.queries';
-import type { Character, CharacterClass } from '../../db/types';
-import { SheetBlockRenderer } from '../../components/specific/Class/blocks/SheetBlockRenderer';
+import { getStatDefinitionsForWorld } from '../../db/queries/character/stat.queries';
+import { getAbilityTreesForWorld } from '../../db/queries/character/ability.queries';
+// REWORK: Add InventoryItem to imports
+import type {
+    Character,
+    CharacterClass,
+    StatDefinition,
+    AbilityTree,
+    InventoryItem,
+} from '../../db/types';
+// FIX: Correct and standardize all import paths for sheet blocks.
+import { DetailsBlock } from '../../components/specific/SheetBlocks/character/DetailsBlock';
+import { StatsBlock } from '../../components/specific/SheetBlocks/character/StatsBlock';
+import { AbilityTreeBlock } from '../../components/specific/SheetBlocks/content/AbilityTreeBlock';
+import { RichTextBlock } from '../../components/specific/SheetBlocks/content/RichTextBlock';
+import { InventoryBlock } from '../../components/specific/SheetBlocks/character/InventoryBlock';
+import { NotesBlock } from '../../components/specific/SheetBlocks/content/NotesBlock';
 import { CharacterSheetPageControls } from '../../components/specific/Character/CharacterSheetPageControls';
 
 // Constants for converting grid units to pixels, matching the editor's canvas.
@@ -36,6 +36,8 @@ export const CharacterSheetPage: FC = () => {
     // --- STATE ---
     const [character, setCharacter] = useState<Character | null>(null);
     const [characterClass, setCharacterClass] = useState<CharacterClass | null>(null);
+    const [statDefinitions, setStatDefinitions] = useState<StatDefinition[]>([]);
+    const [allAbilityTrees, setAllAbilityTrees] = useState<AbilityTree[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -54,8 +56,14 @@ export const CharacterSheetPage: FC = () => {
                 if (!char) throw new Error('Character not found.');
                 const charClass = await db.characterClasses.get(char.classId);
                 if (!charClass) throw new Error('Character class blueprint not found.');
+                const [stats, trees] = await Promise.all([
+                    getStatDefinitionsForWorld(char.worldId),
+                    getAbilityTreesForWorld(char.worldId),
+                ]);
                 setCharacter(char);
                 setCharacterClass(charClass);
+                setStatDefinitions(stats);
+                setAllAbilityTrees(trees);
             } catch (err) {
                 setError((err as Error).message);
             } finally {
@@ -123,7 +131,6 @@ export const CharacterSheetPage: FC = () => {
             <main className="page-canvas__container">
                 <div className="page-canvas__page">
                     {currentPage?.blocks.map((block) => {
-                        // FIX: Explicitly type the style object as CSSProperties.
                         const style: CSSProperties = {
                             position: 'absolute',
                             left: `${(block.layout.x / PAGE_COLUMNS) * 100}%`,
@@ -132,16 +139,69 @@ export const CharacterSheetPage: FC = () => {
                             height: `${block.layout.h * PAGE_ROW_HEIGHT}px`,
                             zIndex: block.layout.zIndex,
                         };
+
+                        const renderBlockContent = () => {
+                            const liveBlock = {
+                                ...block,
+                                content: character.instanceData[block.id] ?? block.content,
+                            };
+
+                            switch (liveBlock.type) {
+                                case 'details':
+                                    return <DetailsBlock characterClass={characterClass} />;
+                                case 'stats':
+                                    return (
+                                        <StatsBlock
+                                            baseStats={character.stats}
+                                            statDefinitions={statDefinitions}
+                                        />
+                                    );
+                                case 'ability_tree':
+                                    return (
+                                        <AbilityTreeBlock
+                                            block={liveBlock}
+                                            allTrees={allAbilityTrees}
+                                        />
+                                    );
+                                case 'rich_text':
+                                    // FIX: Pass the change handler for consistency.
+                                    return (
+                                        <RichTextBlock
+                                            block={liveBlock}
+                                            onContentChange={(newContent: string) =>
+                                                handleInstanceDataChange(liveBlock.id, newContent)
+                                            }
+                                        />
+                                    );
+                                case 'notes':
+                                    // FIX: Explicitly type the newContent parameter.
+                                    return (
+                                        <NotesBlock
+                                            block={liveBlock}
+                                            onContentChange={(newContent: string) =>
+                                                handleInstanceDataChange(liveBlock.id, newContent)
+                                            }
+                                        />
+                                    );
+                                case 'inventory':
+                                    // FIX: Explicitly type the newContent parameter.
+                                    return (
+                                        <InventoryBlock
+                                            block={liveBlock}
+                                            onContentChange={(newContent: InventoryItem[]) =>
+                                                handleInstanceDataChange(liveBlock.id, newContent)
+                                            }
+                                        />
+                                    );
+
+                                default:
+                                    return null;
+                            }
+                        };
+
                         return (
                             <div key={block.id} style={style} className="sheet-block">
-                                <div className="sheet-block__content">
-                                    <SheetBlockRenderer
-                                        block={block}
-                                        character={character}
-                                        characterClass={characterClass}
-                                        onContentChange={handleInstanceDataChange}
-                                    />
-                                </div>
+                                <div className="sheet-block__content">{renderBlockContent()}</div>
                             </div>
                         );
                     })}
