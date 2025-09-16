@@ -4,8 +4,9 @@ import type { FC } from 'react';
 import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
 import { AbilityTreeSettings } from '../../../SheetBlocks/settings/content/AbilityTreeSettings';
 import { RichTextBlockSettings } from '../../../SheetBlocks/settings/content/RichTextBlockSettings';
-// NEW: Import the settings panel for the notes block.
 import { NotesBlockSettings } from '../../../SheetBlocks/settings/content/NotesBlockSettings';
+// NEW: Import the settings panel for the inventory block.
+import { InventoryBlockSettings } from '../../../SheetBlocks/settings/character/InventoryBlockSettings';
 
 /**
  * A "router" component that renders the appropriate settings UI based on the
@@ -36,9 +37,12 @@ export const BlockSpecificSettings: FC = () => {
             case 'rich_text':
                 return <RichTextBlockSettings />;
 
-            // NEW: Add the case for the notes block.
             case 'notes':
                 return <NotesBlockSettings />;
+
+            // NEW: Add the case for the inventory block.
+            case 'inventory':
+                return <InventoryBlockSettings />;
 
             // Other block types will be added here in the future.
             default:
