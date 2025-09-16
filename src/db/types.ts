@@ -38,9 +38,9 @@ export type SheetBlock = {
     id: string;
     type: 'details' | 'stats' | 'ability_tree' | 'inventory' | 'rich_text' | 'notes';
     content?: any;
-    // NEW: Replaced `width` with a full layout and styling object.
     layout: SheetBlockLayout;
     styles?: SheetBlockStyles;
+    config?: any;
 };
 
 export type SheetPage = {
