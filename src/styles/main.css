@@ -69,8 +69,10 @@
 @import url('./components/ability-tree/_ability-manager.css');
 @import url('./components/ability-tree/_reactflow-overrides.css');
 @import url('./components/ability-tree/canvas/_canvas-enhancements.css');
+/* -- 4.11 Ability Tree Node -- */
 @import url('./components/ability-tree/node/_ability-node.css');
 @import url('./components/ability-tree/node/_attachment-node.css');
+/* -- 4.12 Ability Tree Sidebar -- */
 @import url('./components/ability-tree/sidebar/controls/_tier-controls.css');
 @import url('./components/ability-tree/sidebar/controls/_tier-bar.css');
 @import url('./components/ability-tree/sidebar/components/_logic-edge.css');
@@ -78,10 +80,17 @@
 
 /* --- 4.2 Class Sheet Editor --- */
 @import url('./components/class-sheet/core/_sheet-editor.css');
-@import url('./components/class-sheet/core/_sheet-blocks.css');
+@import url('./components/class-sheet/core/_sheet-blocks-core.css');
+/* -- 4.22 Class Sheet Canvas -- */
 @import url('./components/class-sheet/components/_page-canvas.css');
 @import url('./components/class-sheet/components/_page-controls.css');
 @import url('./components/class-sheet/components/_properties-sidebar.css');
+/* -- 4.23 Class Sheet Blocks -- */
+@import url('./components/class-sheet/blocks/_ability-tree-block.css');
+@import url('./components/class-sheet/blocks/_details-block.css');
+@import url('./components/class-sheet/blocks/_inventory-block.css');
+@import url('./components/class-sheet/blocks/_rich-text-and-notes-blocks.css');
+@import url('./components/class-sheet/blocks/_stats-block.css');
 
 /*
 |--------------------------------------------------------------------------
