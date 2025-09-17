@@ -5,18 +5,13 @@ import { PlusCircle, Trash2, Edit } from 'lucide-react';
 import { useWorld } from '../../../context/feature/WorldContext';
 import { useModal } from '../../../context/global/ModalContext';
 import { useView } from '../../../context/global/ViewContext';
-import {
-    getMapsForWorld,
-    deleteMap,
-    addMap,
-    updateMap,
-} from '../../../db/queries/map/map.queries';
+import { getMapsForWorld, deleteMap, addMap, updateMap } from '../../../db/queries/map/map.queries';
 import type { Map } from '../../../db/types';
 import { ManageMapModal, type MapSaveData } from './ManageMapModal';
 
 export const MapManager: FC = () => {
     // --- HOOKS ---
-    const { selectedWorld } from useWorld();
+    const { selectedWorld } = useWorld();
     const { showModal } = useModal();
     const { setCurrentView, setEditingMapId } = useView();
 
@@ -69,11 +64,19 @@ export const MapManager: FC = () => {
         if (!selectedWorld?.id) return;
         try {
             if (managingMap && managingMap.id) {
-                // Update existing map
-                await updateMap(managingMap.id, saveData);
+                // Update existing map's name and description
+                await updateMap(managingMap.id, {
+                    name: saveData.name,
+                    description: saveData.description,
+                });
             } else {
-                // Create new map
-                await addMap({ ...saveData, worldId: selectedWorld.id });
+                // Create new map with default values for required fields
+                await addMap({
+                    ...saveData,
+                    worldId: selectedWorld.id,
+                    imageDataUrl: '', // Default empty image
+                    gridSize: { width: 100, height: 100 }, // Default grid size
+                });
             }
             await fetchMaps();
         } catch (err) {
@@ -119,9 +122,7 @@ export const MapManager: FC = () => {
                                 <li key={map.id} className="panel__list-item">
                                     <div className="panel__item-details">
                                         <h4 className="panel__item-title">{map.name}</h4>
-                                        <p className="panel__item-description">
-                                            {map.description}
-                                        </p>
+                                        <p className="panel__item-description">{map.description}</p>
                                     </div>
                                     <div className="panel__item-actions">
                                         <button
