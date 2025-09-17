@@ -1,6 +1,7 @@
 // src/components/layout/Topbar/Topbar.tsx
+
 import type { FC } from 'react';
-import { Sun, Moon, Settings } from 'lucide-react';
+import { Sun, Moon, Settings, Map, Pin, ScrollText } from 'lucide-react'; // NEW: Add icons
 import { useWorld } from '../../../context/feature/WorldContext';
 import { useView } from '../../../context/global/ViewContext';
 import { useSettings } from '../../../context/global/SettingsContext';
@@ -60,7 +61,6 @@ export const Topbar: FC = () => {
                     >
                         Characters
                     </TabButton>
-                    {/* NEW: Add the TabButton for the Classes section. */}
                     <TabButton
                         isActive={activeWorldTab === 'classes'}
                         onClick={() => setActiveWorldTab('classes')}
@@ -73,6 +73,26 @@ export const Topbar: FC = () => {
                     >
                         Lore
                     </TabButton>
+                    {/* NEW: Add Map Creator tabs */}
+                    <TabButton
+                        isActive={activeWorldTab === 'maps'}
+                        onClick={() => setActiveWorldTab('maps')}
+                    >
+                        <Map size={16} /> Maps
+                    </TabButton>
+                    <TabButton
+                        isActive={activeWorldTab === 'locations'}
+                        onClick={() => setActiveWorldTab('locations')}
+                    >
+                        <Pin size={16} /> Locations
+                    </TabButton>
+                    <TabButton
+                        isActive={activeWorldTab === 'quests'}
+                        onClick={() => setActiveWorldTab('quests')}
+                    >
+                        <ScrollText size={16} /> Quests
+                    </TabButton>
+                    {/* END NEW */}
                     <TabButton
                         isActive={activeWorldTab === 'stats'}
                         onClick={() => setActiveWorldTab('stats')}
