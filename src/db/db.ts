@@ -9,6 +9,9 @@ import type {
     Ability,
     AbilityTree,
     CharacterClass,
+    Map,
+    Location,
+    Quest,
 } from './types';
 
 /**
@@ -25,6 +28,10 @@ export class RealmwrightDB extends Dexie {
     public abilityTrees!: Table<AbilityTree, number>;
     public abilities!: Table<Ability, number>;
     public characterClasses!: Table<CharacterClass, number>;
+    // Add the new table properties
+    public maps!: Table<Map, number>;
+    public locations!: Table<Location, number>;
+    public quests!: Table<Quest, number>;
 
     public constructor() {
         super('RealmwrightDB');
@@ -190,11 +197,26 @@ export class RealmwrightDB extends Dexie {
                 });
         });
 
-        // NEW: Version 14 Upgrade
-        // This version acknowledges the addition of the optional `attachmentPoint`
-        // property to the Ability interface. No data migration is needed since the
-        // property is optional and not indexed.
+        // Version 14 is for upgrading
         this.version(14).upgrade(() => {});
+
+        // NEW: Version 15
+        // This version introduces tables for the Map Creator feature.
+        this.version(15).stores({
+            // The latest version MUST include the full schema.
+            worlds: '++id, name, createdAt',
+            campaigns: '++id, worldId, name',
+            characters: '++id, worldId, classId, *campaignIds, name',
+            lore: '++id, worldId, category, name',
+            statDefinitions: '++id, worldId, name, type',
+            abilityTrees: '++id, worldId, name',
+            abilities: '++id, worldId, abilityTreeId, name, x, y, tier',
+            characterClasses: '++id, worldId, name',
+            // Add the new tables
+            maps: '++id, worldId, name',
+            locations: '++id, worldId, name',
+            quests: '++id, worldId, name',
+        });
     }
 }
 

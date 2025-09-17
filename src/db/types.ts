@@ -136,6 +136,14 @@ export interface Location extends BaseManageable {
     createdAt: Date;
 }
 
+// --- Quest Interface (Placeholder) ---
+
+export interface Quest extends BaseManageable {
+    worldId: number;
+    status: 'Not Started' | 'In Progress' | 'Completed';
+    createdAt: Date;
+}
+
 // --- Ability System Interfaces ---
 
 export type PrerequisiteLogicType = 'AND' | 'OR';
