@@ -32,10 +32,10 @@ interface SheetBlockRendererProps {
 export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({ block }) => {
     // --- ZUSTAND STORE ---
     // Fetch all data that *any* of the child blocks might need.
-    const { characterClass, statDefinitions, allAbilityTrees } = useClassSheetStore((state) => ({
+    const { characterClass, statDefinitions, updateBlockContent } = useClassSheetStore((state) => ({
         characterClass: state.editableClass,
         statDefinitions: state.statDefinitions,
-        allAbilityTrees: state.allAbilityTrees,
+        updateBlockContent: state.updateBlockContent, // <-- Add this action
     }));
 
     // This shouldn't happen if the renderer is used correctly, but it's a safe guard.
@@ -59,16 +59,29 @@ export const SheetBlockRenderer: FC<SheetBlockRendererProps> = ({ block }) => {
                     />
                 );
             case 'ability_tree':
-                return <AbilityTreeBlock block={block} allTrees={allAbilityTrees} />;
+                // FIXED: Removed the invalid `allTrees` prop.
+                // The component fetches this data from the store itself.
+                return <AbilityTreeBlock block={block} />;
 
             case 'rich_text':
-                return <RichTextBlock block={block} />;
+                // FIXED: Added the required `onContentChange` prop.
+                return (
+                    <RichTextBlock
+                        block={block}
+                        onContentChange={(newContent) => updateBlockContent(block.id, newContent)}
+                    />
+                );
 
             case 'notes':
-                return <NotesBlock block={block} />;
+                // FIXED: Added the required `onContentChange` prop.
+                return (
+                    <NotesBlock
+                        block={block}
+                        onContentChange={(newContent) => updateBlockContent(block.id, newContent)}
+                    />
+                );
 
             case 'inventory':
-                // REWORK: Pass the entire block object to the refactored component.
                 return <InventoryBlock block={block} />;
 
             default:
