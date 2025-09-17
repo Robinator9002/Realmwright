@@ -1,4 +1,5 @@
-// src/db/queries/world/map.queries.ts
+// src/db/queries/map/map.queries.ts
+
 import { db } from '../../db';
 import type { Map } from '../../types';
 
