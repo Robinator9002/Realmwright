@@ -1,4 +1,5 @@
 // src/components/specific/CampaignManager/CampaignManager.tsx
+
 import { useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { Settings } from 'lucide-react';
