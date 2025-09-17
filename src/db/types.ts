@@ -108,6 +108,34 @@ export interface StatDefinition extends BaseManageable {
     type: 'primary' | 'derived' | 'resource';
 }
 
+// --- Map & Location Interfaces ---
+
+export interface Map extends BaseManageable {
+    worldId: number;
+    // We'll store the map image as a data URL to ensure it works offline.
+    imageDataUrl: string;
+    gridSize: {
+        width: number;
+        height: number;
+    };
+    createdAt: Date;
+    // Future properties for zones and travel metrics will be added here.
+}
+
+export interface Location extends BaseManageable {
+    worldId: number;
+    // A location can exist without being placed on a map.
+    mapId?: number;
+    coordinates?: {
+        x: number;
+        y: number;
+    };
+    category: string; // e.g., "City", "Dungeon", "Landmark"
+    // For detailed descriptions, plot hooks, etc.
+    content: string;
+    createdAt: Date;
+}
+
 // --- Ability System Interfaces ---
 
 export type PrerequisiteLogicType = 'AND' | 'OR';
