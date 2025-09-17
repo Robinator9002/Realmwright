@@ -4,8 +4,9 @@ import { useState, useEffect, type FC } from 'react';
 import type { Map } from '../../db/types';
 import { getMapById } from '../../db/queries/map/map.queries';
 import { MapCanvas } from '../../components/specific/Map/Canvas/MapCanvas';
-// NEW: Import the sidebar component
 import { MapEditorSidebar } from '../../components/specific/Map/Sidebar/MapEditorSidebar';
+// NEW: Import the context provider
+import { MapEditorProvider } from '../../context/feature/MapEditorContext';
 
 /**
  * The inner component responsible for the editor's UI layout.
@@ -13,19 +14,23 @@ import { MapEditorSidebar } from '../../components/specific/Map/Sidebar/MapEdito
  */
 const MapEditor: FC<{ map: Map; onClose: () => void }> = ({ map, onClose }) => {
     return (
-        <div className="map-editor-page">
-            <header className="map-editor-page__header">
-                <button onClick={onClose} className="button">
-                    &larr; Back to Map List
-                </button>
-                <h2 className="map-editor-page__title">Editing Map: {map.name}</h2>
-            </header>
-            <main className="map-editor-page__main">
-                <MapCanvas map={map} />
-                {/* NEW: Add the sidebar to the layout */}
-                <MapEditorSidebar map={map} />
-            </main>
-        </div>
+        // NEW: Wrap the entire editor UI with the provider
+        <MapEditorProvider initialMap={map}>
+            <div className="map-editor-page">
+                <header className="map-editor-page__header">
+                    <button onClick={onClose} className="button">
+                        &larr; Back to Map List
+                    </button>
+                    {/* The title can now be derived from the context in the future if needed */}
+                    <h2 className="map-editor-page__title">Editing Map: {map.name}</h2>
+                </header>
+                <main className="map-editor-page__main">
+                    {/* These children components can now use the `useMapEditor` hook */}
+                    <MapCanvas map={map} />
+                    <MapEditorSidebar map={map} />
+                </main>
+            </div>
+        </MapEditorProvider>
     );
 };
 
