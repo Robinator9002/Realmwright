@@ -7,8 +7,11 @@ import { CharacterManager } from '../../components/specific/Character/CharacterM
 import { LoreManager } from '../../components/specific/Lore/LoreManager';
 import { StatManager } from '../../components/specific/Stats/StatManager';
 import { AbilityManager } from '../../components/specific/AbilityTree/AbilityManager';
-// NEW: Import the ClassManager component.
 import { ClassManager } from '../../components/specific/Class/management/ClassManager';
+// NEW: Import the new manager components
+import { MapManager } from '../../components/specific/Map/MapManager';
+import { LocationManager } from '../../components/specific/Location/LocationManager';
+import { QuestManager } from '../../components/specific/Quest/QuestManager';
 
 /**
  * Acts as a content switcher for the main world dashboard area.
@@ -24,7 +27,6 @@ export const WorldDashboardPage: FC = () => {
                 return <CampaignManager />;
             case 'characters':
                 return <CharacterManager />;
-            // NEW: Add the case for the 'classes' tab.
             case 'classes':
                 return <ClassManager />;
             case 'lore':
@@ -33,6 +35,13 @@ export const WorldDashboardPage: FC = () => {
                 return <StatManager />;
             case 'abilities':
                 return <AbilityManager />;
+            // NEW: Add cases for the map creator tabs
+            case 'maps':
+                return <MapManager />;
+            case 'locations':
+                return <LocationManager />;
+            case 'quests':
+                return <QuestManager />;
             default:
                 return <CampaignManager />;
         }
