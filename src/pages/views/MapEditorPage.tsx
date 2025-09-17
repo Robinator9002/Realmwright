@@ -4,6 +4,8 @@ import { useState, useEffect, type FC } from 'react';
 import type { Map } from '../../db/types';
 import { getMapById } from '../../db/queries/map/map.queries';
 import { MapCanvas } from '../../components/specific/Map/Canvas/MapCanvas';
+// NEW: Import the sidebar component
+import { MapEditorSidebar } from '../../components/specific/Map/Sidebar/MapEditorSidebar';
 
 /**
  * The inner component responsible for the editor's UI layout.
@@ -20,6 +22,8 @@ const MapEditor: FC<{ map: Map; onClose: () => void }> = ({ map, onClose }) => {
             </header>
             <main className="map-editor-page__main">
                 <MapCanvas map={map} />
+                {/* NEW: Add the sidebar to the layout */}
+                <MapEditorSidebar map={map} />
             </main>
         </div>
     );
