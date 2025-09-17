@@ -1,19 +1,19 @@
-// src/components/specific/Class/editor/SheetBlockRenderer.tsx
+// src/components/specific/Class/editor/canvas/SheetBlockRenderer.tsx
 
 import type { FC } from 'react';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
-import type { SheetBlock } from '../../../../db/types';
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
+import type { SheetBlock } from '../../../../../db/types';
 
 // The new universal wrapper
 import { SheetBlockWrapper } from './SheetBlockWrapper';
 
 // Import all the block display components we will be routing to
-import { DetailsBlock } from '../../SheetBlocks/character/DetailsBlock';
-import { StatsBlock } from '../../SheetBlocks/character/StatsBlock';
-import { AbilityTreeBlock } from '../../SheetBlocks/content/AbilityTreeBlock';
-import { RichTextBlock } from '../../SheetBlocks/content/RichTextBlock';
-import { InventoryBlock } from '../../SheetBlocks/character/InventoryBlock';
-import { NotesBlock } from '../../SheetBlocks/content/NotesBlock';
+import { DetailsBlock } from '../../../SheetBlocks/character/DetailsBlock';
+import { StatsBlock } from '../../../SheetBlocks/character/StatsBlock';
+import { AbilityTreeBlock } from '../../../SheetBlocks/content/AbilityTreeBlock';
+import { RichTextBlock } from '../../../SheetBlocks/content/RichTextBlock';
+import { InventoryBlock } from '../../../SheetBlocks/character/InventoryBlock';
+import { NotesBlock } from '../../../SheetBlocks/content/NotesBlock';
 
 // --- COMPONENT PROPS ---
 

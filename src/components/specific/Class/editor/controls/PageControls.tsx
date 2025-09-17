@@ -1,8 +1,8 @@
-// src/components/specific/Class/editor/PageControls.tsx
+// src/components/specific/Class/editor/controls/PageControls.tsx
 
 import { useState, useEffect, type FC } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store.ts';
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store.ts';
 
 export const PageControls: FC = () => {
     // --- ZUSTAND STORE ---

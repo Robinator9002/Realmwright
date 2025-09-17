@@ -1,9 +1,9 @@
-// src/components/specific/Class/editor/SheetBlockWrapper.tsx
+// src/components/specific/Class/editor/canvas/SheetBlockWrapper.tsx
 
 import type { FC, ReactNode, CSSProperties } from 'react';
 import { Settings } from 'lucide-react';
-import type { SheetBlock } from '../../../../db/types';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
+import type { SheetBlock } from '../../../../../db/types';
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
 
 // --- HELPER FUNCTIONS ---
 

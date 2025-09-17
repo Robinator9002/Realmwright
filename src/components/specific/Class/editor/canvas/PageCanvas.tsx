@@ -1,4 +1,4 @@
-// src/components/specific/Class/editor/PageCanvas.tsx
+// src/components/specific/Class/editor/canvas/PageCanvas.tsx
 
 import { useMemo, type FC, useRef, useState } from 'react';
 import GridLayout, { type Layout } from 'react-grid-layout';
@@ -9,7 +9,7 @@ import {
     useTransformContext,
 } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store.ts';
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store.ts';
 import { SheetBlockRenderer } from './SheetBlockRenderer';
 
 // --- CONSTANTS ---

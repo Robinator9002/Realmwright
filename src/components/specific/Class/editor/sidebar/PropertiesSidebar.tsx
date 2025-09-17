@@ -1,13 +1,13 @@
-// src/components/specific/Class/editor/PropertiesSidebar.tsx
+// src/components/specific/Class/editor/sidebar/PropertiesSidebar.tsx
 
 import type { FC } from 'react';
 import { Trash2 } from 'lucide-react';
-import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
-import type { SheetBlock } from '../../../../db/types';
-import { BlockLayoutSettings } from './sidebar/BlockLayoutSettings';
-import { BlockAppearanceSettings } from './sidebar/BlockAppearanceSettings';
+import { useClassSheetStore } from '../../../../../stores/classSheetEditor.store';
+import type { SheetBlock } from '../../../../../db/types';
+import { BlockLayoutSettings } from './BlockLayoutSettings';
+import { BlockAppearanceSettings } from './BlockAppearanceSettings';
 // NEW: Import the dynamic settings router component.
-import { BlockSpecificSettings } from './sidebar/BlockSpecificSettings';
+import { BlockSpecificSettings } from './BlockSpecificSettings';
 
 export const PropertiesSidebar: FC = () => {
     // --- ZUSTAND STORE ---

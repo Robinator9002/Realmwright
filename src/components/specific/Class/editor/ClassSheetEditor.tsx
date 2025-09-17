@@ -25,9 +25,9 @@ import { useClassSheetStore } from '../../../../stores/classSheetEditor.store';
 import { getClassById } from '../../../../db/queries/character/class.queries';
 import { updateClass } from '../../../../db/queries/character/class.queries';
 import { blockTypes } from '../../../../constants/sheetEditor.constants';
-import { PageCanvas } from './PageCanvas';
-import { PropertiesSidebar } from './PropertiesSidebar';
-import { PageControls } from './PageControls';
+import { PageCanvas } from './canvas/PageCanvas';
+import { PropertiesSidebar } from './sidebar/PropertiesSidebar';
+import { PageControls } from './controls/PageControls';
 
 export interface ClassSheetEditorProps {
     classId: number;
