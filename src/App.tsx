@@ -29,6 +29,7 @@ import { ModalManager } from './components/modal/ModalManager';
 import { CharacterSheetPage } from './pages/views/CharacterSheetPage';
 import { AbilityTreeEditorPage } from './pages/views/AbilityTreeEditorPage';
 import { ClassSheetEditor } from './components/specific/Class/editor/ClassSheetEditor';
+import { MapEditorPage } from './pages/views/MapEditorPage';
 
 /**
  * This helper component is responsible for rendering the correct page or
@@ -42,6 +43,9 @@ const CurrentView = () => {
         setEditingAbilityTreeId,
         editingClassId,
         setEditingClassId,
+        // NEW: Get the map ID state from the context
+        editingMapId,
+        setEditingMapId,
     } = useView();
 
     // The main view router for the application.
@@ -73,6 +77,18 @@ const CurrentView = () => {
                     onBack={() => {
                         setCurrentView('world_dashboard');
                         setEditingClassId(null);
+                    }}
+                />
+            );
+
+        // NEW: Add the case for the map editor view
+        case 'map_editor':
+            return (
+                <MapEditorPage
+                    mapId={editingMapId!}
+                    onClose={() => {
+                        setCurrentView('world_dashboard');
+                        setEditingMapId(null);
                     }}
                 />
             );

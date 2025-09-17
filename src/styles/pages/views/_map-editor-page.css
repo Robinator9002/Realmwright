@@ -1,0 +1,43 @@
+/* src/styles/pages/views/_map-editor-page.css */
+
+.map-editor-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.map-editor-page__header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-4);
+    padding: var(--spacing-4);
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0; /* Prevent header from shrinking */
+}
+
+.map-editor-page__title {
+    margin: 0;
+    font-size: var(--font-size-xl);
+}
+
+.map-editor-page__main {
+    display: flex;
+    flex-grow: 1;
+    position: relative; /* For positioning canvas/sidebar later */
+    overflow: hidden;
+}
+
+.map-editor-page__placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--color-muted-foreground);
+    font-style: italic;
+    border: 2px dashed var(--color-border);
+    margin: var(--spacing-4);
+    border-radius: var(--border-radius);
+}

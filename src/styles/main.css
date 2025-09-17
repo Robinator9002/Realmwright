@@ -101,8 +101,11 @@
 | and layout adjustments that are specific to a single page or view.
 |
 */
+/* --- 5.1 Views Pages --- */
 @import url('./pages/management/_world-manager.css');
 @import url('./pages/management/_world-dashboard.css');
 @import url('./pages/management/_settings-page.css');
+/* --- 5.2 Views Pages --- */
 @import url('./pages/views/_ability-editor-page.css');
 @import url('./pages/views/_character-sheet-page.css');
+@import url('./pages/views/_map-editor-page.css');
