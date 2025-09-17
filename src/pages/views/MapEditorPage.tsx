@@ -5,29 +5,25 @@ import type { Map } from '../../db/types';
 import { getMapById } from '../../db/queries/map/map.queries';
 import { MapCanvas } from '../../components/specific/Map/Canvas/MapCanvas';
 import { MapEditorSidebar } from '../../components/specific/Map/Sidebar/MapEditorSidebar';
-// NEW: Import the context provider
 import { MapEditorProvider } from '../../context/feature/MapEditorContext';
 
 /**
  * The inner component responsible for the editor's UI layout.
- * It receives the fully loaded map data and arranges the major UI blocks.
  */
 const MapEditor: FC<{ map: Map; onClose: () => void }> = ({ map, onClose }) => {
     return (
-        // NEW: Wrap the entire editor UI with the provider
         <MapEditorProvider initialMap={map}>
             <div className="map-editor-page">
                 <header className="map-editor-page__header">
                     <button onClick={onClose} className="button">
                         &larr; Back to Map List
                     </button>
-                    {/* The title can now be derived from the context in the future if needed */}
                     <h2 className="map-editor-page__title">Editing Map: {map.name}</h2>
                 </header>
                 <main className="map-editor-page__main">
-                    {/* These children components can now use the `useMapEditor` hook */}
-                    <MapCanvas map={map} />
-                    <MapEditorSidebar map={map} />
+                    {/* REFACTORED: These components no longer need the map prop */}
+                    <MapCanvas />
+                    <MapEditorSidebar />
                 </main>
             </div>
         </MapEditorProvider>
@@ -36,10 +32,9 @@ const MapEditor: FC<{ map: Map; onClose: () => void }> = ({ map, onClose }) => {
 
 /**
  * The main page component for the Map Editor.
- * It's responsible for fetching the specific map's data based on the provided
- * mapId and managing the loading and error states.
  */
 export const MapEditorPage: FC<{ mapId: number; onClose: () => void }> = ({ mapId, onClose }) => {
+    // ... existing code remains the same ...
     const [map, setMap] = useState<Map | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -79,6 +74,5 @@ export const MapEditorPage: FC<{ mapId: number; onClose: () => void }> = ({ mapI
         return <p>Could not load map data.</p>;
     }
 
-    // Once the map is loaded, render the actual editor UI component.
     return <MapEditor map={map} onClose={onClose} />;
 };

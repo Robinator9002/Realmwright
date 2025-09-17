@@ -1,19 +1,19 @@
 // src/components/specific/Map/Canvas/MapCanvas.tsx
 
 import type { FC } from 'react';
-import type { Map } from '../../../../db/types';
-
-interface MapCanvasProps {
-    map: Map;
-}
+// NEW: Import the context hook
+import { useMapEditor } from '../../../../context/feature/MapEditorContext';
 
 /**
  * The core visual component for rendering the map image.
  * It displays the map's imageDataUrl as a background image.
  */
-export const MapCanvas: FC<MapCanvasProps> = ({ map }) => {
+export const MapCanvas: FC = () => {
+    // NEW: Get the current map data from the context
+    const { currentMap } = useMapEditor();
+
     // If there's no image data, we render a prompt for the user.
-    if (!map.imageDataUrl) {
+    if (!currentMap.imageDataUrl) {
         return (
             <div className="map-canvas map-canvas--empty">
                 <div className="map-canvas__prompt">
@@ -29,8 +29,7 @@ export const MapCanvas: FC<MapCanvasProps> = ({ map }) => {
             <div
                 className="map-canvas__image"
                 style={{
-                    backgroundImage: `url(${map.imageDataUrl})`,
-                    // We will dynamically control width/height later for different map sizes
+                    backgroundImage: `url(${currentMap.imageDataUrl})`,
                 }}
             />
         </div>
