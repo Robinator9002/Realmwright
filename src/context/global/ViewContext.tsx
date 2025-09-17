@@ -1,19 +1,21 @@
 // src/context/global/ViewContext.tsx
 
 /**
- * COMMIT: feat(class-sheet): add view state for ClassSheetEditor
+ * COMMIT: feat(map-creator): add view state for Map Creator
  *
  * Rationale:
- * To properly integrate the new ClassSheetEditor as a full-page component,
- * the global ViewContext needs to be aware of it. This aligns the class
- * editing workflow with the existing patterns used by the Ability Tree and
- * Character Sheet views.
+ * To integrate the new Map Creator feature, the global ViewContext must be
+ * updated to recognize the new UI sections. This involves adding the new manager
+ * tabs and defining the state for the full-page map editor view.
  *
  * Implementation Details:
- * - Added 'class_sheet_editor' to the `MainView` type definition.
- * - Introduced `editingClassId` and `setEditingClassId` to the context's
- * state and type definition. This will be used to track which class blueprint
- * is currently being designed.
+ * - Added 'maps', 'locations', and 'quests' to the `WorldTab` type to
+ * enable them as selectable tabs in the World Dashboard.
+ * - Added 'map_editor' to the `MainView` type to define the new
+ * full-page editor component.
+ * - Introduced `editingMapId` and `setEditingMapId` to the context state
+ * to track which map is being edited, mirroring the existing pattern for
+ * other editors.
  */
 import { createContext, useState, useContext, useMemo } from 'react';
 import type { ReactNode, FC } from 'react';
@@ -25,7 +27,8 @@ export type MainView =
     | 'settings'
     | 'character_sheet'
     | 'ability_tree_editor'
-    | 'class_sheet_editor'; // NEW
+    | 'class_sheet_editor'
+    | 'map_editor'; // NEW
 
 // Define the available tabs within the world dashboard
 export type WorldTab =
@@ -35,7 +38,9 @@ export type WorldTab =
     | 'stats'
     | 'abilities'
     | 'classes'
-    | 'maps';
+    | 'maps' // NEW
+    | 'locations' // NEW
+    | 'quests'; // NEW
 
 // Define the available tabs within the settings page
 export type SettingsTab = 'appearance' | 'data';
@@ -64,6 +69,10 @@ interface ViewContextType {
     // NEW: State to hold the ID of the class we want to edit
     editingClassId: number | null;
     setEditingClassId: (id: number | null) => void;
+
+    // NEW: State to hold the ID of the map we want to edit
+    editingMapId: number | null;
+    setEditingMapId: (id: number | null) => void;
 }
 
 const ViewContext = createContext<ViewContextType | undefined>(undefined);
@@ -74,8 +83,9 @@ export const ViewProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>('appearance');
     const [characterIdForSheet, setCharacterIdForSheet] = useState<number | null>(null);
     const [editingAbilityTreeId, setEditingAbilityTreeId] = useState<number | null>(null);
-    // NEW: Initialize the new state for the class sheet editor
     const [editingClassId, setEditingClassId] = useState<number | null>(null);
+    // NEW: Initialize the new state for the map editor
+    const [editingMapId, setEditingMapId] = useState<number | null>(null);
 
     const value = useMemo(
         () => ({
@@ -89,9 +99,11 @@ export const ViewProvider: FC<{ children: ReactNode }> = ({ children }) => {
             setCharacterIdForSheet,
             editingAbilityTreeId,
             setEditingAbilityTreeId,
-            // NEW: Expose the new state and its setter
             editingClassId,
             setEditingClassId,
+            // NEW: Expose the new state and its setter
+            editingMapId,
+            setEditingMapId,
         }),
         [
             currentView,
@@ -99,7 +111,8 @@ export const ViewProvider: FC<{ children: ReactNode }> = ({ children }) => {
             activeSettingsTab,
             characterIdForSheet,
             editingAbilityTreeId,
-            editingClassId, // Add to dependency array
+            editingClassId,
+            editingMapId, // Add to dependency array
         ],
     );
 
