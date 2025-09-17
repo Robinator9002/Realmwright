@@ -1,0 +1,22 @@
+/* src/styles/components/class-sheet/blocks/_details-block.css */
+
+.details-block {
+    width: 100%;
+    /* REMOVED: This was overriding the dynamic styles from the block's properties. */
+    /* text-align: center; */
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: var(--spacing-4);
+}
+
+.details-block__name {
+    font-size: var(--font-size-4xl);
+    font-weight: 700;
+    color: var(--color-foreground);
+    margin-bottom: var(--spacing-2);
+}
+
+.details-block__description {
+    font-size: var(--font-size-lg);
+    color: var(--color-muted-foreground);
+    font-style: italic;
+}

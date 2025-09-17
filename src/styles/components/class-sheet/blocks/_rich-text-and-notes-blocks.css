@@ -1,0 +1,65 @@
+/* src/styles/components/class-sheet/blocks/_rich-text-and-notes-blocks.css */
+
+.rich-text-block,
+.notes-block {
+    width: 100%;
+    position: relative;
+    /* NEW: Let the content area grow. */
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.rich-text-block__display,
+.notes-block__display {
+    width: 100%;
+    min-height: 50px;
+    padding: var(--spacing-2);
+    border-radius: var(--border-radius);
+    transition: background-color 0.2s ease;
+    flex-grow: 1; /* Allow display area to expand */
+}
+
+.rich-text-block:hover .rich-text-block__display,
+.notes-block:hover .notes-block__display {
+    background-color: var(--color-background);
+}
+
+.rich-text-block__edit-button,
+.notes-block__edit-button {
+    position: absolute;
+    top: var(--spacing-2);
+    right: var(--spacing-2);
+    background-color: var(--color-panel-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-muted-foreground);
+    cursor: pointer;
+    padding: var(--spacing-1);
+    border-radius: 999px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.rich-text-block:hover .rich-text-block__edit-button,
+.notes-block:hover .notes-block__edit-button {
+    opacity: 1;
+}
+
+.rich-text-block__edit-button:hover,
+.notes-block__edit-button:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.rich-text-block--editing,
+.notes-block--editing {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.rich-text-block__save-button,
+.notes-block__save-button {
+    align-self: flex-end;
+}
