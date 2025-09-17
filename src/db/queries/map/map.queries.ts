@@ -67,3 +67,18 @@ export async function deleteMap(mapId: number): Promise<void> {
         throw new Error('Could not delete the map from the database.');
     }
 }
+
+/**
+ * Retrieves a single Map by its ID.
+ * @param mapId - The ID of the map to retrieve.
+ * @returns A promise that resolves to the Map object, or undefined if not found.
+ */
+export async function getMapById(mapId: number): Promise<Map | undefined> {
+    try {
+        const map = await db.maps.get(mapId);
+        return map;
+    } catch (error) {
+        console.error(`Failed to get map ${mapId}:`, error);
+        throw new Error('Could not retrieve the map from the database.');
+    }
+}
