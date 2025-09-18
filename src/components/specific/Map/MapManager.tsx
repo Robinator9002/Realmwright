@@ -1,30 +1,31 @@
 // src/components/specific/Map/MapManager.tsx
 
 import { useState, useEffect, useCallback, type FC } from 'react';
-import { PlusCircle, Trash2, Edit } from 'lucide-react';
+import { Settings, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { useWorld } from '../../../context/feature/WorldContext';
 import { useModal } from '../../../context/global/ModalContext';
 import { useView } from '../../../context/global/ViewContext';
-import { getMapsForWorld, deleteMap, addMap, updateMap } from '../../../db/queries/map/map.queries';
+import {
+    getMapsForWorld,
+    deleteMap,
+    addMap,
+    updateMap,
+} from '../../../db/queries/map/map.queries';
 import type { Map } from '../../../db/types';
 import { ManageMapModal, type MapSaveData } from './ManageMapModal';
 
 export const MapManager: FC = () => {
-    // --- HOOKS ---
     const { selectedWorld } = useWorld();
     const { showModal } = useModal();
     const { setCurrentView, setEditingMapId } = useView();
 
-    // --- STATE ---
     const [maps, setMaps] = useState<Map[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // State for the "Manage Details" modal.
     const [managingMap, setManagingMap] = useState<Map | null>(null);
     const isManageModalOpen = !!managingMap;
 
-    // --- DATA FETCHING ---
     const fetchMaps = useCallback(async () => {
         if (!selectedWorld?.id) return;
         try {
@@ -44,16 +45,15 @@ export const MapManager: FC = () => {
         fetchMaps();
     }, [fetchMaps]);
 
-    // --- EVENT HANDLERS ---
     const handleOpenCreateModal = () => {
-        setManagingMap({} as Map); // Open modal with a placeholder for creation
+        setManagingMap({} as Map);
     };
 
-    const handleOpenEditDetailsModal = (map: Map) => {
+    const handleOpenEditModal = (map: Map) => {
         setManagingMap(map);
     };
 
-    const handleOpenMapEditor = (map: Map) => {
+    const handleOpenEditor = (map: Map) => {
         if (map.id) {
             setEditingMapId(map.id);
             setCurrentView('map_editor');
@@ -64,18 +64,15 @@ export const MapManager: FC = () => {
         if (!selectedWorld?.id) return;
         try {
             if (managingMap && managingMap.id) {
-                // Update existing map's name and description
-                await updateMap(managingMap.id, {
-                    name: saveData.name,
-                    description: saveData.description,
-                });
+                await updateMap(managingMap.id, saveData);
             } else {
-                // Create new map with default values for required fields
+                // REWORK: Add the required `layers` property on creation
                 await addMap({
                     ...saveData,
                     worldId: selectedWorld.id,
-                    imageDataUrl: '', // Default empty image
-                    gridSize: { width: 100, height: 100 }, // Default grid size
+                    imageDataUrl: '',
+                    gridSize: { width: 1000, height: 1000 },
+                    layers: [], // Ensure new maps start with an empty layers array
                 });
             }
             await fetchMaps();
@@ -87,7 +84,9 @@ export const MapManager: FC = () => {
     const handleDeleteMap = (map: Map) => {
         showModal('confirmation', {
             title: `Delete ${map.name}?`,
-            message: 'Are you sure you want to delete this map? This cannot be undone.',
+            message:
+                'Are you sure you want to delete this map and all its data? This action is permanent.',
+            isDanger: true,
             onConfirm: async () => {
                 try {
                     await deleteMap(map.id!);
@@ -99,7 +98,6 @@ export const MapManager: FC = () => {
         });
     };
 
-    // --- JSX ---
     return (
         <>
             <div className="panel">
@@ -126,13 +124,13 @@ export const MapManager: FC = () => {
                                     </div>
                                     <div className="panel__item-actions">
                                         <button
-                                            onClick={() => handleOpenEditDetailsModal(map)}
+                                            onClick={() => handleOpenEditModal(map)}
                                             className="button"
                                         >
-                                            Details
+                                            <Settings size={16} /> Details
                                         </button>
                                         <button
-                                            onClick={() => handleOpenMapEditor(map)}
+                                            onClick={() => handleOpenEditor(map)}
                                             className="button button--primary"
                                         >
                                             <Edit size={16} /> Open Editor
@@ -148,7 +146,7 @@ export const MapManager: FC = () => {
                             ))}
                         </ul>
                     ) : (
-                        <p className="panel__empty-message">No maps created for this world yet.</p>
+                        <p className="panel__empty-message">No maps defined for this world yet.</p>
                     )}
                 </div>
             </div>
