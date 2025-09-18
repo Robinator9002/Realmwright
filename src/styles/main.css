@@ -103,6 +103,7 @@
 @import url('./components/map/modal/_link-location-modal.css');
 /* -- 4.3.3 Map Sidebar -- */
 @import url('./components/map/sidebar/_map-editor-sidebar.css');
+@import url('./components/map/sidebar/_selected-item-panel.css');
 
 /*
 |--------------------------------------------------------------------------
