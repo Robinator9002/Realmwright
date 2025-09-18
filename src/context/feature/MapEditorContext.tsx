@@ -17,13 +17,20 @@ export interface Viewport {
     zoom: number;
 }
 
+// NEW: Define the available tool types
+export type Tool = 'pan' | 'select' | 'add-location';
+
 interface MapEditorContextType {
     currentMap: Map;
     updateMap: (mapData: Partial<Map>) => Promise<void>;
     viewport: Viewport;
     setViewport: React.Dispatch<React.SetStateAction<Viewport>>;
-    // NEW: Expose a dedicated function for updating layers
     updateLayers: (layers: MapLayer[]) => Promise<void>;
+    // NEW: Expose tool state and setters
+    activeTool: Tool;
+    setActiveTool: (tool: Tool) => void;
+    activeLayerId: string | null;
+    setActiveLayerId: (layerId: string | null) => void;
 }
 
 const MapEditorContext = createContext<MapEditorContextType | undefined>(undefined);
@@ -39,28 +46,25 @@ export const MapEditorProvider: FC<MapEditorProviderProps> = ({ children, initia
         pan: { x: 0, y: 0 },
         zoom: 1,
     });
+    // NEW: Initialize tool state. Default to 'pan'.
+    const [activeTool, setActiveTool] = useState<Tool>('pan');
+    const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
 
-    // This is a general-purpose function to update any top-level property of the map
     const updateMap = useCallback(
         async (mapData: Partial<Map>) => {
             try {
-                // Optimistically update the local state for a responsive UI
                 const updatedMapData = { ...currentMap, ...mapData };
                 setCurrentMap(updatedMapData);
-                // Persist the changes to the database
                 await dbUpdateMap(currentMap.id!, mapData);
             } catch (error) {
                 console.error('Failed to update map:', error);
-                // NOTE: In a real app, we might want to revert the optimistic update here
             }
         },
         [currentMap],
     );
 
-    // NEW: This is a specific helper function for updating the layers array
     const updateLayers = useCallback(
         async (layers: MapLayer[]) => {
-            // We use the more general updateMap function to handle the actual update logic
             await updateMap({ layers });
         },
         [updateMap],
@@ -72,10 +76,14 @@ export const MapEditorProvider: FC<MapEditorProviderProps> = ({ children, initia
             updateMap,
             viewport,
             setViewport,
-            // NEW: Provide the new function to consuming components
             updateLayers,
+            // NEW: Provide the new state and setters to the context
+            activeTool,
+            setActiveTool,
+            activeLayerId,
+            setActiveLayerId,
         }),
-        [currentMap, viewport, updateMap, updateLayers],
+        [currentMap, viewport, updateMap, updateLayers, activeTool, activeLayerId],
     );
 
     return <MapEditorContext.Provider value={value}>{children}</MapEditorContext.Provider>;
@@ -88,3 +96,4 @@ export const useMapEditor = (): MapEditorContextType => {
     }
     return context;
 };
+
