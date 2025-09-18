@@ -3,47 +3,43 @@
 import { db } from '../../db';
 import type { Location } from '../../types';
 
-// Omit 'id' and 'createdAt' for creation.
-type LocationCreationData = Omit<Location, 'id' | 'createdAt'>;
+export type LocationCreationData = Omit<Location, 'id' | 'createdAt'>;
 
-/**
- * Adds a new Location to the database.
- * @param locationData - The data for the new location.
- * @returns The ID of the newly created location.
- */
 export async function addLocation(locationData: LocationCreationData): Promise<number> {
     try {
-        const newLocation: Omit<Location, 'id'> = {
+        const newLocation: Location = {
             ...locationData,
             createdAt: new Date(),
         };
-        const id = await db.locations.add(newLocation as Location);
+        const id = await db.locations.add(newLocation);
         return id;
     } catch (error) {
         console.error('Failed to add location:', error);
-        throw new Error('Could not add the new location to the database.');
+        throw new Error('Could not add the new location.');
     }
 }
 
-/**
- * Retrieves all Locations for a given World.
- * @param worldId - The ID of the world.
- * @returns A promise that resolves to an array of Location objects.
- */
 export async function getLocationsForWorld(worldId: number): Promise<Location[]> {
     try {
-        return await db.locations.where('worldId').equals(worldId).toArray();
+        const locations = await db.locations.where({ worldId }).toArray();
+        return locations;
     } catch (error) {
-        console.error(`Failed to get locations for world ${worldId}:`, error);
-        throw new Error('Could not retrieve locations from the database.');
+        console.error('Failed to get locations for world:', error);
+        throw new Error('Could not retrieve locations.');
     }
 }
 
-/**
- * Updates an existing Location in the database.
- * @param locationId - The ID of the location to update.
- * @param updates - An object containing the fields to update.
- */
+// NEW: Add a function to get a single location by its ID
+export async function getLocationById(locationId: number): Promise<Location | undefined> {
+    try {
+        const location = await db.locations.get(locationId);
+        return location;
+    } catch (error) {
+        console.error(`Failed to get location ${locationId}:`, error);
+        throw new Error('Could not retrieve the location.');
+    }
+}
+
 export async function updateLocation(
     locationId: number,
     updates: Partial<Location>,
@@ -52,19 +48,17 @@ export async function updateLocation(
         await db.locations.update(locationId, updates);
     } catch (error) {
         console.error(`Failed to update location ${locationId}:`, error);
-        throw new Error('Could not update the location in the database.');
+        throw new Error('Could not update the location.');
     }
 }
 
-/**
- * Deletes a Location from the database.
- * @param locationId - The ID of the location to delete.
- */
 export async function deleteLocation(locationId: number): Promise<void> {
     try {
+        // In the future, we may need to also find and unlink all map objects
+        // that point to this locationId. For now, a simple delete is fine.
         await db.locations.delete(locationId);
     } catch (error) {
         console.error(`Failed to delete location ${locationId}:`, error);
-        throw new Error('Could not delete the location from the database.');
+        throw new Error('Could not delete the location.');
     }
 }
