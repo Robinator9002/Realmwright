@@ -95,10 +95,10 @@
 /* --- 4.3 Map Editor --- */
 @import url('./components/map/_layer-panel.css');
 /* -- 4.3.1 Map Canvas -- */
-@import url('./components/map/location/_location-marker.css');
-@import url('./components/map/location/_map-canvas.css');
-@import url('./components/map/location/_toolbar.css');
-@import url('./components/map/location/_viewport-controls.css');
+@import url('./components/map/canvas/_location-marker.css');
+@import url('./components/map/canvas/_map-canvas.css');
+@import url('./components/map/canvas/_toolbar.css');
+@import url('./components/map/canvas/_viewport-controls.css');
 /* -- 4.3.2 Map Modal -- */
 @import url('./components/map/modal/_link-location-modal.css');
 /* -- 4.3.3 Map Sidebar -- */

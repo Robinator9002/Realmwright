@@ -1,7 +1,20 @@
 // src/components/layout/Topbar/Topbar.tsx
 
 import type { FC } from 'react';
-import { Sun, Moon, Settings, Map, Pin, ScrollText } from 'lucide-react'; // NEW: Add icons
+import {
+    Sun,
+    Moon,
+    Settings,
+    Map,
+    Pin,
+    ScrollText,
+    Swords,
+    BookUser,
+    Gem,
+    Library,
+    BarChart,
+    Sparkles,
+} from 'lucide-react';
 import { useWorld } from '../../../context/feature/WorldContext';
 import { useView } from '../../../context/global/ViewContext';
 import { useSettings } from '../../../context/global/SettingsContext';
@@ -53,27 +66,26 @@ export const Topbar: FC = () => {
                         isActive={activeWorldTab === 'campaigns'}
                         onClick={() => setActiveWorldTab('campaigns')}
                     >
-                        Campaigns
+                        <Swords size={16} /> Campaigns
                     </TabButton>
                     <TabButton
                         isActive={activeWorldTab === 'characters'}
                         onClick={() => setActiveWorldTab('characters')}
                     >
-                        Characters
+                        <BookUser size={16} /> Characters
                     </TabButton>
                     <TabButton
                         isActive={activeWorldTab === 'classes'}
                         onClick={() => setActiveWorldTab('classes')}
                     >
-                        Classes
+                        <Gem size={16} /> Classes
                     </TabButton>
                     <TabButton
                         isActive={activeWorldTab === 'lore'}
                         onClick={() => setActiveWorldTab('lore')}
                     >
-                        Lore
+                        <Library size={16} /> Lore
                     </TabButton>
-                    {/* NEW: Add Map Creator tabs */}
                     <TabButton
                         isActive={activeWorldTab === 'maps'}
                         onClick={() => setActiveWorldTab('maps')}
@@ -92,18 +104,17 @@ export const Topbar: FC = () => {
                     >
                         <ScrollText size={16} /> Quests
                     </TabButton>
-                    {/* END NEW */}
                     <TabButton
                         isActive={activeWorldTab === 'stats'}
                         onClick={() => setActiveWorldTab('stats')}
                     >
-                        Stats
+                        <BarChart size={16} /> Stats
                     </TabButton>
                     <TabButton
                         isActive={activeWorldTab === 'abilities'}
                         onClick={() => setActiveWorldTab('abilities')}
                     >
-                        Abilities
+                        <Sparkles size={16} /> Abilities
                     </TabButton>
                 </nav>
             );
