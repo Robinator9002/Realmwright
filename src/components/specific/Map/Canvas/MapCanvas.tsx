@@ -21,8 +21,10 @@ export const MapCanvas: FC = () => {
     const panStartRef = useRef({ x: 0, y: 0 });
     const canvasRef = useRef<HTMLDivElement>(null);
 
-    // NEW: State to hold the object we're about to link
     const [pendingObjectForLink, setPendingObjectForLink] = useState<MapObject | null>(null);
+
+    // FIX: Declare the hasImage constant before it is used.
+    const hasImage = !!currentMap.imageDataUrl;
 
     const handleWheel = (e: React.WheelEvent) => {
         e.preventDefault();
@@ -51,14 +53,11 @@ export const MapCanvas: FC = () => {
         setIsPanning(false);
     };
 
-    // NEW: This function will be the callback for our modal
     const handleConfirmLink = (locationId: number) => {
         if (!pendingObjectForLink) return;
 
-        // 1. Create the final, linked object
         const linkedObject = { ...pendingObjectForLink, locationId };
 
-        // 2. Update the layers with the new, complete object
         const newLayers = currentMap.layers.map((layer) => {
             if (layer.id === linkedObject.layerId) {
                 return { ...layer, objects: [...layer.objects, linkedObject] };
@@ -67,7 +66,6 @@ export const MapCanvas: FC = () => {
         });
         updateLayers(newLayers);
 
-        // 3. Clear the pending state
         setPendingObjectForLink(null);
     };
 
@@ -75,7 +73,6 @@ export const MapCanvas: FC = () => {
         if (activeTool !== 'add-location' || !canvasRef.current) return;
 
         if (!activeLayerId) {
-            // REWORK: Update alert call to use the new payload format
             showModal({
                 type: 'alert',
                 title: 'No Layer Selected',
@@ -97,7 +94,6 @@ export const MapCanvas: FC = () => {
             y: worldY,
         };
 
-        // REWORK: Instead of updating layers directly, show the modal
         setPendingObjectForLink(newObject);
         showModal({
             type: 'link-location',
