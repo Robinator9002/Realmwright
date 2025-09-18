@@ -21,7 +21,8 @@ export const MapCanvas: FC = () => {
     const panStartRef = useRef({ x: 0, y: 0 });
     const canvasRef = useRef<HTMLDivElement>(null);
 
-    const hasImage = !!currentMap.imageDataUrl;
+    // NEW: State to hold the object we're about to link
+    const [pendingObjectForLink, setPendingObjectForLink] = useState<MapObject | null>(null);
 
     const handleWheel = (e: React.WheelEvent) => {
         e.preventDefault();
@@ -50,25 +51,42 @@ export const MapCanvas: FC = () => {
         setIsPanning(false);
     };
 
+    // NEW: This function will be the callback for our modal
+    const handleConfirmLink = (locationId: number) => {
+        if (!pendingObjectForLink) return;
+
+        // 1. Create the final, linked object
+        const linkedObject = { ...pendingObjectForLink, locationId };
+
+        // 2. Update the layers with the new, complete object
+        const newLayers = currentMap.layers.map((layer) => {
+            if (layer.id === linkedObject.layerId) {
+                return { ...layer, objects: [...layer.objects, linkedObject] };
+            }
+            return layer;
+        });
+        updateLayers(newLayers);
+
+        // 3. Clear the pending state
+        setPendingObjectForLink(null);
+    };
+
     const handleCanvasClick = (e: React.MouseEvent) => {
-        // Only proceed if the correct tool is active
         if (activeTool !== 'add-location' || !canvasRef.current) return;
 
-        // Check if a layer is selected
         if (!activeLayerId) {
-            showModal('alert', {
+            // REWORK: Update alert call to use the new payload format
+            showModal({
+                type: 'alert',
                 title: 'No Layer Selected',
                 message: 'Please select a layer in the sidebar before adding a location.',
             });
             return;
         }
 
-        // --- Coordinate Transformation ---
         const rect = canvasRef.current.getBoundingClientRect();
-        // 1. Get click position relative to the canvas element
         const clickX = e.clientX - rect.left;
         const clickY = e.clientY - rect.top;
-        // 2. Reverse the pan and zoom transforms to get the "world" coordinates
         const worldX = (clickX - viewport.pan.x) / viewport.zoom;
         const worldY = (clickY - viewport.pan.y) / viewport.zoom;
 
@@ -79,15 +97,12 @@ export const MapCanvas: FC = () => {
             y: worldY,
         };
 
-        // --- Update State ---
-        const newLayers = currentMap.layers.map((layer) => {
-            if (layer.id === activeLayerId) {
-                return { ...layer, objects: [...layer.objects, newObject] };
-            }
-            return layer;
+        // REWORK: Instead of updating layers directly, show the modal
+        setPendingObjectForLink(newObject);
+        showModal({
+            type: 'link-location',
+            onConfirm: handleConfirmLink,
         });
-
-        updateLayers(newLayers);
     };
 
     const getCanvasClassName = () => {
@@ -124,7 +139,6 @@ export const MapCanvas: FC = () => {
         >
             <Toolbar />
             <div className={canvasContentClassName} style={canvasContentStyle}>
-                {/* Render objects from all visible layers */}
                 {currentMap.layers
                     .filter((layer) => layer.isVisible)
                     .map((layer) =>
