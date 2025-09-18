@@ -13,8 +13,16 @@ const MAX_ZOOM = 5;
 const MIN_ZOOM = 0.1;
 
 export const MapCanvas: FC = () => {
-    const { currentMap, viewport, setViewport, activeTool, activeLayerId, updateLayers } =
-        useMapEditor();
+    const {
+        currentMap,
+        viewport,
+        setViewport,
+        activeTool,
+        activeLayerId,
+        updateLayers,
+        selectedObjectId,
+        setSelectedObjectId,
+    } = useMapEditor();
     const { showModal } = useModal();
 
     const [isPanning, setIsPanning] = useState(false);
@@ -23,7 +31,6 @@ export const MapCanvas: FC = () => {
 
     const [pendingObjectForLink, setPendingObjectForLink] = useState<MapObject | null>(null);
 
-    // FIX: Declare the hasImage constant before it is used.
     const hasImage = !!currentMap.imageDataUrl;
 
     const handleWheel = (e: React.WheelEvent) => {
@@ -69,36 +76,47 @@ export const MapCanvas: FC = () => {
         setPendingObjectForLink(null);
     };
 
-    const handleCanvasClick = (e: React.MouseEvent) => {
-        if (activeTool !== 'add-location' || !canvasRef.current) return;
-
-        if (!activeLayerId) {
-            showModal({
-                type: 'alert',
-                title: 'No Layer Selected',
-                message: 'Please select a layer in the sidebar before adding a location.',
-            });
-            return;
+    const handleMarkerClick = (objectId: string) => {
+        if (activeTool === 'select') {
+            setSelectedObjectId(objectId);
         }
+    };
 
-        const rect = canvasRef.current.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const clickY = e.clientY - rect.top;
-        const worldX = (clickX - viewport.pan.x) / viewport.zoom;
-        const worldY = (clickY - viewport.pan.y) / viewport.zoom;
+    const handleCanvasClick = (e: React.MouseEvent) => {
+        // If the click is on the canvas itself (not a marker that stopped propagation)
+        if (activeTool === 'select') {
+            setSelectedObjectId(null); // Deselect any active object
+        } else if (activeTool === 'add-location') {
+            if (!canvasRef.current) return;
 
-        const newObject: MapObject = {
-            id: crypto.randomUUID(),
-            layerId: activeLayerId,
-            x: worldX,
-            y: worldY,
-        };
+            if (!activeLayerId) {
+                showModal({
+                    type: 'alert',
+                    title: 'No Layer Selected',
+                    message: 'Please select a layer in the sidebar before adding a location.',
+                });
+                return;
+            }
 
-        setPendingObjectForLink(newObject);
-        showModal({
-            type: 'link-location',
-            onConfirm: handleConfirmLink,
-        });
+            const rect = canvasRef.current.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            const worldX = (clickX - viewport.pan.x) / viewport.zoom;
+            const worldY = (clickY - viewport.pan.y) / viewport.zoom;
+
+            const newObject: MapObject = {
+                id: crypto.randomUUID(),
+                layerId: activeLayerId,
+                x: worldX,
+                y: worldY,
+            };
+
+            setPendingObjectForLink(newObject);
+            showModal({
+                type: 'link-location',
+                onConfirm: handleConfirmLink,
+            });
+        }
     };
 
     const getCanvasClassName = () => {
@@ -109,6 +127,8 @@ export const MapCanvas: FC = () => {
             className += ' map-canvas--tool-pan';
         } else if (activeTool === 'add-location') {
             className += ' map-canvas--tool-add';
+        } else if (activeTool === 'select') {
+            className += ' map-canvas--tool-select';
         }
         return className;
     };
@@ -137,8 +157,19 @@ export const MapCanvas: FC = () => {
             <div className={canvasContentClassName} style={canvasContentStyle}>
                 {currentMap.layers
                     .filter((layer) => layer.isVisible)
-                    .map((layer) =>
-                        layer.objects.map((obj) => <LocationMarker key={obj.id} {...obj} />),
+                    .flatMap((layer) =>
+                        layer.objects.map((obj) => (
+                            <LocationMarker
+                                key={obj.id}
+                                x={obj.x}
+                                y={obj.y}
+                                isSelected={selectedObjectId === obj.id}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent canvas click from firing
+                                    handleMarkerClick(obj.id);
+                                }}
+                            />
+                        )),
                     )}
             </div>
             <ViewportControls />
