@@ -108,42 +108,6 @@ export interface StatDefinition extends BaseManageable {
     type: 'primary' | 'derived' | 'resource';
 }
 
-// --- Map & Location Interfaces ---
-
-export interface Map extends BaseManageable {
-    worldId: number;
-    // We'll store the map image as a data URL to ensure it works offline.
-    imageDataUrl: string;
-    gridSize: {
-        width: number;
-        height: number;
-    };
-    createdAt: Date;
-    // Future properties for zones and travel metrics will be added here.
-}
-
-export interface Location extends BaseManageable {
-    worldId: number;
-    // A location can exist without being placed on a map.
-    mapId?: number;
-    coordinates?: {
-        x: number;
-        y: number;
-    };
-    category: string; // e.g., "City", "Dungeon", "Landmark"
-    // For detailed descriptions, plot hooks, etc.
-    content: string;
-    createdAt: Date;
-}
-
-// --- Quest Interface (Placeholder) ---
-
-export interface Quest extends BaseManageable {
-    worldId: number;
-    status: 'Not Started' | 'In Progress' | 'Completed';
-    createdAt: Date;
-}
-
 // --- Ability System Interfaces ---
 
 export type PrerequisiteLogicType = 'AND' | 'OR';
@@ -176,4 +140,45 @@ export interface AbilityTree extends BaseManageable {
     createdAt: Date;
     tierCount: number;
     attachmentType?: string;
+}
+
+// --- Map Creator Interfaces ---
+
+/* NEW: Define the structure for objects placed on a map layer */
+export interface MapObject {
+    id: string; /* A unique UUID for the object */
+    layerId: string; /* The ID of the layer this object belongs to */
+    x: number; /* X-coordinate relative to the map's top-left */
+    y: number; /* Y-coordinate relative to the map's top-left */
+    locationId?: number; /* Optional link to a Location entry */
+    /* questId?: number; will be added later */
+}
+
+/* NEW: Define the structure for a single layer on a map */
+export type MapLayerType = 'zone' | 'location' | 'quest';
+export interface MapLayer {
+    id: string; /* A unique UUID for the layer */
+    name: string;
+    type: MapLayerType;
+    isVisible: boolean;
+    objects: MapObject[];
+}
+
+/* REWORK: Add the new layer structure to the Map interface */
+export interface Map extends BaseManageable {
+    worldId: number;
+    createdAt: Date;
+    imageDataUrl?: string;
+    gridSize: { width: number; height: number };
+    layers: MapLayer[]; /* The ordered list of layers for this map */
+}
+
+export interface Location extends BaseManageable {
+    worldId: number;
+    createdAt: Date;
+}
+
+export interface Quest extends BaseManageable {
+    worldId: number;
+    createdAt: Date;
 }
