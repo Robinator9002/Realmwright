@@ -29,7 +29,6 @@ export async function getLocationsForWorld(worldId: number): Promise<Location[]>
     }
 }
 
-// NEW: Add a function to get a single location by its ID
 export async function getLocationById(locationId: number): Promise<Location | undefined> {
     try {
         const location = await db.locations.get(locationId);
@@ -52,13 +51,44 @@ export async function updateLocation(
     }
 }
 
+// REWORK: Upgrade to a robust transactional delete
 export async function deleteLocation(locationId: number): Promise<void> {
     try {
-        // In the future, we may need to also find and unlink all map objects
-        // that point to this locationId. For now, a simple delete is fine.
-        await db.locations.delete(locationId);
+        await db.transaction('rw', db.locations, db.maps, async () => {
+            // 1. Find the location to get its worldId
+            const locationToDelete = await db.locations.get(locationId);
+            if (!locationToDelete) return;
+
+            // 2. Find all maps in the same world
+            const worldMaps = await db.maps.where({ worldId: locationToDelete.worldId }).toArray();
+
+            // 3. For each map, remove any objects linked to the location
+            for (const map of worldMaps) {
+                let wasModified = false;
+                const newLayers = map.layers.map((layer) => {
+                    const originalObjectCount = layer.objects.length;
+                    const filteredObjects = layer.objects.filter(
+                        (obj) => obj.locationId !== locationId,
+                    );
+
+                    if (filteredObjects.length < originalObjectCount) {
+                        wasModified = true;
+                    }
+
+                    return { ...layer, objects: filteredObjects };
+                });
+
+                // 4. If the map was changed, update it in the database
+                if (wasModified) {
+                    await db.maps.update(map.id!, { layers: newLayers });
+                }
+            }
+
+            // 5. Finally, delete the location itself
+            await db.locations.delete(locationId);
+        });
     } catch (error) {
-        console.error(`Failed to delete location ${locationId}:`, error);
+        console.error(`Failed to delete location ${locationId} and unlink markers:`, error);
         throw new Error('Could not delete the location.');
     }
 }
