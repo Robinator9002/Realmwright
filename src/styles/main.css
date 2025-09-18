@@ -94,6 +94,7 @@
 
 /* --- 4.3 Map Editor --- */
 @import url('./components/map/_layer-panel.css');
+@import url('./components/map/_link-location-modal.css');
 @import url('./components/map/_location-marker.css');
 @import url('./components/map/_map-canvas.css');
 @import url('./components/map/_map-editor-sidebar.css');
