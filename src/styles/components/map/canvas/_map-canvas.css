@@ -1,38 +1,52 @@
-/* src/styles/components/map/canvas/_map-canvas.css */
+/* src/styles/components/map/_map-canvas.css */
 
 .map-canvas {
     width: 100%;
     height: 100%;
     background-color: var(--color-background);
-    overflow: hidden; /* This will be crucial for panning and zooming */
+    overflow: hidden;
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: grab; /* Add a grab cursor for panning later */
 }
 
-/* NEW: Add a class for when the user is actively panning */
+.map-canvas--tool-pan {
+    cursor: grab;
+}
+
+/* NEW: Add a class for when the user is actively selecting */
+.map-canvas--tool-select {
+    cursor: default; /* The canvas itself isn't special */
+}
+
+.map-canvas--tool-add {
+    cursor: crosshair;
+}
+
 .map-canvas--panning {
     cursor: grabbing;
 }
 
-/* REWORK: Rename __image to __content to be more generic */
 .map-canvas__content {
     width: 100%;
     height: 100%;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    /* We will add transform properties here for pan/zoom */
-    will-change: transform; /* Performance optimization for transforms */
+    will-change: transform;
     transition: transform 0.1s ease-out;
+    /* This ensures clicks on the background are caught by the parent */
+    pointer-events: none;
 }
 
-/* NEW: Add a style for when the canvas has no image */
+.map-canvas__content > * {
+    /* Re-enable pointer events for children (markers, etc.) */
+    pointer-events: auto;
+}
+
 .map-canvas__content--blank {
     background-color: var(--color-panel-bg);
-    /* Create a subtle dot grid using theme-aware colors */
     background-image: radial-gradient(
         color-mix(in srgb, var(--color-border) 50%, transparent) 1px,
         transparent 1px
