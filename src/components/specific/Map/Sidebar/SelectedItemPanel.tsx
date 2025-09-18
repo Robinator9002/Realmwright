@@ -5,18 +5,20 @@ import { useMapEditor } from '../../../../context/feature/MapEditorContext';
 import { getLocationById } from '../../../../db/queries/map/location.queries';
 import type { Location, MapObject } from '../../../../db/types';
 import { Trash2 } from 'lucide-react';
+import { useModal } from '../../../../context/global/ModalContext';
 
 /**
  * A panel that displays the details of the currently selected map object.
  */
 export const SelectedItemPanel: FC = () => {
-    const { selectedObjectId, currentMap } = useMapEditor();
+    const { selectedObjectId, setSelectedObjectId, currentMap, updateLayers } = useMapEditor();
+    const { showModal } = useModal();
+
     const [selectedObject, setSelectedObject] = useState<MapObject | null>(null);
     const [locationDetails, setLocationDetails] = useState<Location | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        // Find the full MapObject from the ID
         const findObject = () => {
             if (!selectedObjectId) {
                 setSelectedObject(null);
@@ -29,13 +31,12 @@ export const SelectedItemPanel: FC = () => {
                     return;
                 }
             }
-            setSelectedObject(null); // Not found
+            setSelectedObject(null);
         };
         findObject();
     }, [selectedObjectId, currentMap.layers]);
 
     useEffect(() => {
-        // Fetch the associated Location data when the object changes
         const fetchLocationDetails = async () => {
             if (!selectedObject || !selectedObject.locationId) {
                 setLocationDetails(null);
@@ -48,6 +49,28 @@ export const SelectedItemPanel: FC = () => {
         };
         fetchLocationDetails();
     }, [selectedObject]);
+
+    const handleDeleteMarker = () => {
+        if (!selectedObjectId) return;
+
+        showModal({
+            type: 'confirmation',
+            title: 'Delete Marker?',
+            message: 'Are you sure you want to permanently remove this marker from the map?',
+            isDanger: true,
+            onConfirm: () => {
+                // Create a new layers array with the object removed
+                const newLayers = currentMap.layers.map((layer) => ({
+                    ...layer,
+                    objects: layer.objects.filter((obj) => obj.id !== selectedObjectId),
+                }));
+                // Update the state
+                updateLayers(newLayers);
+                // Clear the selection
+                setSelectedObjectId(null);
+            },
+        });
+    };
 
     const renderContent = () => {
         if (!selectedObject) {
@@ -68,7 +91,7 @@ export const SelectedItemPanel: FC = () => {
                         {locationDetails.description}
                     </p>
                     <div className="selected-item-panel__actions">
-                        <button className="button button--danger">
+                        <button onClick={handleDeleteMarker} className="button button--danger">
                             <Trash2 size={16} /> Delete Marker
                         </button>
                     </div>
@@ -76,7 +99,6 @@ export const SelectedItemPanel: FC = () => {
             );
         }
 
-        // This case handles a selected object that somehow has no linked location data
         return <p className="panel__empty-message">No location data linked to this marker.</p>;
     };
 
