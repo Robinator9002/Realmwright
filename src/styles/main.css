@@ -81,25 +81,28 @@
 /* --- 4.2 Class Sheet Editor --- */
 @import url('./components/class-sheet/core/_sheet-editor.css');
 @import url('./components/class-sheet/core/_sheet-blocks-core.css');
-/* -- 4.22 Class Sheet Canvas -- */
+/* -- 4.2.2 Class Sheet Canvas -- */
 @import url('./components/class-sheet/components/_page-canvas.css');
 @import url('./components/class-sheet/components/_page-controls.css');
 @import url('./components/class-sheet/components/_properties-sidebar.css');
-/* -- 4.23 Class Sheet Blocks -- */
-@import url('./components/class-sheet/blocks/_ability-tree-block.css');
-@import url('./components/class-sheet/blocks/_details-block.css');
-@import url('./components/class-sheet/blocks/_inventory-block.css');
-@import url('./components/class-sheet/blocks/_rich-text-and-notes-blocks.css');
-@import url('./components/class-sheet/blocks/_stats-block.css');
-
+/* -- 4.2.3 Class Sheet Character Blocks -- */
+@import url('./components/class-sheet/blocks/character/_details-block.css');
+@import url('./components/class-sheet/blocks/character/_inventory-block.css');
+@import url('./components/class-sheet/blocks/character/_stats-block.css');
+/* - 4.2.4 Class Sheet Content Blocks - */
+@import url('./components/class-sheet/blocks/content/_rich-text-and-notes-blocks.css');
+@import url('./components/class-sheet/blocks/content/_ability-tree-block.css');
 /* --- 4.3 Map Editor --- */
 @import url('./components/map/_layer-panel.css');
-@import url('./components/map/_link-location-modal.css');
-@import url('./components/map/_location-marker.css');
-@import url('./components/map/_map-canvas.css');
-@import url('./components/map/_map-editor-sidebar.css');
-@import url('./components/map/_toolbar.css');
-@import url('./components/map/_viewport-controls.css');
+/* -- 4.3.1 Map Canvas -- */
+@import url('./components/map/location/_location-marker.css');
+@import url('./components/map/location/_map-canvas.css');
+@import url('./components/map/location/_toolbar.css');
+@import url('./components/map/location/_viewport-controls.css');
+/* -- 4.3.2 Map Modal -- */
+@import url('./components/map/modal/_link-location-modal.css');
+/* -- 4.3.3 Map Sidebar -- */
+@import url('./components/map/sidebar/_map-editor-sidebar.css');
 
 /*
 |--------------------------------------------------------------------------
