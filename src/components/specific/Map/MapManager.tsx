@@ -5,12 +5,7 @@ import { Settings, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { useWorld } from '../../../context/feature/WorldContext';
 import { useModal } from '../../../context/global/ModalContext';
 import { useView } from '../../../context/global/ViewContext';
-import {
-    getMapsForWorld,
-    deleteMap,
-    addMap,
-    updateMap,
-} from '../../../db/queries/map/map.queries';
+import { getMapsForWorld, deleteMap, addMap, updateMap } from '../../../db/queries/map/map.queries';
 import type { Map } from '../../../db/types';
 import { ManageMapModal, type MapSaveData } from './ManageMapModal';
 
@@ -82,7 +77,9 @@ export const MapManager: FC = () => {
     };
 
     const handleDeleteMap = (map: Map) => {
-        showModal('confirmation', {
+        // REWORK: Update showModal to use the new payload object format
+        showModal({
+            type: 'confirmation',
             title: `Delete ${map.name}?`,
             message:
                 'Are you sure you want to delete this map and all its data? This action is permanent.',
