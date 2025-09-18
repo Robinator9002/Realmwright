@@ -17,7 +17,6 @@ export interface Viewport {
     zoom: number;
 }
 
-// NEW: Define the available tool types
 export type Tool = 'pan' | 'select' | 'add-location';
 
 interface MapEditorContextType {
@@ -26,11 +25,13 @@ interface MapEditorContextType {
     viewport: Viewport;
     setViewport: React.Dispatch<React.SetStateAction<Viewport>>;
     updateLayers: (layers: MapLayer[]) => Promise<void>;
-    // NEW: Expose tool state and setters
     activeTool: Tool;
     setActiveTool: (tool: Tool) => void;
     activeLayerId: string | null;
     setActiveLayerId: (layerId: string | null) => void;
+    // NEW: Expose selected object state and its setter
+    selectedObjectId: string | null;
+    setSelectedObjectId: (objectId: string | null) => void;
 }
 
 const MapEditorContext = createContext<MapEditorContextType | undefined>(undefined);
@@ -46,9 +47,10 @@ export const MapEditorProvider: FC<MapEditorProviderProps> = ({ children, initia
         pan: { x: 0, y: 0 },
         zoom: 1,
     });
-    // NEW: Initialize tool state. Default to 'pan'.
     const [activeTool, setActiveTool] = useState<Tool>('pan');
     const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
+    // NEW: Initialize selected object state.
+    const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
 
     const updateMap = useCallback(
         async (mapData: Partial<Map>) => {
@@ -77,13 +79,23 @@ export const MapEditorProvider: FC<MapEditorProviderProps> = ({ children, initia
             viewport,
             setViewport,
             updateLayers,
-            // NEW: Provide the new state and setters to the context
             activeTool,
             setActiveTool,
             activeLayerId,
             setActiveLayerId,
+            // NEW: Provide the new state and setter to the context
+            selectedObjectId,
+            setSelectedObjectId,
         }),
-        [currentMap, viewport, updateMap, updateLayers, activeTool, activeLayerId],
+        [
+            currentMap,
+            viewport,
+            updateMap,
+            updateLayers,
+            activeTool,
+            activeLayerId,
+            selectedObjectId, // Add to dependency array
+        ],
     );
 
     return <MapEditorContext.Provider value={value}>{children}</MapEditorContext.Provider>;
@@ -96,4 +108,3 @@ export const useMapEditor = (): MapEditorContextType => {
     }
     return context;
 };
-
