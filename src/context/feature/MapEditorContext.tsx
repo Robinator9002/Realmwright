@@ -4,9 +4,18 @@ import { createContext, useState, useContext, useMemo, type ReactNode, type FC }
 import type { Map } from '../../db/types';
 import { updateMap as dbUpdateMap } from '../../db/queries/map/map.queries';
 
+// NEW: Define the shape of our viewport state
+export interface Viewport {
+    pan: { x: number; y: number };
+    zoom: number;
+}
+
 interface MapEditorContextType {
     currentMap: Map;
     updateMap: (mapData: Partial<Map>) => Promise<void>;
+    // NEW: Expose viewport state and its setter
+    viewport: Viewport;
+    setViewport: React.Dispatch<React.SetStateAction<Viewport>>;
 }
 
 const MapEditorContext = createContext<MapEditorContextType | undefined>(undefined);
@@ -18,6 +27,11 @@ interface MapEditorProviderProps {
 
 export const MapEditorProvider: FC<MapEditorProviderProps> = ({ children, initialMap }) => {
     const [currentMap, setCurrentMap] = useState<Map>(initialMap);
+    // NEW: Initialize viewport state
+    const [viewport, setViewport] = useState<Viewport>({
+        pan: { x: 0, y: 0 },
+        zoom: 1,
+    });
 
     const updateMap = async (mapData: Partial<Map>) => {
         try {
@@ -34,8 +48,11 @@ export const MapEditorProvider: FC<MapEditorProviderProps> = ({ children, initia
         () => ({
             currentMap,
             updateMap,
+            // NEW: Add viewport state to the context value
+            viewport,
+            setViewport,
         }),
-        [currentMap],
+        [currentMap, viewport], // NEW: Add viewport to dependency array
     );
 
     return <MapEditorContext.Provider value={value}>{children}</MapEditorContext.Provider>;

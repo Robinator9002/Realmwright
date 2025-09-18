@@ -12,6 +12,11 @@
     cursor: grab; /* Add a grab cursor for panning later */
 }
 
+/* NEW: Add a class for when the user is actively panning */
+.map-canvas--panning {
+    cursor: grabbing;
+}
+
 /* REWORK: Rename __image to __content to be more generic */
 .map-canvas__content {
     width: 100%;
