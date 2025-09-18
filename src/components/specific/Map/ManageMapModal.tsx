@@ -36,7 +36,11 @@ export const ManageMapModal: FC<ManageMapModalProps> = ({ isOpen, onClose, mapTo
 
     const handleSave = async () => {
         if (!name.trim()) {
-            showModal('alert', { title: 'Invalid Input', message: 'Map name cannot be empty.' });
+            showModal({
+                type: 'alert',
+                title: 'Invalid Input',
+                message: 'Map name cannot be empty.',
+            });
             return;
         }
         await onSave({ name, description });
