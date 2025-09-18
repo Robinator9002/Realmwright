@@ -1,4 +1,5 @@
 // src/context/global/ModalContext.tsx
+
 import { createContext, useState, useContext, useMemo } from 'react';
 import type { ReactNode, FC } from 'react';
 
@@ -10,6 +11,7 @@ interface ModalOptions {
     title: string;
     message: string;
     onConfirm?: () => void; // For confirmation modals
+    isDanger?: boolean; // NEW: Optional flag for danger-style confirmation buttons
 }
 
 interface ModalContextType {
