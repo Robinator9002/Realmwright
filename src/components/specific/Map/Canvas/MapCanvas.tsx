@@ -83,9 +83,8 @@ export const MapCanvas: FC = () => {
     };
 
     const handleCanvasClick = (e: React.MouseEvent) => {
-        // If the click is on the canvas itself (not a marker that stopped propagation)
         if (activeTool === 'select') {
-            setSelectedObjectId(null); // Deselect any active object
+            setSelectedObjectId(null);
         } else if (activeTool === 'add-location') {
             if (!canvasRef.current) return;
 
