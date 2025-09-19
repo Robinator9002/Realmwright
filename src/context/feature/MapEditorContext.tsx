@@ -10,6 +10,7 @@ import {
     type FC,
 } from 'react';
 import type { Map, MapLayer } from '../../db/types';
+// FIX: Correct the import path to properly resolve the queries file.
 import { updateMap as dbUpdateMap } from '../../db/queries/map/map.queries';
 
 export interface Viewport {
@@ -17,8 +18,8 @@ export interface Viewport {
     zoom: number;
 }
 
-// Add 'draw-zone' as a recognized tool type.
-export type Tool = 'pan' | 'select' | 'add-location' | 'draw-zone';
+// Add 'add-quest' as a recognized tool type.
+export type Tool = 'pan' | 'select' | 'add-location' | 'draw-zone' | 'add-quest';
 
 interface MapEditorContextType {
     currentMap: Map;
