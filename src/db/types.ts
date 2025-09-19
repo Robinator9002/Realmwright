@@ -144,20 +144,27 @@ export interface AbilityTree extends BaseManageable {
 
 // --- Map Creator Interfaces ---
 
-/* NEW: Define the structure for objects placed on a map layer */
+/* NEW: Define a type for a single coordinate point */
+export type Point = {
+    x: number;
+    y: number;
+};
+
+/* REWORK: Upgrade MapObject to support polygons (zones) */
 export interface MapObject {
-    id: string; /* A unique UUID for the object */
-    layerId: string; /* The ID of the layer this object belongs to */
-    x: number; /* X-coordinate relative to the map's top-left */
-    y: number; /* Y-coordinate relative to the map's top-left */
-    locationId?: number; /* Optional link to a Location entry */
+    id: string /* A unique UUID for the object */;
+    layerId: string /* The ID of the layer this object belongs to */;
+    x?: number /* X-coordinate, used for single-point markers */;
+    y?: number /* Y-coordinate, used for single-point markers */;
+    points?: Point[] /* An array of vertices for polygons (zones) */;
+    locationId?: number /* Optional link to a Location entry */;
     /* questId?: number; will be added later */
 }
 
 /* NEW: Define the structure for a single layer on a map */
 export type MapLayerType = 'zone' | 'location' | 'quest';
 export interface MapLayer {
-    id: string; /* A unique UUID for the layer */
+    id: string /* A unique UUID for the layer */;
     name: string;
     type: MapLayerType;
     isVisible: boolean;
@@ -170,7 +177,7 @@ export interface Map extends BaseManageable {
     createdAt: Date;
     imageDataUrl?: string;
     gridSize: { width: number; height: number };
-    layers: MapLayer[]; /* The ordered list of layers for this map */
+    layers: MapLayer[] /* The ordered list of layers for this map */;
 }
 
 export interface Location extends BaseManageable {
