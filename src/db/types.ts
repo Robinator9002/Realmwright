@@ -143,21 +143,20 @@ export interface AbilityTree extends BaseManageable {
 }
 
 // --- Map Creator Interfaces ---
-
-/* NEW: Define a type for a single coordinate point */
-export type Point = {
+export interface Point {
     x: number;
     y: number;
-};
-
-/* REWORK: Upgrade MapObject to support polygons (zones) */
+}
+/* REWORK: Upgrade the MapObject to handle properties for zones */
 export interface MapObject {
     id: string /* A unique UUID for the object */;
     layerId: string /* The ID of the layer this object belongs to */;
-    x?: number /* X-coordinate, used for single-point markers */;
-    y?: number /* Y-coordinate, used for single-point markers */;
-    points?: Point[] /* An array of vertices for polygons (zones) */;
+    x?: number /* X-coordinate for point-based objects */;
+    y?: number /* Y-coordinate for point-based objects */;
     locationId?: number /* Optional link to a Location entry */;
+    points?: Point[] /* The vertices of a polygon */;
+    name?: string /* A user-defined name for the object (e.g., a zone's name) */;
+    color?: string /* A user-defined color for the object (e.g., #RRGGBB) */;
     /* questId?: number; will be added later */
 }
 
