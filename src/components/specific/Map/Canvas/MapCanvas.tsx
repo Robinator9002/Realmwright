@@ -1,14 +1,15 @@
 // src/components/specific/Map/Canvas/MapCanvas.tsx
 
 import { type FC, useRef, useState, useEffect } from 'react';
-import { useMapEditor } from '../../../../context/feature/MapEditorContext.tsx';
-import { ViewportControls } from './ViewportControls.tsx';
-import { Toolbar } from './Toolbar.tsx';
-import { LocationMarker } from './LocationMarker.tsx';
-// Import the new component to render our zones.
-import { ZonePolygon } from './ZonePolygon.tsx';
-import type { MapObject, Point } from '../../../../db/types.ts';
-import { useModal } from '../../../../context/global/ModalContext.tsx';
+import { useMapEditor } from '../../../../context/feature/MapEditorContext';
+import { ViewportControls } from './ViewportControls';
+import { Toolbar } from './Toolbar';
+import { LocationMarker } from './LocationMarker';
+import { ZonePolygon } from './ZonePolygon';
+// NEW: Import the QuestMarker component to render quest objects.
+import { QuestMarker } from './QuestMarker';
+import type { MapObject, Point } from '../../../../db/types';
+import { useModal } from '../../../../context/global/ModalContext';
 
 const ZOOM_SENSITIVITY = 0.001;
 const MAX_ZOOM = 5;
@@ -36,7 +37,6 @@ export const MapCanvas: FC = () => {
     // --- Zone Drawing State ---
     const [drawingPoints, setDrawingPoints] = useState<Point[]>([]);
     const [mousePosition, setMousePosition] = useState<Point>({ x: 0, y: 0 });
-    // --- End Zone Drawing State ---
 
     const hasImage = !!currentMap.imageDataUrl;
 
@@ -45,20 +45,16 @@ export const MapCanvas: FC = () => {
             setDrawingPoints([]);
             return;
         }
-
         const newZoneObject: MapObject = {
             id: crypto.randomUUID(),
             layerId: activeLayerId!,
             points: [...drawingPoints],
-            // Zones don't have a single x/y, so we omit them.
         };
-
-        const newLayers = currentMap.layers.map((layer) => {
-            if (layer.id === activeLayerId) {
-                return { ...layer, objects: [...layer.objects, newZoneObject] };
-            }
-            return layer;
-        });
+        const newLayers = currentMap.layers.map((layer) =>
+            layer.id === activeLayerId
+                ? { ...layer, objects: [...layer.objects, newZoneObject] }
+                : layer,
+        );
         updateLayers(newLayers);
         setDrawingPoints([]);
     };
@@ -71,7 +67,7 @@ export const MapCanvas: FC = () => {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [activeTool, drawingPoints, completeDrawing]);
+    }, [activeTool, drawingPoints]);
 
     const handleWheel = (e: React.WheelEvent) => {
         e.preventDefault();
@@ -104,7 +100,7 @@ export const MapCanvas: FC = () => {
 
     const handleMouseUp = () => setIsPanning(false);
 
-    const handleConfirmLink = (locationId: number) => {
+    const handleConfirmLocationLink = (locationId: number) => {
         if (!pendingObjectForLink) return;
         const linkedObject: MapObject = {
             ...pendingObjectForLink,
@@ -121,7 +117,24 @@ export const MapCanvas: FC = () => {
         setPendingObjectForLink(null);
     };
 
-    // Generic click handler for any map object (marker or zone).
+    // NEW: A dedicated handler for confirming a quest link from the modal.
+    const handleConfirmQuestLink = (questId: number) => {
+        if (!pendingObjectForLink) return;
+        const linkedObject: MapObject = {
+            ...pendingObjectForLink,
+            x: pendingObjectForLink.x!,
+            y: pendingObjectForLink.y!,
+            questId,
+        };
+        const newLayers = currentMap.layers.map((layer) =>
+            layer.id === linkedObject.layerId
+                ? { ...layer, objects: [...layer.objects, linkedObject] }
+                : layer,
+        );
+        updateLayers(newLayers);
+        setPendingObjectForLink(null);
+    };
+
     const handleObjectClick = (objectId: string) => {
         if (activeTool === 'select') {
             setSelectedObjectId(objectId);
@@ -147,15 +160,20 @@ export const MapCanvas: FC = () => {
         const worldX = (e.clientX - rect.left - viewport.pan.x) / viewport.zoom;
         const worldY = (e.clientY - rect.top - viewport.pan.y) / viewport.zoom;
 
+        const newObject: MapObject = {
+            id: crypto.randomUUID(),
+            layerId: activeLayerId,
+            x: worldX,
+            y: worldY,
+        };
+
         if (activeTool === 'add-location') {
-            const newObject: MapObject = {
-                id: crypto.randomUUID(),
-                layerId: activeLayerId,
-                x: worldX,
-                y: worldY,
-            };
             setPendingObjectForLink(newObject);
-            showModal({ type: 'link-location', onConfirm: handleConfirmLink });
+            showModal({ type: 'link-location', onConfirm: handleConfirmLocationLink });
+        } else if (activeTool === 'add-quest') {
+            // NEW: When the 'add-quest' tool is active, show the link quest modal.
+            setPendingObjectForLink(newObject);
+            showModal({ type: 'link-quest', onConfirm: handleConfirmQuestLink });
         } else if (activeTool === 'draw-zone') {
             setDrawingPoints((prev) => [...prev, { x: worldX, y: worldY }]);
         }
@@ -171,7 +189,8 @@ export const MapCanvas: FC = () => {
         let className = 'map-canvas';
         if (isPanning) className += ' map-canvas--panning';
         else if (activeTool === 'pan') className += ' map-canvas--tool-pan';
-        else if (activeTool === 'add-location') className += ' map-canvas--tool-add';
+        else if (activeTool === 'add-location' || activeTool === 'add-quest')
+            className += ' map-canvas--tool-add'; // Both use crosshair
         else if (activeTool === 'select') className += ' map-canvas--tool-select';
         else if (activeTool === 'draw-zone') className += ' map-canvas--tool-draw';
         return className;
@@ -204,12 +223,12 @@ export const MapCanvas: FC = () => {
                     .filter((layer) => layer.isVisible)
                     .flatMap((layer) =>
                         layer.objects.map((obj) => {
-                            // If the object has points, it's a zone. Render it.
                             if (obj.points && obj.points.length > 0) {
                                 return (
                                     <ZonePolygon
                                         key={obj.id}
                                         points={obj.points}
+                                        color={obj.color}
                                         isSelected={selectedObjectId === obj.id}
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -218,8 +237,24 @@ export const MapCanvas: FC = () => {
                                     />
                                 );
                             }
-                            // If it has x/y, it's a marker. Render it.
+
                             if (obj.x !== undefined && obj.y !== undefined) {
+                                // NEW: Prioritize rendering a QuestMarker if questId exists.
+                                if (obj.questId) {
+                                    return (
+                                        <QuestMarker
+                                            key={obj.id}
+                                            x={obj.x}
+                                            y={obj.y}
+                                            isSelected={selectedObjectId === obj.id}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleObjectClick(obj.id);
+                                            }}
+                                        />
+                                    );
+                                }
+                                // Fallback to LocationMarker if it's not a quest.
                                 return (
                                     <LocationMarker
                                         key={obj.id}
@@ -233,7 +268,6 @@ export const MapCanvas: FC = () => {
                                     />
                                 );
                             }
-                            // Otherwise, it's malformed or a new type. Ignore for now.
                             return null;
                         }),
                     )}
