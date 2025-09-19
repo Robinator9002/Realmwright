@@ -5,7 +5,6 @@ import { Eye, EyeOff, PlusCircle, Trash2 } from 'lucide-react';
 import { useMapEditor } from '../../../../context/feature/MapEditorContext';
 import { useModal } from '../../../../context/global/ModalContext';
 import type { MapLayer } from '../../../../db/types';
-// NEW: Import the panel we're about to use
 import { SelectedItemPanel } from './SelectedItemPanel';
 
 /**
@@ -17,14 +16,17 @@ export const MapEditorSidebar: FC = () => {
     const { showModal } = useModal();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // FIX: Use a defensive fallback for the layers array
+    const layers = currentMap.layers || [];
+
     useEffect(() => {
-        if (!activeLayerId && currentMap.layers.length > 0) {
-            setActiveLayerId(currentMap.layers[currentMap.layers.length - 1].id);
+        if (!activeLayerId && layers.length > 0) {
+            setActiveLayerId(layers[layers.length - 1].id);
         }
-        if (activeLayerId && !currentMap.layers.find((l) => l.id === activeLayerId)) {
+        if (activeLayerId && !layers.find((l) => l.id === activeLayerId)) {
             setActiveLayerId(null);
         }
-    }, [currentMap.layers, activeLayerId, setActiveLayerId]);
+    }, [layers, activeLayerId, setActiveLayerId]);
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -45,12 +47,12 @@ export const MapEditorSidebar: FC = () => {
     const handleAddLayer = () => {
         const newLayer: MapLayer = {
             id: crypto.randomUUID(),
-            name: `New Layer ${currentMap.layers.length + 1}`,
+            name: `New Layer ${layers.length + 1}`,
             type: 'location',
             isVisible: true,
             objects: [],
         };
-        const newLayers = [...currentMap.layers, newLayer];
+        const newLayers = [...layers, newLayer];
         updateLayers(newLayers);
         setActiveLayerId(newLayer.id);
     };
@@ -63,14 +65,14 @@ export const MapEditorSidebar: FC = () => {
                 'Are you sure you want to delete this layer and all objects on it? This action cannot be undone.',
             isDanger: true,
             onConfirm: () => {
-                const newLayers = currentMap.layers.filter((l) => l.id !== layerId);
+                const newLayers = layers.filter((l) => l.id !== layerId);
                 updateLayers(newLayers);
             },
         });
     };
 
     const handleToggleVisibility = (layerId: string) => {
-        const newLayers = currentMap.layers.map((l) =>
+        const newLayers = layers.map((l) =>
             l.id === layerId ? { ...l, isVisible: !l.isVisible } : l,
         );
         updateLayers(newLayers);
@@ -111,9 +113,9 @@ export const MapEditorSidebar: FC = () => {
                     </button>
                 </div>
                 <div className="panel__content">
-                    {currentMap.layers.length > 0 ? (
+                    {layers.length > 0 ? (
                         <ul className="layer-list">
-                            {[...currentMap.layers].reverse().map((layer) => (
+                            {[...layers].reverse().map((layer) => (
                                 <li
                                     key={layer.id}
                                     onClick={() => setActiveLayerId(layer.id)}
@@ -161,7 +163,6 @@ export const MapEditorSidebar: FC = () => {
                 </div>
             </div>
 
-            {/* REWORK: Replace the placeholder with our intelligent component */}
             <SelectedItemPanel />
         </aside>
     );
