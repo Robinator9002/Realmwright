@@ -1,7 +1,8 @@
 // src/components/specific/Map/Canvas/Toolbar.tsx
 
 import type { FC } from 'react';
-import { Move, MousePointerClick, MapPin } from 'lucide-react';
+// Import a new icon for our drawing tool.
+import { Move, MousePointerClick, MapPin, SquarePen } from 'lucide-react';
 import { useMapEditor, type Tool } from '../../../../context/feature/MapEditorContext';
 
 /**
@@ -10,10 +11,12 @@ import { useMapEditor, type Tool } from '../../../../context/feature/MapEditorCo
 export const Toolbar: FC = () => {
     const { activeTool, setActiveTool } = useMapEditor();
 
+    // Add the new 'draw-zone' tool to the list of available tools.
     const tools: { id: Tool; label: string; icon: React.ReactNode }[] = [
         { id: 'pan', label: 'Pan Tool', icon: <Move size={18} /> },
         { id: 'select', label: 'Select Tool', icon: <MousePointerClick size={18} /> },
         { id: 'add-location', label: 'Add Location', icon: <MapPin size={18} /> },
+        { id: 'draw-zone', label: 'Draw Zone', icon: <SquarePen size={18} /> },
     ];
 
     return (
