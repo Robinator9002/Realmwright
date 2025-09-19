@@ -155,7 +155,8 @@ export const MapCanvas: FC = () => {
         >
             <Toolbar />
             <div className={canvasContentClassName} style={canvasContentStyle}>
-                {currentMap.layers
+                {/* FIX: Use a fallback empty array to prevent crashes on old map data */}
+                {(currentMap.layers || [])
                     .filter((layer) => layer.isVisible)
                     .flatMap((layer) =>
                         layer.objects.map((obj) => (
@@ -165,7 +166,7 @@ export const MapCanvas: FC = () => {
                                 y={obj.y}
                                 isSelected={selectedObjectId === obj.id}
                                 onClick={(e) => {
-                                    e.stopPropagation(); // Prevent canvas click from firing
+                                    e.stopPropagation();
                                     handleMarkerClick(obj.id);
                                 }}
                             />
