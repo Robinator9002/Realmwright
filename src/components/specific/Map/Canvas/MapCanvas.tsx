@@ -1,12 +1,14 @@
 // src/components/specific/Map/Canvas/MapCanvas.tsx
 
 import { type FC, useRef, useState, useEffect } from 'react';
-import { useMapEditor } from '../../../../context/feature/MapEditorContext';
-import { ViewportControls } from './ViewportControls';
-import { Toolbar } from './Toolbar';
-import { LocationMarker } from './LocationMarker';
-import type { MapObject, Point } from '../../../../db/types';
-import { useModal } from '../../../../context/global/ModalContext';
+import { useMapEditor } from '../../../../context/feature/MapEditorContext.tsx';
+import { ViewportControls } from './ViewportControls.tsx';
+import { Toolbar } from './Toolbar.tsx';
+import { LocationMarker } from './LocationMarker.tsx';
+// Import the new component to render our zones.
+import { ZonePolygon } from './ZonePolygon.tsx';
+import type { MapObject, Point } from '../../../../db/types.ts';
+import { useModal } from '../../../../context/global/ModalContext.tsx';
 
 const ZOOM_SENSITIVITY = 0.001;
 const MAX_ZOOM = 5;
@@ -38,10 +40,9 @@ export const MapCanvas: FC = () => {
 
     const hasImage = !!currentMap.imageDataUrl;
 
-    // This function finalizes the polygon and adds it to the map state.
     const completeDrawing = () => {
         if (drawingPoints.length < 3) {
-            setDrawingPoints([]); // Not enough points for a shape, just cancel.
+            setDrawingPoints([]);
             return;
         }
 
@@ -49,6 +50,7 @@ export const MapCanvas: FC = () => {
             id: crypto.randomUUID(),
             layerId: activeLayerId!,
             points: [...drawingPoints],
+            // Zones don't have a single x/y, so we omit them.
         };
 
         const newLayers = currentMap.layers.map((layer) => {
@@ -58,22 +60,17 @@ export const MapCanvas: FC = () => {
             return layer;
         });
         updateLayers(newLayers);
-
-        setDrawingPoints([]); // Reset for the next drawing.
+        setDrawingPoints([]);
     };
 
-    // Listen for the 'Enter' key to complete the drawing.
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Enter' && activeTool === 'draw-zone' && drawingPoints.length > 0) {
                 completeDrawing();
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, [activeTool, drawingPoints, completeDrawing]);
 
     const handleWheel = (e: React.WheelEvent) => {
@@ -86,10 +83,7 @@ export const MapCanvas: FC = () => {
     const handleMouseDown = (e: React.MouseEvent) => {
         if (activeTool !== 'pan' || e.button !== 0) return;
         setIsPanning(true);
-        panStartRef.current = {
-            x: e.clientX - viewport.pan.x,
-            y: e.clientY - viewport.pan.y,
-        };
+        panStartRef.current = { x: e.clientX - viewport.pan.x, y: e.clientY - viewport.pan.y };
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
@@ -98,8 +92,6 @@ export const MapCanvas: FC = () => {
             const newY = e.clientY - panStartRef.current.y;
             setViewport((v) => ({ ...v, pan: { x: newX, y: newY } }));
         }
-
-        // Track mouse position in world coordinates for drawing feedback.
         if (activeTool === 'draw-zone' && canvasRef.current) {
             const rect = canvasRef.current.getBoundingClientRect();
             const clientX = e.clientX - rect.left;
@@ -110,33 +102,27 @@ export const MapCanvas: FC = () => {
         }
     };
 
-    const handleMouseUp = () => {
-        setIsPanning(false);
-    };
+    const handleMouseUp = () => setIsPanning(false);
 
     const handleConfirmLink = (locationId: number) => {
         if (!pendingObjectForLink) return;
-
-        // Ensure the object has x and y, as it's a marker.
-        const linkedObject = {
+        const linkedObject: MapObject = {
             ...pendingObjectForLink,
             x: pendingObjectForLink.x!,
             y: pendingObjectForLink.y!,
             locationId,
         };
-
-        const newLayers = currentMap.layers.map((layer) => {
-            if (layer.id === linkedObject.layerId) {
-                return { ...layer, objects: [...layer.objects, linkedObject] };
-            }
-            return layer;
-        });
+        const newLayers = currentMap.layers.map((layer) =>
+            layer.id === linkedObject.layerId
+                ? { ...layer, objects: [...layer.objects, linkedObject] }
+                : layer,
+        );
         updateLayers(newLayers);
-
         setPendingObjectForLink(null);
     };
 
-    const handleMarkerClick = (objectId: string) => {
+    // Generic click handler for any map object (marker or zone).
+    const handleObjectClick = (objectId: string) => {
         if (activeTool === 'select') {
             setSelectedObjectId(objectId);
         }
@@ -145,42 +131,32 @@ export const MapCanvas: FC = () => {
     const handleCanvasClick = (e: React.MouseEvent) => {
         if (activeTool === 'select') {
             setSelectedObjectId(null);
-        } else if (activeTool === 'add-location') {
-            if (!canvasRef.current || !activeLayerId) {
-                showModal({
-                    type: 'alert',
-                    title: 'No Layer Selected',
-                    message: 'Please select a layer in the sidebar before adding a location.',
-                });
-                return;
-            }
+            return;
+        }
 
-            const rect = canvasRef.current.getBoundingClientRect();
-            const worldX = (e.clientX - rect.left - viewport.pan.x) / viewport.zoom;
-            const worldY = (e.clientY - rect.top - viewport.pan.y) / viewport.zoom;
+        if (!canvasRef.current || !activeLayerId) {
+            showModal({
+                type: 'alert',
+                title: 'No Layer Selected',
+                message: 'Please select a layer in the sidebar before adding an object.',
+            });
+            return;
+        }
 
+        const rect = canvasRef.current.getBoundingClientRect();
+        const worldX = (e.clientX - rect.left - viewport.pan.x) / viewport.zoom;
+        const worldY = (e.clientY - rect.top - viewport.pan.y) / viewport.zoom;
+
+        if (activeTool === 'add-location') {
             const newObject: MapObject = {
                 id: crypto.randomUUID(),
                 layerId: activeLayerId,
                 x: worldX,
                 y: worldY,
             };
-
             setPendingObjectForLink(newObject);
             showModal({ type: 'link-location', onConfirm: handleConfirmLink });
         } else if (activeTool === 'draw-zone') {
-            if (!canvasRef.current || !activeLayerId) {
-                showModal({
-                    type: 'alert',
-                    title: 'No Layer Selected',
-                    message: 'Please select a layer in the sidebar before drawing a zone.',
-                });
-                return;
-            }
-            const rect = canvasRef.current.getBoundingClientRect();
-            const worldX = (e.clientX - rect.left - viewport.pan.x) / viewport.zoom;
-            const worldY = (e.clientY - rect.top - viewport.pan.y) / viewport.zoom;
-
             setDrawingPoints((prev) => [...prev, { x: worldX, y: worldY }]);
         }
     };
@@ -197,7 +173,6 @@ export const MapCanvas: FC = () => {
         else if (activeTool === 'pan') className += ' map-canvas--tool-pan';
         else if (activeTool === 'add-location') className += ' map-canvas--tool-add';
         else if (activeTool === 'select') className += ' map-canvas--tool-select';
-        // Add a new cursor style for drawing.
         else if (activeTool === 'draw-zone') className += ' map-canvas--tool-draw';
         return className;
     };
@@ -205,16 +180,11 @@ export const MapCanvas: FC = () => {
     const canvasContentClassName = `map-canvas__content ${
         !hasImage ? 'map-canvas__content--blank' : ''
     }`;
-
     const canvasContentStyle = {
         backgroundImage: hasImage ? `url(${currentMap.imageDataUrl})` : 'none',
         transform: `translate(${viewport.pan.x}px, ${viewport.pan.y}px) scale(${viewport.zoom})`,
     };
-
-    // Convert points array to SVG polygon string
-    const pointsToString = (points: Point[]) => {
-        return points.map((p) => `${p.x},${p.y}`).join(' ');
-    };
+    const pointsToString = (points: Point[]) => points.map((p) => `${p.x},${p.y}`).join(' ');
 
     return (
         <div
@@ -234,7 +204,21 @@ export const MapCanvas: FC = () => {
                     .filter((layer) => layer.isVisible)
                     .flatMap((layer) =>
                         layer.objects.map((obj) => {
-                            // Render markers if they have x/y coordinates
+                            // If the object has points, it's a zone. Render it.
+                            if (obj.points && obj.points.length > 0) {
+                                return (
+                                    <ZonePolygon
+                                        key={obj.id}
+                                        points={obj.points}
+                                        isSelected={selectedObjectId === obj.id}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleObjectClick(obj.id);
+                                        }}
+                                    />
+                                );
+                            }
+                            // If it has x/y, it's a marker. Render it.
                             if (obj.x !== undefined && obj.y !== undefined) {
                                 return (
                                     <LocationMarker
@@ -244,20 +228,18 @@ export const MapCanvas: FC = () => {
                                         isSelected={selectedObjectId === obj.id}
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handleMarkerClick(obj.id);
+                                            handleObjectClick(obj.id);
                                         }}
                                     />
                                 );
                             }
-                            // We will render zones (polygons) here in the next step.
+                            // Otherwise, it's malformed or a new type. Ignore for now.
                             return null;
                         }),
                     )}
 
-                {/* --- Visual Feedback for Drawing --- */}
                 {activeTool === 'draw-zone' && drawingPoints.length > 0 && (
                     <svg className="map-canvas__overlay-svg">
-                        {/* Line from last point to current mouse position */}
                         <line
                             x1={drawingPoints[drawingPoints.length - 1].x}
                             y1={drawingPoints[drawingPoints.length - 1].y}
@@ -265,24 +247,21 @@ export const MapCanvas: FC = () => {
                             y2={mousePosition.y}
                             className="map-canvas__drawing-line"
                         />
-                        {/* The polygon being drawn */}
                         <polyline
                             points={pointsToString(drawingPoints)}
                             className="map-canvas__drawing-line"
                         />
-                        {/* Dots for each vertex */}
                         {drawingPoints.map((p, i) => (
                             <circle
                                 key={i}
                                 cx={p.x}
                                 cy={p.y}
-                                r={4 / viewport.zoom} // Make radius scale inversely with zoom
+                                r={4 / viewport.zoom}
                                 className="map-canvas__drawing-vertex"
                             />
                         ))}
                     </svg>
                 )}
-                {/* --- End Visual Feedback --- */}
             </div>
             <ViewportControls />
         </div>
