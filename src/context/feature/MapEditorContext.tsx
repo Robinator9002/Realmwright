@@ -17,7 +17,8 @@ export interface Viewport {
     zoom: number;
 }
 
-export type Tool = 'pan' | 'select' | 'add-location';
+// Add 'draw-zone' as a recognized tool type.
+export type Tool = 'pan' | 'select' | 'add-location' | 'draw-zone';
 
 interface MapEditorContextType {
     currentMap: Map;
@@ -29,7 +30,6 @@ interface MapEditorContextType {
     setActiveTool: (tool: Tool) => void;
     activeLayerId: string | null;
     setActiveLayerId: (layerId: string | null) => void;
-    // NEW: Expose selected object state and its setter
     selectedObjectId: string | null;
     setSelectedObjectId: (objectId: string | null) => void;
 }
@@ -49,7 +49,6 @@ export const MapEditorProvider: FC<MapEditorProviderProps> = ({ children, initia
     });
     const [activeTool, setActiveTool] = useState<Tool>('pan');
     const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
-    // NEW: Initialize selected object state.
     const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
 
     const updateMap = useCallback(
@@ -83,7 +82,6 @@ export const MapEditorProvider: FC<MapEditorProviderProps> = ({ children, initia
             setActiveTool,
             activeLayerId,
             setActiveLayerId,
-            // NEW: Provide the new state and setter to the context
             selectedObjectId,
             setSelectedObjectId,
         }),
@@ -94,7 +92,7 @@ export const MapEditorProvider: FC<MapEditorProviderProps> = ({ children, initia
             updateLayers,
             activeTool,
             activeLayerId,
-            selectedObjectId, // Add to dependency array
+            selectedObjectId,
         ],
     );
 
