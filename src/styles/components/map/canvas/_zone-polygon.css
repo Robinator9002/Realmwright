@@ -1,0 +1,36 @@
+/* src/styles/components/map/canvas/_zone-polygon.css */
+
+.zone-polygon-svg {
+    position: absolute;
+    /* This allows clicks to pass through the empty SVG area to the canvas below */
+    pointer-events: none;
+    overflow: visible; /* Ensure vertices aren't clipped */
+    z-index: 10; /* Keep zones above the map image but below markers */
+}
+
+.zone-polygon {
+    /* Re-enable pointer events for the polygon shape itself */
+    pointer-events: auto;
+    fill: color-mix(in srgb, var(--color-accent) 25%, transparent);
+    stroke: var(--color-accent);
+    stroke-width: 2;
+    cursor: pointer;
+    transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+.zone-polygon:hover {
+    fill: color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+.zone-polygon--selected {
+    fill: color-mix(in srgb, var(--color-danger) 40%, transparent);
+    stroke: var(--color-danger);
+    stroke-dasharray: 4; /* Give selected zones a dashed outline */
+    animation: dash-flow 1s linear infinite;
+}
+
+@keyframes dash-flow {
+    to {
+        stroke-dashoffset: -20;
+    }
+}
