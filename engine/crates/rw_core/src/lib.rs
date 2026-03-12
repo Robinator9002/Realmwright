@@ -14,8 +14,9 @@ pub use foundation::{
     AbilityId, CharacterId, Dice, DiceError, DiceSize, EffectId, ItemId, StatBlock,
     StatBlockError, StatKind,
 };
-pub use ruleset::{Ruleset, RulesetError};
+pub use ruleset::{Ruleset, RulesetError, RulesetOperationError};
 pub use state::{
     ActiveEffect, ActiveEffectError, Character, CharacterAbility, CharacterAbilityError,
-    CharacterError, CharacterProfile, CharacterProfileError, OwnedItem, OwnedItemError,
+    CharacterError, CharacterOperationError, CharacterProfile, CharacterProfileError, OwnedItem,
+    OwnedItemError,
 };

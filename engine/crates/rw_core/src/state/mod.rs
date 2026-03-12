@@ -6,7 +6,7 @@ mod inventory;
 
 pub use character::{
     Character, CharacterAbility, CharacterAbilityError, CharacterError, CharacterProfile,
-    CharacterProfileError,
+    CharacterOperationError, CharacterProfileError,
 };
 pub use effects::{ActiveEffect, ActiveEffectError};
 pub use inventory::{OwnedItem, OwnedItemError};
