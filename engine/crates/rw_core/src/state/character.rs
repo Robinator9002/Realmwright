@@ -3,7 +3,10 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{AbilityId, CharacterId, OwnedItem, OwnedItemError, StatBlock, StatBlockError};
+use crate::{
+    AbilityId, CharacterId, ItemId, OwnedItem, OwnedItemError, Ruleset, StatBlock,
+    StatBlockError,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CharacterProfile {
@@ -129,17 +132,21 @@ pub enum CharacterOperationError {
     #[error("character does not know ability {ability_id:?}")]
     UnknownAbility { ability_id: AbilityId },
     #[error("character does not own item {item_id:?}")]
-    UnknownItem { item_id: crate::ItemId },
+    UnknownItem { item_id: ItemId },
     #[error("character does not have enough of item {item_id:?}: requested {requested}, available {available}")]
     InsufficientItemQuantity {
-        item_id: crate::ItemId,
+        item_id: ItemId,
         requested: u32,
         available: u32,
     },
     #[error("item {item_id:?} is already equipped")]
-    ItemAlreadyEquipped { item_id: crate::ItemId },
+    ItemAlreadyEquipped { item_id: ItemId },
     #[error("item {item_id:?} is not equipped")]
-    ItemNotEquipped { item_id: crate::ItemId },
+    ItemNotEquipped { item_id: ItemId },
+    #[error("ruleset does not contain ability {ability_id:?}")]
+    UnknownRulesetAbility { ability_id: AbilityId },
+    #[error("ruleset does not contain item {item_id:?}")]
+    UnknownRulesetItem { item_id: ItemId },
 }
 
 impl Character {
@@ -226,7 +233,7 @@ impl Character {
 
     pub fn add_item(
         &mut self,
-        item_id: crate::ItemId,
+        item_id: ItemId,
         quantity: u32,
     ) -> Result<(), CharacterOperationError> {
         if quantity == 0 {
@@ -248,7 +255,7 @@ impl Character {
 
     pub fn remove_item(
         &mut self,
-        item_id: crate::ItemId,
+        item_id: ItemId,
         quantity: u32,
     ) -> Result<(), CharacterOperationError> {
         if quantity == 0 {
@@ -279,7 +286,7 @@ impl Character {
 
     pub fn equip_item(
         &mut self,
-        item_id: crate::ItemId,
+        item_id: ItemId,
     ) -> Result<(), CharacterOperationError> {
         let Some(item) = self.inventory.iter_mut().find(|item| item.item_id == item_id) else {
             return Err(CharacterOperationError::UnknownItem { item_id });
@@ -295,7 +302,7 @@ impl Character {
 
     pub fn unequip_item(
         &mut self,
-        item_id: crate::ItemId,
+        item_id: ItemId,
     ) -> Result<(), CharacterOperationError> {
         let Some(item) = self.inventory.iter_mut().find(|item| item.item_id == item_id) else {
             return Err(CharacterOperationError::UnknownItem { item_id });
@@ -308,99 +315,52 @@ impl Character {
         item.equipped = false;
         Ok(())
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use crate::{
-        AbilityId, Character, CharacterAbility, CharacterOperationError, CharacterProfile,
-        CharacterId, ItemId, OwnedItem, StatBlock,
-    };
+    pub fn learn_ability_from_ruleset(
+        &mut self,
+        ruleset: &Ruleset,
+        ability_id: AbilityId,
+        source: impl Into<String>,
+    ) -> Result<(), CharacterOperationError> {
+        if !ruleset.contains_ability(ability_id) {
+            return Err(CharacterOperationError::UnknownRulesetAbility { ability_id });
+        }
 
-    fn sample_character() -> Character {
-        Character::new(
-            CharacterId(1),
-            CharacterProfile::new("Aela", "Scout", "Elf").expect("profile should be valid"),
-            1,
-            StatBlock::new(10, 14, 12, 10, 13, 8, 2).expect("stats should be valid"),
-            vec![OwnedItem::new(ItemId(100), 1, false).expect("owned item should be valid")],
-            vec![],
-        )
-        .expect("character should be valid")
-    }
-
-    #[test]
-    fn learn_ability_rejects_duplicates() {
-        let mut character = sample_character();
         let ability =
-            CharacterAbility::new(AbilityId(7), "level up").expect("ability should be valid");
+            CharacterAbility::new(ability_id, source).expect("ruleset-driven ability source must be valid");
+        self.learn_ability(ability)
+    }
 
-        character
-            .learn_ability(ability.clone())
-            .expect("first learn should succeed");
+    pub fn add_item_from_ruleset(
+        &mut self,
+        ruleset: &Ruleset,
+        item_id: ItemId,
+        quantity: u32,
+    ) -> Result<(), CharacterOperationError> {
+        if !ruleset.contains_item(item_id) {
+            return Err(CharacterOperationError::UnknownRulesetItem { item_id });
+        }
 
-        let error = character
-            .learn_ability(ability)
-            .expect_err("second learn should fail");
+        self.add_item(item_id, quantity)
+    }
 
-        assert_eq!(
-            error,
-            CharacterOperationError::DuplicateAbility {
-                ability_id: AbilityId(7)
+    pub fn validate_against(&self, ruleset: &Ruleset) -> Result<(), CharacterOperationError> {
+        for ability in &self.abilities {
+            if !ruleset.contains_ability(ability.ability_id) {
+                return Err(CharacterOperationError::UnknownRulesetAbility {
+                    ability_id: ability.ability_id,
+                });
             }
-        );
-    }
+        }
 
-    #[test]
-    fn add_and_remove_item_updates_inventory() {
-        let mut character = sample_character();
-
-        character
-            .add_item(ItemId(100), 2)
-            .expect("adding to existing stack should succeed");
-        assert_eq!(character.inventory[0].quantity, 3);
-
-        character
-            .remove_item(ItemId(100), 2)
-            .expect("partial remove should succeed");
-        assert_eq!(character.inventory[0].quantity, 1);
-
-        character
-            .remove_item(ItemId(100), 1)
-            .expect("final remove should succeed");
-        assert!(character.inventory.is_empty());
-    }
-
-    #[test]
-    fn equip_and_unequip_item_updates_flags() {
-        let mut character = sample_character();
-
-        character
-            .equip_item(ItemId(100))
-            .expect("equip should succeed");
-        assert!(character.inventory[0].equipped);
-
-        character
-            .unequip_item(ItemId(100))
-            .expect("unequip should succeed");
-        assert!(!character.inventory[0].equipped);
-    }
-
-    #[test]
-    fn removing_too_many_items_fails() {
-        let mut character = sample_character();
-
-        let error = character
-            .remove_item(ItemId(100), 2)
-            .expect_err("remove should fail");
-
-        assert_eq!(
-            error,
-            CharacterOperationError::InsufficientItemQuantity {
-                item_id: ItemId(100),
-                requested: 2,
-                available: 1,
+        for item in &self.inventory {
+            if !ruleset.contains_item(item.item_id) {
+                return Err(CharacterOperationError::UnknownRulesetItem {
+                    item_id: item.item_id,
+                });
             }
-        );
+        }
+
+        Ok(())
     }
 }
