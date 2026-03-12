@@ -6,11 +6,16 @@ pub mod ruleset;
 pub mod state;
 
 pub use content::{
-    AbilityDefinition, AbilityKind, Effect, EffectKind, Enchantment, ItemDefinition, ItemKind,
-    Modifier, ModifierTarget,
+    AbilityDefinition, AbilityDefinitionError, AbilityKind, Effect, EffectError, EffectKind,
+    Enchantment, ItemDefinition, ItemDefinitionError, ItemKind, Modifier, ModifierError,
+    ModifierTarget,
 };
 pub use foundation::{
-    AbilityId, CharacterId, Dice, DiceSize, EffectId, ItemId, StatBlock, StatKind,
+    AbilityId, CharacterId, Dice, DiceError, DiceSize, EffectId, ItemId, StatBlock,
+    StatBlockError, StatKind,
 };
-pub use ruleset::Ruleset;
-pub use state::{ActiveEffect, Character, CharacterAbility, CharacterProfile, OwnedItem};
+pub use ruleset::{Ruleset, RulesetError};
+pub use state::{
+    ActiveEffect, ActiveEffectError, Character, CharacterAbility, CharacterAbilityError,
+    CharacterError, CharacterProfile, CharacterProfileError, OwnedItem, OwnedItemError,
+};

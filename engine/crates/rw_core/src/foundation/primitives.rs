@@ -1,6 +1,7 @@
 // engine/crates/rw_core/src/foundation/primitives.rs
 
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct CharacterId(pub u64);
@@ -32,6 +33,12 @@ pub struct Dice {
     pub bonus: i32,
 }
 
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum DiceError {
+    #[error("dice count must be greater than zero")]
+    ZeroCount,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum StatKind {
     Strength,
@@ -51,4 +58,10 @@ pub struct StatBlock {
     pub wisdom: i32,
     pub charisma: i32,
     pub proficiency_bonus: i32,
+}
+
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum StatBlockError {
+    #[error("proficiency bonus cannot be negative")]
+    NegativeProficiencyBonus,
 }

@@ -2,4 +2,4 @@
 
 mod ruleset;
 
-pub use ruleset::Ruleset;
+pub use ruleset::{Ruleset, RulesetError};

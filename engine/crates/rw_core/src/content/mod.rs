@@ -3,6 +3,7 @@
 mod definitions;
 
 pub use definitions::{
-    AbilityDefinition, AbilityKind, Effect, EffectKind, Enchantment, ItemDefinition, ItemKind,
-    Modifier, ModifierTarget,
+    AbilityDefinition, AbilityDefinitionError, AbilityKind, Effect, EffectError, EffectKind,
+    Enchantment, ItemDefinition, ItemDefinitionError, ItemKind, Modifier, ModifierError,
+    ModifierTarget,
 };

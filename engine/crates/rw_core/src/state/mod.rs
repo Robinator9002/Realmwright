@@ -4,6 +4,9 @@ mod character;
 mod effects;
 mod inventory;
 
-pub use character::{Character, CharacterAbility, CharacterProfile};
-pub use effects::ActiveEffect;
-pub use inventory::OwnedItem;
+pub use character::{
+    Character, CharacterAbility, CharacterAbilityError, CharacterError, CharacterProfile,
+    CharacterProfileError,
+};
+pub use effects::{ActiveEffect, ActiveEffectError};
+pub use inventory::{OwnedItem, OwnedItemError};

@@ -10,7 +10,7 @@ repository = "https://github.com/Robinator9002/Realmwright"
 authors = ["Robin"]
 
 [workspace.dependencies]
-pyo3 = { version = "0.24", features = ["extension-module"] }
+pyo3 = { version = "0.28.2", features = ["extension-module"] }
 rw_core = { path = "crates/rw_core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
