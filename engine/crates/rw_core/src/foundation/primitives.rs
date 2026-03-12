@@ -39,6 +39,22 @@ pub enum DiceError {
     ZeroCount,
 }
 
+impl Dice {
+    pub fn new(count: u32, size: DiceSize, bonus: i32) -> Result<Self, DiceError> {
+        let dice = Self { count, size, bonus };
+        dice.validate()?;
+        Ok(dice)
+    }
+
+    pub fn validate(&self) -> Result<(), DiceError> {
+        if self.count == 0 {
+            return Err(DiceError::ZeroCount);
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum StatKind {
     Strength,
@@ -64,4 +80,37 @@ pub struct StatBlock {
 pub enum StatBlockError {
     #[error("proficiency bonus cannot be negative")]
     NegativeProficiencyBonus,
+}
+
+impl StatBlock {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        strength: i32,
+        dexterity: i32,
+        constitution: i32,
+        intelligence: i32,
+        wisdom: i32,
+        charisma: i32,
+        proficiency_bonus: i32,
+    ) -> Result<Self, StatBlockError> {
+        let stat_block = Self {
+            strength,
+            dexterity,
+            constitution,
+            intelligence,
+            wisdom,
+            charisma,
+            proficiency_bonus,
+        };
+        stat_block.validate()?;
+        Ok(stat_block)
+    }
+
+    pub fn validate(&self) -> Result<(), StatBlockError> {
+        if self.proficiency_bonus < 0 {
+            return Err(StatBlockError::NegativeProficiencyBonus);
+        }
+
+        Ok(())
+    }
 }

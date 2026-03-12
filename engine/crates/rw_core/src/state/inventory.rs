@@ -17,3 +17,23 @@ pub enum OwnedItemError {
     #[error("owned item quantity must be greater than zero")]
     ZeroQuantity,
 }
+
+impl OwnedItem {
+    pub fn new(item_id: ItemId, quantity: u32, equipped: bool) -> Result<Self, OwnedItemError> {
+        let owned_item = Self {
+            item_id,
+            quantity,
+            equipped,
+        };
+        owned_item.validate()?;
+        Ok(owned_item)
+    }
+
+    pub fn validate(&self) -> Result<(), OwnedItemError> {
+        if self.quantity == 0 {
+            return Err(OwnedItemError::ZeroQuantity);
+        }
+
+        Ok(())
+    }
+}
