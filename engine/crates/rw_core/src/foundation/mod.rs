@@ -2,4 +2,6 @@
 
 mod primitives;
 
-pub use primitives::{AbilityId, Dice, DiceSize, EffectId, ItemId, StatBlock, StatKind};
+pub use primitives::{
+    AbilityId, CharacterId, Dice, DiceSize, EffectId, ItemId, StatBlock, StatKind,
+};
