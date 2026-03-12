@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = ["crates/rw_core", "crates/rw_py"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/Robinator9002/Realmwright"
+authors = ["Robin"]
+
+[workspace.dependencies]
+pyo3 = { version = "0.24", features = ["extension-module"] }
+rw_core = { path = "crates/rw_core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
