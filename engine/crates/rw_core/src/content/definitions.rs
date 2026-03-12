@@ -3,7 +3,10 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::foundation::{AbilityId, Dice, DiceError, EffectId, ItemId, StatKind};
+use crate::foundation::{
+    AbilityId, BackgroundId, ClassId, Dice, DiceError, DiceSize, EffectId, ItemId, LineageId,
+    StatKind,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ModifierTarget {
@@ -172,6 +175,192 @@ impl AbilityDefinition {
             effect
                 .validate()
                 .map_err(|source| AbilityDefinitionError::InvalidEffect { index, source })?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LineageDefinition {
+    pub id: LineageId,
+    pub name: String,
+    pub description: String,
+    pub granted_abilities: Vec<AbilityId>,
+    pub effects: Vec<Effect>,
+}
+
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum LineageDefinitionError {
+    #[error("lineage name cannot be empty")]
+    EmptyName,
+    #[error("lineage description cannot be empty")]
+    EmptyDescription,
+    #[error("lineage contains an invalid effect at index {index}")]
+    InvalidEffect {
+        index: usize,
+        #[source]
+        source: EffectError,
+    },
+}
+
+impl LineageDefinition {
+    pub fn new(
+        id: LineageId,
+        name: impl Into<String>,
+        description: impl Into<String>,
+        granted_abilities: Vec<AbilityId>,
+        effects: Vec<Effect>,
+    ) -> Result<Self, LineageDefinitionError> {
+        let lineage = Self {
+            id,
+            name: name.into(),
+            description: description.into(),
+            granted_abilities,
+            effects,
+        };
+        lineage.validate()?;
+        Ok(lineage)
+    }
+
+    pub fn validate(&self) -> Result<(), LineageDefinitionError> {
+        if self.name.trim().is_empty() {
+            return Err(LineageDefinitionError::EmptyName);
+        }
+
+        if self.description.trim().is_empty() {
+            return Err(LineageDefinitionError::EmptyDescription);
+        }
+
+        for (index, effect) in self.effects.iter().enumerate() {
+            effect
+                .validate()
+                .map_err(|source| LineageDefinitionError::InvalidEffect { index, source })?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClassDefinition {
+    pub id: ClassId,
+    pub name: String,
+    pub description: String,
+    pub hit_die: DiceSize,
+    pub primary_stats: Vec<StatKind>,
+    pub granted_abilities: Vec<AbilityId>,
+    pub starting_items: Vec<ItemId>,
+}
+
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum ClassDefinitionError {
+    #[error("class name cannot be empty")]
+    EmptyName,
+    #[error("class description cannot be empty")]
+    EmptyDescription,
+    #[error("class must define at least one primary stat")]
+    MissingPrimaryStats,
+}
+
+impl ClassDefinition {
+    pub fn new(
+        id: ClassId,
+        name: impl Into<String>,
+        description: impl Into<String>,
+        hit_die: DiceSize,
+        primary_stats: Vec<StatKind>,
+        granted_abilities: Vec<AbilityId>,
+        starting_items: Vec<ItemId>,
+    ) -> Result<Self, ClassDefinitionError> {
+        let class = Self {
+            id,
+            name: name.into(),
+            description: description.into(),
+            hit_die,
+            primary_stats,
+            granted_abilities,
+            starting_items,
+        };
+        class.validate()?;
+        Ok(class)
+    }
+
+    pub fn validate(&self) -> Result<(), ClassDefinitionError> {
+        if self.name.trim().is_empty() {
+            return Err(ClassDefinitionError::EmptyName);
+        }
+
+        if self.description.trim().is_empty() {
+            return Err(ClassDefinitionError::EmptyDescription);
+        }
+
+        if self.primary_stats.is_empty() {
+            return Err(ClassDefinitionError::MissingPrimaryStats);
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BackgroundDefinition {
+    pub id: BackgroundId,
+    pub name: String,
+    pub description: String,
+    pub granted_abilities: Vec<AbilityId>,
+    pub starting_items: Vec<ItemId>,
+    pub effects: Vec<Effect>,
+}
+
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum BackgroundDefinitionError {
+    #[error("background name cannot be empty")]
+    EmptyName,
+    #[error("background description cannot be empty")]
+    EmptyDescription,
+    #[error("background contains an invalid effect at index {index}")]
+    InvalidEffect {
+        index: usize,
+        #[source]
+        source: EffectError,
+    },
+}
+
+impl BackgroundDefinition {
+    pub fn new(
+        id: BackgroundId,
+        name: impl Into<String>,
+        description: impl Into<String>,
+        granted_abilities: Vec<AbilityId>,
+        starting_items: Vec<ItemId>,
+        effects: Vec<Effect>,
+    ) -> Result<Self, BackgroundDefinitionError> {
+        let background = Self {
+            id,
+            name: name.into(),
+            description: description.into(),
+            granted_abilities,
+            starting_items,
+            effects,
+        };
+        background.validate()?;
+        Ok(background)
+    }
+
+    pub fn validate(&self) -> Result<(), BackgroundDefinitionError> {
+        if self.name.trim().is_empty() {
+            return Err(BackgroundDefinitionError::EmptyName);
+        }
+
+        if self.description.trim().is_empty() {
+            return Err(BackgroundDefinitionError::EmptyDescription);
+        }
+
+        for (index, effect) in self.effects.iter().enumerate() {
+            effect
+                .validate()
+                .map_err(|source| BackgroundDefinitionError::InvalidEffect { index, source })?;
         }
 
         Ok(())

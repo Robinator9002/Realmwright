@@ -6,13 +6,14 @@ pub mod ruleset;
 pub mod state;
 
 pub use content::{
-    AbilityDefinition, AbilityDefinitionError, AbilityKind, Effect, EffectError, EffectKind,
-    Enchantment, ItemDefinition, ItemDefinitionError, ItemKind, Modifier, ModifierError,
-    ModifierTarget,
+    AbilityDefinition, AbilityDefinitionError, AbilityKind, BackgroundDefinition,
+    BackgroundDefinitionError, ClassDefinition, ClassDefinitionError, Effect, EffectError,
+    EffectKind, Enchantment, ItemDefinition, ItemDefinitionError, ItemKind, LineageDefinition,
+    LineageDefinitionError, Modifier, ModifierError, ModifierTarget,
 };
 pub use foundation::{
-    AbilityId, CharacterId, Dice, DiceError, DiceSize, EffectId, ItemId, StatBlock,
-    StatBlockError, StatKind,
+    AbilityId, BackgroundId, CharacterId, ClassId, Dice, DiceError, DiceSize, EffectId, ItemId,
+    LineageId, StatBlock, StatBlockError, StatKind,
 };
 pub use ruleset::{Ruleset, RulesetError, RulesetOperationError};
 pub use state::{

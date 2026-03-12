@@ -3,6 +3,6 @@
 mod primitives;
 
 pub use primitives::{
-    AbilityId, CharacterId, Dice, DiceError, DiceSize, EffectId, ItemId, StatBlock,
-    StatBlockError, StatKind,
+    AbilityId, BackgroundId, CharacterId, ClassId, Dice, DiceError, DiceSize, EffectId, ItemId,
+    LineageId, StatBlock, StatBlockError, StatKind,
 };

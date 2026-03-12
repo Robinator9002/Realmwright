@@ -4,15 +4,16 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::{
-    AbilityId, CharacterId, ItemId, OwnedItem, OwnedItemError, Ruleset, StatBlock,
-    StatBlockError,
+    AbilityId, BackgroundId, CharacterId, ClassId, ItemId, LineageId, OwnedItem, OwnedItemError,
+    Ruleset, StatBlock, StatBlockError,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CharacterProfile {
     pub name: String,
     pub concept: String,
-    pub lineage: String,
+    pub lineage_id: LineageId,
+    pub background_id: BackgroundId,
 }
 
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
@@ -21,20 +22,20 @@ pub enum CharacterProfileError {
     EmptyName,
     #[error("character concept cannot be empty")]
     EmptyConcept,
-    #[error("character lineage cannot be empty")]
-    EmptyLineage,
 }
 
 impl CharacterProfile {
     pub fn new(
         name: impl Into<String>,
         concept: impl Into<String>,
-        lineage: impl Into<String>,
+        lineage_id: LineageId,
+        background_id: BackgroundId,
     ) -> Result<Self, CharacterProfileError> {
         let profile = Self {
             name: name.into(),
             concept: concept.into(),
-            lineage: lineage.into(),
+            lineage_id,
+            background_id,
         };
         profile.validate()?;
         Ok(profile)
@@ -47,10 +48,6 @@ impl CharacterProfile {
 
         if self.concept.trim().is_empty() {
             return Err(CharacterProfileError::EmptyConcept);
-        }
-
-        if self.lineage.trim().is_empty() {
-            return Err(CharacterProfileError::EmptyLineage);
         }
 
         Ok(())
@@ -95,6 +92,7 @@ impl CharacterAbility {
 pub struct Character {
     pub id: CharacterId,
     pub profile: CharacterProfile,
+    pub class_id: ClassId,
     pub level: u8,
     pub stats: StatBlock,
     pub inventory: Vec<OwnedItem>,
@@ -133,7 +131,9 @@ pub enum CharacterOperationError {
     UnknownAbility { ability_id: AbilityId },
     #[error("character does not own item {item_id:?}")]
     UnknownItem { item_id: ItemId },
-    #[error("character does not have enough of item {item_id:?}: requested {requested}, available {available}")]
+    #[error(
+        "character does not have enough of item {item_id:?}: requested {requested}, available {available}"
+    )]
     InsufficientItemQuantity {
         item_id: ItemId,
         requested: u32,
@@ -147,12 +147,19 @@ pub enum CharacterOperationError {
     UnknownRulesetAbility { ability_id: AbilityId },
     #[error("ruleset does not contain item {item_id:?}")]
     UnknownRulesetItem { item_id: ItemId },
+    #[error("ruleset does not contain lineage {lineage_id:?}")]
+    UnknownRulesetLineage { lineage_id: LineageId },
+    #[error("ruleset does not contain background {background_id:?}")]
+    UnknownRulesetBackground { background_id: BackgroundId },
+    #[error("ruleset does not contain class {class_id:?}")]
+    UnknownRulesetClass { class_id: ClassId },
 }
 
 impl Character {
     pub fn new(
         id: CharacterId,
         profile: CharacterProfile,
+        class_id: ClassId,
         level: u8,
         stats: StatBlock,
         inventory: Vec<OwnedItem>,
@@ -161,6 +168,7 @@ impl Character {
         let character = Self {
             id,
             profile,
+            class_id,
             level,
             stats,
             inventory,
@@ -183,10 +191,8 @@ impl Character {
             .map_err(CharacterError::InvalidStatBlock)?;
 
         for (index, item) in self.inventory.iter().enumerate() {
-            item.validate().map_err(|source| CharacterError::InvalidInventoryItem {
-                index,
-                source,
-            })?;
+            item.validate()
+                .map_err(|source| CharacterError::InvalidInventoryItem { index, source })?;
         }
 
         for (index, ability) in self.abilities.iter().enumerate() {
@@ -240,7 +246,11 @@ impl Character {
             return Err(CharacterOperationError::ZeroQuantity);
         }
 
-        if let Some(item) = self.inventory.iter_mut().find(|item| item.item_id == item_id) {
+        if let Some(item) = self
+            .inventory
+            .iter_mut()
+            .find(|item| item.item_id == item_id)
+        {
             item.quantity += quantity;
             return Ok(());
         }
@@ -262,7 +272,11 @@ impl Character {
             return Err(CharacterOperationError::ZeroQuantity);
         }
 
-        let Some(index) = self.inventory.iter().position(|item| item.item_id == item_id) else {
+        let Some(index) = self
+            .inventory
+            .iter()
+            .position(|item| item.item_id == item_id)
+        else {
             return Err(CharacterOperationError::UnknownItem { item_id });
         };
 
@@ -284,11 +298,12 @@ impl Character {
         Ok(())
     }
 
-    pub fn equip_item(
-        &mut self,
-        item_id: ItemId,
-    ) -> Result<(), CharacterOperationError> {
-        let Some(item) = self.inventory.iter_mut().find(|item| item.item_id == item_id) else {
+    pub fn equip_item(&mut self, item_id: ItemId) -> Result<(), CharacterOperationError> {
+        let Some(item) = self
+            .inventory
+            .iter_mut()
+            .find(|item| item.item_id == item_id)
+        else {
             return Err(CharacterOperationError::UnknownItem { item_id });
         };
 
@@ -300,11 +315,12 @@ impl Character {
         Ok(())
     }
 
-    pub fn unequip_item(
-        &mut self,
-        item_id: ItemId,
-    ) -> Result<(), CharacterOperationError> {
-        let Some(item) = self.inventory.iter_mut().find(|item| item.item_id == item_id) else {
+    pub fn unequip_item(&mut self, item_id: ItemId) -> Result<(), CharacterOperationError> {
+        let Some(item) = self
+            .inventory
+            .iter_mut()
+            .find(|item| item.item_id == item_id)
+        else {
             return Err(CharacterOperationError::UnknownItem { item_id });
         };
 
@@ -326,8 +342,8 @@ impl Character {
             return Err(CharacterOperationError::UnknownRulesetAbility { ability_id });
         }
 
-        let ability =
-            CharacterAbility::new(ability_id, source).expect("ruleset-driven ability source must be valid");
+        let ability = CharacterAbility::new(ability_id, source)
+            .expect("ruleset-driven ability source must be valid");
         self.learn_ability(ability)
     }
 
@@ -345,6 +361,24 @@ impl Character {
     }
 
     pub fn validate_against(&self, ruleset: &Ruleset) -> Result<(), CharacterOperationError> {
+        if !ruleset.contains_lineage(self.profile.lineage_id) {
+            return Err(CharacterOperationError::UnknownRulesetLineage {
+                lineage_id: self.profile.lineage_id,
+            });
+        }
+
+        if !ruleset.contains_background(self.profile.background_id) {
+            return Err(CharacterOperationError::UnknownRulesetBackground {
+                background_id: self.profile.background_id,
+            });
+        }
+
+        if !ruleset.contains_class(self.class_id) {
+            return Err(CharacterOperationError::UnknownRulesetClass {
+                class_id: self.class_id,
+            });
+        }
+
         for ability in &self.abilities {
             if !ruleset.contains_ability(ability.ability_id) {
                 return Err(CharacterOperationError::UnknownRulesetAbility {
