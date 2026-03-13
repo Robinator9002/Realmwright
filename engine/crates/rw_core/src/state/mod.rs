@@ -5,8 +5,8 @@ mod effects;
 mod inventory;
 
 pub use character::{
-    Character, CharacterAbility, CharacterAbilityError, CharacterError, CharacterProfile,
-    CharacterOperationError, CharacterProfileError,
+    Character, CharacterAbility, CharacterAbilityError, CharacterError, CharacterOperationError,
+    CharacterProfile, CharacterProfileError,
 };
 pub use effects::{ActiveEffect, ActiveEffectError};
 pub use inventory::{OwnedItem, OwnedItemError};

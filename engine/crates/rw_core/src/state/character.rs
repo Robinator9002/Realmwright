@@ -156,6 +156,68 @@ pub enum CharacterOperationError {
 }
 
 impl Character {
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_from_ruleset(
+        ruleset: &Ruleset,
+        id: CharacterId,
+        name: impl Into<String>,
+        concept: impl Into<String>,
+        lineage_id: LineageId,
+        background_id: BackgroundId,
+        class_id: ClassId,
+        level: u8,
+        stats: StatBlock,
+        inventory: Vec<OwnedItem>,
+        abilities: Vec<CharacterAbility>,
+    ) -> Result<Self, CharacterOperationError> {
+        let lineage = ruleset
+            .lineage(lineage_id)
+            .ok_or(CharacterOperationError::UnknownRulesetLineage { lineage_id })?;
+        let background = ruleset
+            .background(background_id)
+            .ok_or(CharacterOperationError::UnknownRulesetBackground { background_id })?;
+        let class = ruleset
+            .class(class_id)
+            .ok_or(CharacterOperationError::UnknownRulesetClass { class_id })?;
+
+        let profile = CharacterProfile::new(name, concept, lineage_id, background_id)
+            .expect("ruleset-driven character profile must validate");
+
+        let mut character = Self::new(id, profile, class_id, level, stats, inventory, abilities)
+            .expect("ruleset-driven character state must validate");
+
+        for ability_id in lineage
+            .granted_abilities
+            .iter()
+            .chain(background.granted_abilities.iter())
+            .chain(class.granted_abilities.iter())
+            .copied()
+        {
+            if !ruleset.contains_ability(ability_id) {
+                return Err(CharacterOperationError::UnknownRulesetAbility { ability_id });
+            }
+
+            if !character.has_ability(ability_id) {
+                character.learn_ability(
+                    CharacterAbility::new(ability_id, "ruleset grant")
+                        .expect("ruleset grant source must validate"),
+                )?;
+            }
+        }
+
+        for item_id in background
+            .starting_items
+            .iter()
+            .chain(class.starting_items.iter())
+            .copied()
+        {
+            character.add_item_from_ruleset(ruleset, item_id, 1)?;
+        }
+
+        character.validate_against(ruleset)?;
+        Ok(character)
+    }
+
     pub fn new(
         id: CharacterId,
         profile: CharacterProfile,
